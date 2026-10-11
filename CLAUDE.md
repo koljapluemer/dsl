@@ -1,0 +1,4 @@
+- you do not have git write access.
+- do not do "visual" checks. do not "look at" the browser.
+- do not repeatedly inform the user of what's in this CLAUDE.md, I already know.
+- Internal app for personal use. Do not add cutesy features or marketing waffle.

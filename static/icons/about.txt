@@ -1,0 +1,1 @@
+icon.svg: the Lucide "notebook-pen" glyph (ISC license, https://lucide.dev) on a rounded square.

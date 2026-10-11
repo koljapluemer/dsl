@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=Items
+Exec=uv run --project /ABS/PATH/TO/dsl-crud /ABS/PATH/TO/dsl-crud/app.py
+Icon=dsl-crud
+Terminal=false
+Categories=Office;

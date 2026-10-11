@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Items</title>
+  <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='icons/icon.svg') }}">
+  <link href="https://cdn.jsdelivr.net/npm/daisyui@5" rel="stylesheet" type="text/css">
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.prod.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/lucide@latest/dist/umd/lucide.min.js"></script>
+  <script type="importmap">
+  {
+    "imports": {
+      "@codemirror/state": "https://esm.sh/*@codemirror/state@6.7.6",
+      "@codemirror/view": "https://esm.sh/*@codemirror/view@6.43.14",
+      "@codemirror/language": "https://esm.sh/*@codemirror/language@6.13.1",
+      "@codemirror/streamparser": "https://esm.sh/@codemirror/streamparser@6.0.0",
+      "@codemirror/commands": "https://esm.sh/*@codemirror/commands@6.11.1",
+      "@codemirror/lint": "https://esm.sh/*@codemirror/lint@6.9.7",
+      "@lezer/common": "https://esm.sh/@lezer/common@1.5.3",
+      "@lezer/highlight": "https://esm.sh/*@lezer/highlight@1.2.5",
+      "@marijn/find-cluster-break": "https://esm.sh/@marijn/find-cluster-break@1.0.4",
+      "style-mod": "https://esm.sh/style-mod@4.1.4",
+      "crelt": "https://esm.sh/crelt@1.0.7",
+      "w3c-keyname": "https://esm.sh/w3c-keyname@2.2.8"
+    }
+  }
+  </script>
+  <style>
+    /* item language tokens, shared by the editor and the list */
+    .tok-primary { color: var(--color-primary); font-weight: 600; }
+    .tok-modifier { color: var(--color-secondary); font-weight: 600; }
+    .tok-option { color: var(--color-accent); }
+    .tok-date, .tok-month { color: var(--color-info); }
+    .tok-weekday { color: var(--color-success); }
+    .tok-unknown { color: color-mix(in oklab, var(--color-base-content) 50%, transparent); font-style: italic; }
+    .tok-error { text-decoration: underline wavy var(--color-error); }
+  </style>
+</head>
+<body>
+  <div id="app" class="max-w-5xl mx-auto p-4"></div>
+  <script type="module" src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>
