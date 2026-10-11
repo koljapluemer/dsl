@@ -1,0 +1,42 @@
+# Every keyword of the item language. Syntax and value types: language.md.
+#
+# Per keyword:
+#   role:     primary  — may start the keyword section (see "boundary"); an
+#                        item needs at least one
+#             modifier — may only appear inside the keyword section
+#   args:     positional arguments, all required: {name, type}
+#   options:  named optional sub-keywords, each followed by one value:
+#             {<option>: {type, meaning}}
+#   excludes: keywords that may not appear in the same item (declare on both)
+#   meaning:  what the keyword does — the part frontends must agree on
+#
+# A type is one name from language.md, or a list of them.
+
+version: 1
+
+changes:
+  - version: 1
+    note: Initial version — appointment, recurring.
+
+keywords:
+  appointment:
+    role: primary
+    args:
+      - { name: date, type: date }
+    excludes: [recurring]
+    meaning: The item falls on `date` only.
+
+  recurring:
+    role: primary
+    args:
+      - { name: weekday, type: weekday }
+    options:
+      until:
+        type: [date, month]
+        meaning: >
+          Last day on which the item falls, inclusive. A `month` means that
+          month's last day.
+    excludes: [appointment]
+    meaning: >
+      The item falls on every `weekday`, with no start bound, up to and
+      including `until` when given.
