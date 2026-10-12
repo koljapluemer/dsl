@@ -1,0 +1,3 @@
+- do not run 'visual checks' in any repo.
+- do not look for the actual notes on the disk. never ever directly read, write or delete the actual notes on the disk folder
+- you do not have git write access in any folder or repo.
