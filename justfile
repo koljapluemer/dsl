@@ -12,6 +12,10 @@ run:
 sync-spec:
     cp {{dir}}/../dsl/spec/keywords.yaml {{dir}}/spec/keywords.yaml
 
+# regenerate favicon/desktop icons from the app's emoji (needs ../scripts)
+icons:
+    uv run --project {{dir}}/../scripts {{dir}}/../scripts/emoji-icons/run.py ✍️ {{dir}}/static/icons --name dsl
+
 # install as desktop app (Ubuntu/GNOME); restarts the server if running
 reinstall:
     #!/usr/bin/env bash

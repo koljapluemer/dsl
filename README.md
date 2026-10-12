@@ -34,7 +34,7 @@ just sync-spec
 just reinstall
 ```
 
-Installs icon and `.desktop` entry ("Items" in application search, pinnable to the dock). Rerun after code changes: it refreshes the entry and restarts the server if it's running (the server otherwise keeps running in the background; relaunching only reopens the browser).
+Installs icon and `.desktop` entry ("dsl" in application search, pinnable to the dock). Rerun after code changes: it refreshes the entry and restarts the server if it's running (the server otherwise keeps running in the background; relaunching only reopens the browser).
 
 ## Test
 
