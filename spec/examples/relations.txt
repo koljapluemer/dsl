@@ -1,0 +1,5 @@
+Thesis outline
+
+-> clarifies @research-question-0a1b2c
+->   is  part of   @thesis-ab12cd
+-> @loose-link-1758540000000

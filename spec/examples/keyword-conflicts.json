@@ -1,0 +1,12 @@
+{
+  "clauses": [
+    { "keyword": "appointment", "line": 2, "args": ["26-10-12"], "options": {} },
+    { "keyword": "recurring", "line": 2, "args": ["mo"], "options": {} },
+    { "keyword": "media", "line": 4, "args": ["a.png"], "options": {} }
+  ],
+  "errors": [
+    { "code": "conflicting_keywords", "line": 2 },
+    { "code": "duplicate_keyword", "line": 3 },
+    { "code": "unexpected_token", "line": 4 }
+  ]
+}

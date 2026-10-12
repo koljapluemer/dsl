@@ -1,0 +1,7 @@
+{
+  "body": "HCI lecture 4pm-7pm\n(bring laptop)",
+  "clauses": [{ "keyword": "recurring", "line": 4, "args": ["mo"], "options": { "until": "27-03" } }],
+  "unknown": ["iterable d 4 0.4"],
+  "errors": [],
+  "warnings": [{ "code": "unknown_keyword", "line": 5 }]
+}

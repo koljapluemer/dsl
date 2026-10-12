@@ -1,0 +1,8 @@
+{
+  "body": "Escaped\n -> not a relation @x-123456\n extra\n media images/a.png\nlast body line",
+  "clauses": [],
+  "relations": [],
+  "extra": null,
+  "errors": [],
+  "warnings": []
+}
