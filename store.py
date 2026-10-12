@@ -5,6 +5,7 @@ import os
 import re
 import secrets
 import threading
+import zlib
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -126,27 +127,46 @@ class _Index:
 _INDEX = _Index()
 
 
-def list_page(q: str = "", attention: bool = False, page: int = 0) -> dict:
-    """One page of items (by file name) whose text contains `q`, optionally
-    only those needing attention; plus the counts and the recently edited."""
+def list_page(q: str = "", attention: bool = False, page: int = 0, seed: int = 0, focus: str | None = None) -> dict:
+    """One page of items whose text contains `q`, optionally only those needing
+    attention, in an order shuffled by `seed` (stable across pages and filters
+    for one seed); plus the counts. With `focus`, the page holding that file
+    instead, and `focused` says whether it was among the matches."""
     entries = _INDEX.refresh()
     needle = q.strip().lower()
+    seed &= 0xFFFFFFFF
     names = sorted(
-        n for n, e in entries.items() if (not attention or e.flagged) and (not needle or needle in e.lower)
+        (n for n, e in entries.items() if (not attention or e.flagged) and (not needle or needle in e.lower)),
+        key=lambda n: (zlib.crc32(n.encode(), seed), n),
     )
-    start = max(page, 0) * PAGE_SIZE
+    focused = focus is not None and focus in names
+    if focused:
+        page = names.index(focus) // PAGE_SIZE
+    page = max(page, 0)
+    start = page * PAGE_SIZE
     return {
-        "items": [_read(_dir() / n) for n in names[start : start + PAGE_SIZE]],
+        "items": [_with_refs(_read(_dir() / n), entries) for n in names[start : start + PAGE_SIZE]],
         "total": len(names),
         "flagged": sum(e.flagged for e in entries.values()),
         "page_size": PAGE_SIZE,
-        "recent": recent(entries),
+        "page": page,
+        "focused": focused,
     }
 
 
-def recent(entries: dict[str, _Entry], n: int = 3) -> list[str]:
-    """File names of the n most recently modified items, newest first."""
-    return sorted(entries, key=lambda name: entries[name].mtime_ns, reverse=True)[:n]
+def _with_refs(item: dict, entries: dict[str, _Entry]) -> dict:
+    """Adds `refs`: each relationship target's heading, or None when there's no
+    such item."""
+    targets = {r.target for r in dsl.parse(SCHEMA, item["text"]).relations}
+    item["refs"] = {t: _heading(t) if f"{t}.txt" in entries else None for t in sorted(targets)}
+    return item
+
+
+def _heading(name: str) -> str | None:
+    try:
+        return dsl.parse(SCHEMA, (_dir() / f"{name}.txt").read_text(encoding="utf-8")).heading
+    except (OSError, UnicodeDecodeError):
+        return None
 
 
 def get(name: str) -> dict:
@@ -174,7 +194,7 @@ def _new_name(text: str) -> str:
 def _write(path: Path, text: str) -> None:
     try:
         if path.read_text(encoding="utf-8") == text:
-            return  # unchanged: keep mtime so "recently edited" stays meaningful
+            return  # unchanged: keep the mtime
     except OSError:
         pass
     tmp = path.with_name(f".{path.name}.tmp")

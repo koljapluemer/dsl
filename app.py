@@ -59,7 +59,13 @@ def put_settings():
 @app.get("/api/items")
 def list_items():
     args = request.args
-    return jsonify(store.list_page(args.get("q", ""), args.get("attention") == "1", args.get("page", 0, type=int)))
+    return jsonify(store.list_page(
+        args.get("q", ""),
+        args.get("attention") == "1",
+        args.get("page", 0, type=int),
+        args.get("seed", 0, type=int),
+        args.get("focus") or None,
+    ))
 
 
 @app.get("/api/items/<name>")

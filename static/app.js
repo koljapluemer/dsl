@@ -5,7 +5,7 @@
  * @typedef {{role: 'primary'|'property'|'modifier'|'state', args: ArgDef[], options: Record<string, {type: ValueType[], meaning: string}>, excludes: string[], meaning: string}} KeywordDef
  * @typedef {{version: number, keywords: Record<string, KeywordDef>}} Schema
  * @typedef {{code: string, line: number | null, detail: string | null}} Diagnostic
- * @typedef {{file: string, text: string, errors: Diagnostic[], warnings: Diagnostic[]}} Item
+ * @typedef {{file: string, text: string, errors: Diagnostic[], warnings: Diagnostic[], refs?: Record<string, string | null>}} Item
  */
 
 import { EditorState } from '@codemirror/state';
@@ -14,9 +14,13 @@ import { history, historyKeymap, defaultKeymap } from '@codemirror/commands';
 import { linter } from '@codemirror/lint';
 
 // @ts-ignore globals from CDN
-const { createApp, ref, computed, onMounted, onBeforeUnmount, watch, h } = Vue;
+const { createApp, ref, computed, onMounted, onBeforeUnmount, nextTick, h } = Vue;
 // @ts-ignore
 const lucide_ = lucide;
+// @ts-ignore
+const marked_ = marked;
+// @ts-ignore
+const purify = DOMPurify;
 
 /**
  * @param {string} method
@@ -93,27 +97,37 @@ function isSectionOpener(line) {
  */
 
 /**
- * Highlighting and problems for item text, as absolute offsets; mirrors dsl.parse.
- * Drives the editor's decorations and lint, and the list's rendering.
+ * The parts of item text, as line indices: the body runs from `first` (-1 for an
+ * empty text) to `boundary`, the keyword section from there to `marker`, which
+ * is `lines.length` when there's no extra block. Mirrors the start of dsl.parse.
  * @param {string} text
- * @returns {{segments: Segment[], problems: Problem[]}}
  */
-function analyze(text) {
+function outline(text) {
   const lines = text.split('\n');
   /** @type {number[]} */
   const starts = [];
   lines.reduce((at, l) => { starts.push(at); return at + l.length + 1; }, 0);
+  const first = lines.findIndex((l) => l.trim());
+  let boundary = first < 0 ? lines.length : first + 1;
+  while (boundary < lines.length && !isSectionOpener(lines[boundary])) boundary++;
+  let marker = boundary;
+  while (marker < lines.length && !isExtraMarker(lines[marker])) marker++;
+  return { lines, starts, first, boundary, marker };
+}
+
+/**
+ * Highlighting and problems for item text, as absolute offsets; mirrors dsl.parse.
+ * Drives the editor's decorations and lint, and the list's keyword lines.
+ * @param {string} text
+ * @returns {{segments: Segment[], problems: Problem[]}}
+ */
+function analyze(text) {
+  const { lines, starts, first, boundary, marker } = outline(text);
   /** @type {Segment[]} */
   const segments = [];
   /** @type {Problem[]} */
   const problems = [];
-
-  const first = lines.findIndex((l) => l.trim());
   if (first < 0) return { segments, problems };
-  let boundary = first + 1;
-  while (boundary < lines.length && !isSectionOpener(lines[boundary])) boundary++;
-  let marker = boundary;
-  while (marker < lines.length && !isExtraMarker(lines[marker])) marker++;
 
   /** @type {Seen} */
   const seen = { keywords: [], clauses: [] };
@@ -146,10 +160,10 @@ function sectionLine(line, at, seen, segments, problems) {
   const to = from + trimmed.length;
   const fail = (/** @type {string} */ message) => problems.push({ from, to, severity: 'error', message });
 
-  if (trimmed === '->' || /^->\s/.test(trimmed)) {
-    const target = trimmed.slice(2).trim().split(/\s+/).at(-1) || '';
-    if (target.length < 2 || !target.startsWith('@') || /[/\\]/.test(target)) return fail('invalid_relation: expected -> label @target');
-    segments.push({ from, to: from + 2, cls: 'tok-relation' }, { from: to - target.length, to, cls: 'tok-target', title: target.slice(1) + '.txt' });
+  if (isRelationLine(trimmed)) {
+    const rel = relation(trimmed);
+    if (!rel) return fail('invalid_relation: expected -> label @target');
+    segments.push({ from, to: from + 2, cls: 'tok-relation' }, { from: to - rel.target.length - 1, to, cls: 'tok-target', title: rel.target + '.txt' });
     return;
   }
 
@@ -186,6 +200,20 @@ function sectionLine(line, at, seen, segments, problems) {
     i = clause(toks, i, to, seen, segments, problems);
     if (i < 0) return;
   }
+}
+
+/** @param {string} trimmed a trimmed section line */
+const isRelationLine = (trimmed) => trimmed === '->' || /^->\s/.test(trimmed);
+
+/**
+ * A relationship line's label and target name (without `@`), or null when it's
+ * malformed; mirrors dsl's _relation.
+ * @param {string} trimmed
+ */
+function relation(trimmed) {
+  const target = trimmed.slice(2).trim().split(/\s+/).at(-1) || '';
+  if (target.length < 2 || !target.startsWith('@') || /[/\\]/.test(target)) return null;
+  return { label: trimmed.slice(2, -target.length).trim(), target: target.slice(1) };
 }
 
 /**
@@ -259,28 +287,74 @@ function clause(toks, i, end, seen, segments, problems) {
 const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
 /**
- * Item text as highlighted HTML, for read-only display.
+ * The text from `from` to `to` as highlighted HTML, for read-only display.
  * @param {string} text
+ * @param {{segments: Segment[], problems: Problem[]}} analysis of `text`
+ * @param {number} from
+ * @param {number} to
  */
-function highlightHtml(text) {
-  const { segments, problems } = analyze(text);
-  const errors = problems.filter((p) => p.severity === 'error');
+function highlightHtml(text, { segments, problems }, from, to) {
   /** @type {Segment[]} */
-  const marks = [...segments];
-  for (const e of errors) {
+  const marks = segments.map((m) => ({ ...m }));
+  for (const e of problems.filter((p) => p.severity === 'error')) {
     const seg = marks.find((m) => m.from === e.from && m.to === e.to);
     if (seg) Object.assign(seg, { cls: `${seg.cls} tok-error`, title: e.message });
     else marks.push({ from: e.from, to: e.to, cls: 'tok-error', title: e.message });
   }
   marks.sort((x, y) => x.from - y.from);
   let out = '';
-  let pos = 0;
+  let pos = from;
   for (const m of marks) {
-    if (m.from < pos) continue;
+    if (m.from < pos || m.to > to) continue;
     out += esc(text.slice(pos, m.from)) + `<span class="${m.cls}"${m.title ? ` title="${esc(m.title)}"` : ''}>${esc(text.slice(m.from, m.to))}</span>`;
     pos = m.to;
   }
-  return out + esc(text.slice(pos));
+  return out + esc(text.slice(pos, to));
+}
+
+/** @param {string} s */
+const markdown = (s) => purify.sanitize(marked_.parse(s, { breaks: true, async: false }));
+
+/**
+ * An item for the list: body and extra as markdown, relationships as links to
+ * their targets (shown by heading, from `refs`; `data-ref` holds the file
+ * name), and only keyword lines in monospace, highlighted.
+ * @param {Item} item
+ */
+function overviewHtml(item) {
+  const text = item.text.trimEnd();
+  const { lines, starts, first, boundary, marker } = outline(text);
+  const analysis = analyze(text);
+  const code = (/** @type {number} */ i) =>
+    `<div class="ov-code">${highlightHtml(text, analysis, starts[i], starts[i] + lines[i].length)}</div>`;
+  let section = '';
+  for (let i = boundary; i < marker; i++) {
+    const trimmed = lines[i].trim();
+    const rel = isRelationLine(trimmed) && relation(trimmed);
+    if (rel) section += refHtml(rel, item.refs);
+    else if (trimmed) section += code(i);
+  }
+  let extra = '';
+  if (marker < lines.length) {
+    const content = lines.slice(marker + 1).join('\n');
+    extra = content.trim() ? `<div class="ov-extra md">${markdown(content)}</div>` : code(marker);
+  }
+  return (first < 0 ? '' : `<div class="md">${markdown(lines.slice(first, boundary).join('\n'))}</div>`)
+    + (section && `<div class="ov-section">${section}</div>`)
+    + extra;
+}
+
+/**
+ * @param {{label: string, target: string}} rel
+ * @param {Record<string, string | null>} [refs] target headings; null for a missing target
+ */
+function refHtml({ label, target }, refs) {
+  const file = esc(target + '.txt');
+  const heading = refs?.[target];
+  const link = heading === null
+    ? `<span class="ov-missing" title="no item ${file}">${esc(target)}</span>`
+    : `<a class="link link-hover" data-ref="${file}" title="${file}">${esc(heading || target)}</a>`;
+  return `<div><span class="ov-muted">${label ? esc(label) + ' ' : ''}→</span> ${link}</div>`;
 }
 
 /** Decorations from `analyze`, recomputed per change (items are a few lines). */
@@ -426,6 +500,9 @@ const ItemEditor = {
     </div>`,
 };
 
+/** Shuffles the list's order; kept until the page reloads, so the order stays put while working. */
+const SEED = Math.floor(Math.random() * 2 ** 32);
+
 const ItemList = {
   components: { Icon },
   emits: ['error', 'deleted'],
@@ -437,29 +514,71 @@ const ItemList = {
     const total = ref(0);
     const flagged = ref(0);
     const pageSize = ref(1);
-    const recent = ref(/** @type {string[]} */ ([]));
+    /** the item last jumped to via a reference */
+    const focused = ref(/** @type {string | null} */ (null));
     let loadTimer = 0;
+    let loads = 0;
 
-    async function load() {
-      const params = new URLSearchParams({ q: query.value, page: String(page.value), ...(attention.value ? { attention: '1' } : {}) });
+    /**
+     * The current page, or with `focus` the page holding that item, scrolled to
+     * it; clears the filters when they hide it.
+     * @param {string | null} [focus]
+     */
+    async function load(focus = null) {
+      const n = ++loads;
+      const params = new URLSearchParams({
+        q: query.value, page: String(page.value), seed: String(SEED),
+        ...(attention.value ? { attention: '1' } : {}), ...(focus ? { focus } : {}),
+      });
       try {
         const res = await api('GET', `/api/items?${params}`);
+        if (n !== loads) return;
+        if (focus && !res.focused) {
+          if (!query.value && !attention.value) throw new Error(`'${focus}' not found`);
+          query.value = '';
+          attention.value = false;
+          syncHash();
+          return load(focus);
+        }
         rows.value = res.items;
         total.value = res.total;
         flagged.value = res.flagged;
         pageSize.value = res.page_size;
-        recent.value = res.recent;
+        page.value = res.page;
+        focused.value = focus;
+        if (focus) {
+          await nextTick();
+          document.getElementById('item:' + focus)?.scrollIntoView({ block: 'center' });
+        }
       } catch (e) { emit('error', e); }
     }
 
-    watch(query, (q) => {
-      listHash.value = q ? '#/?' + new URLSearchParams({ q }) : '#/';
+    function syncHash() {
+      listHash.value = query.value ? '#/?' + new URLSearchParams({ q: query.value }) : '#/';
       history.replaceState(null, '', listHash.value);
+    }
+
+    /** @param {string} q */
+    function setQuery(q) {
+      query.value = q;
+      syncHash();
       page.value = 0;
       clearTimeout(loadTimer);
       loadTimer = setTimeout(load, 200);
-    });
-    watch([attention, page], load);
+    }
+
+    function toggleAttention() {
+      attention.value = !attention.value;
+      page.value = 0;
+      load();
+    }
+
+    /** @param {number} p */
+    function goPage(p) {
+      page.value = p;
+      load();
+    }
+
     onMounted(load);
 
     const pages = computed(() => Math.max(1, Math.ceil(total.value / pageSize.value)));
@@ -473,33 +592,45 @@ const ItemList = {
       } catch (e) { emit('error', e); }
     }
 
-    const recentBg = ['bg-yellow-400/50!', 'bg-yellow-400/30!', 'bg-yellow-400/15!'];
-    /** @param {Item} i */
-    const rowClass = (i) => recentBg[recent.value.indexOf(i.file)] || 'hover:bg-base-200';
+    /** A reference jumps to its item, other links open in a new tab, the rest of the row opens the editor. */
+    function rowClick(/** @type {MouseEvent} */ e, /** @type {Item} */ i) {
+      const a = /** @type {HTMLAnchorElement | null} */ ((/** @type {Element} */ (e.target)).closest('a'));
+      if (a?.dataset.ref) {
+        clearTimeout(loadTimer);
+        load(a.dataset.ref);
+      } else if (a?.href) {
+        e.preventDefault();
+        window.open(a.href, '_blank', 'noopener');
+      } else {
+        go('#/edit/' + encodeURIComponent(i.file));
+      }
+    }
+
     /** @param {Item} i */
     const problems = (i) => [...i.errors, ...i.warnings].map(describe).join('\n');
 
-    return { query, attention, page, pages, total, flagged, rows, rowClass, problems, remove, highlight: (/** @type {string} */ t) => highlightHtml(t.trimEnd()), edit: (/** @type {string} */ f) => go('#/edit/' + encodeURIComponent(f)) };
+    return { query, attention, page, pages, total, flagged, rows, focused, problems, remove, setQuery, toggleAttention, goPage, rowClick, overview: overviewHtml };
   },
   template: `
     <div>
       <div class="flex gap-1 mb-2">
         <a href="#/new" class="btn" title="new item"><icon name="plus"></icon>New</a>
-        <button class="btn" :class="{'btn-active': attention}" title="needs attention" @click="attention = !attention; page = 0">
+        <button class="btn" :class="{'btn-active': attention}" title="needs attention" @click="toggleAttention">
           <icon name="triangle-alert"></icon>{{ flagged }}</button>
         <a href="#/settings" class="btn" title="settings"><icon name="settings"></icon>Settings</a>
       </div>
       <div class="mb-4">
-        <input class="input w-full" type="search" v-model="query" placeholder="Filter" autofocus>
+        <input class="input w-full" type="search" :value="query" @input="setQuery($event.target.value)" placeholder="Filter" autofocus>
       </div>
-      <table class="table table-xs table-zebra">
+      <table class="table table-zebra">
         <tbody>
-          <tr v-for="i in rows" :key="i.file" :class="rowClass(i)" class="cursor-pointer" @click="edit(i.file)">
+          <tr v-for="i in rows" :key="i.file" :id="'item:' + i.file" class="cursor-pointer hover:bg-base-200"
+              :class="{'outline-2 -outline-offset-2 outline-primary': i.file === focused}" @click="rowClick($event, i)">
             <td class="w-4 align-top" :title="problems(i)">
               <icon v-if="i.errors.length" name="circle-x" :size="14" class="text-error"></icon>
               <icon v-else-if="i.warnings.length" name="triangle-alert" :size="14" class="text-warning"></icon>
             </td>
-            <td><pre class="font-mono whitespace-pre-wrap break-words" v-html="highlight(i.text)"></pre></td>
+            <td class="overview" v-html="overview(i)"></td>
             <td class="w-4 align-top text-right">
               <button class="btn btn-ghost btn-xs btn-square text-error" title="delete" @click.stop="remove(i)"><icon name="trash-2" :size="14"></icon></button>
             </td>
@@ -507,9 +638,9 @@ const ItemList = {
         </tbody>
       </table>
       <div v-if="pages > 1" class="join mt-4">
-        <button class="btn join-item" :disabled="page === 0" @click="page--"><icon name="chevron-left"></icon></button>
+        <button class="btn join-item" :disabled="page === 0" @click="goPage(page - 1)"><icon name="chevron-left"></icon></button>
         <span class="btn join-item pointer-events-none">{{ page + 1 }} / {{ pages }} · {{ total }}</span>
-        <button class="btn join-item" :disabled="page + 1 >= pages" @click="page++"><icon name="chevron-right"></icon></button>
+        <button class="btn join-item" :disabled="page + 1 >= pages" @click="goPage(page + 1)"><icon name="chevron-right"></icon></button>
       </div>
     </div>`,
 };
