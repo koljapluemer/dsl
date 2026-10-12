@@ -555,7 +555,7 @@ const ItemList = {
 
     function syncHash() {
       listHash.value = query.value ? '#/?' + new URLSearchParams({ q: query.value }) : '#/';
-      history.replaceState(null, '', listHash.value);
+      window.history.replaceState(null, '', listHash.value);
     }
 
     /** @param {string} q */
@@ -729,7 +729,7 @@ createApp({
     async function itemSaved(file) {
       error.value = '';
       if (page.value === 'new') {
-        history.replaceState(null, '', `#/edit/${encodeURIComponent(file)}`);
+        window.history.replaceState(null, '', `#/edit/${encodeURIComponent(file)}`);
         route.value = location.hash;
       }
     }
