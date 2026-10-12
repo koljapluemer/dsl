@@ -30,10 +30,12 @@
   <style>
     /* item language tokens, shared by the editor and the list */
     .tok-primary { color: var(--color-primary); font-weight: 600; }
-    .tok-modifier { color: var(--color-secondary); font-weight: 600; }
+    .tok-property, .tok-relation { color: var(--color-accent); font-weight: 600; }
+    .tok-modifier, .tok-state { color: var(--color-secondary); font-weight: 600; }
     .tok-option { color: var(--color-accent); }
-    .tok-date, .tok-month { color: var(--color-info); }
+    .tok-date, .tok-month, .tok-path, .tok-target { color: var(--color-info); }
     .tok-weekday { color: var(--color-success); }
+    .tok-extra { color: color-mix(in oklab, var(--color-base-content) 70%, transparent); }
     .tok-unknown { color: color-mix(in oklab, var(--color-base-content) 50%, transparent); font-style: italic; }
     .tok-error { text-decoration: underline wavy var(--color-error); }
   </style>

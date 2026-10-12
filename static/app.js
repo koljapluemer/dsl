@@ -1,8 +1,8 @@
 // @ts-check
 /**
- * @typedef {'date'|'month'|'weekday'} ValueType
+ * @typedef {'date'|'month'|'weekday'|'path'} ValueType
  * @typedef {{name: string, type: ValueType[]}} ArgDef
- * @typedef {{role: 'primary'|'modifier', args: ArgDef[], options: Record<string, {type: ValueType[], meaning: string}>, excludes: string[], meaning: string}} KeywordDef
+ * @typedef {{role: 'primary'|'property'|'modifier'|'state', args: ArgDef[], options: Record<string, {type: ValueType[], meaning: string}>, excludes: string[], meaning: string}} KeywordDef
  * @typedef {{version: number, keywords: Record<string, KeywordDef>}} Schema
  * @typedef {{code: string, line: number | null, detail: string | null}} Diagnostic
  * @typedef {{file: string, text: string, errors: Diagnostic[], warnings: Diagnostic[]}} Item
@@ -45,15 +45,20 @@ const hashQuery = () => (location.hash.startsWith('#/?') ? new URLSearchParams(l
 let schema = { version: 0, keywords: {} };
 
 const WEEKDAYS = ['mo', 'tu', 'we', 'th', 'fr', 'sa', 'su'];
+const EXTRA_MARKER = 'extra';
+const OPENING_ROLES = ['primary', 'property'];
 
 /**
- * Which of `types` the token is; mirrors dsl.value_type.
+ * Which of `types` the token is; mirrors dsl.value_type. Only a `path` may be quoted.
  * @param {string} v
  * @param {ValueType[]} types
+ * @param {boolean} quoted
  * @returns {ValueType | undefined}
  */
-function valueType(v, types) {
+function valueType(v, types, quoted) {
   return types.find((t) => {
+    if (t === 'path') return !!v && !v.startsWith('/') && !v.includes('\\') && !v.split('/').includes('..');
+    if (quoted) return false;
     if (t === 'weekday') return WEEKDAYS.includes(v);
     const m = t === 'month' ? /^(\d{2})-(\d{2})$/.exec(v) : /^(\d{2})-(\d{2})-(\d{2})$/.exec(v);
     if (!m || +m[2] < 1 || +m[2] > 12) return false;
@@ -62,9 +67,29 @@ function valueType(v, types) {
   });
 }
 
+/** @param {string} line */
+const isExtraMarker = (line) => line.trimEnd() === EXTRA_MARKER;
+
+/**
+ * Whether a body line (after the first) starts the keyword section; mirrors dsl.is_section_opener.
+ * @param {string} line
+ */
+function isSectionOpener(line) {
+  const kws = schema.keywords;
+  if (isExtraMarker(line)) return true;
+  if (/^->\s/.test(line)) return /** @type {string} */ (line.trim().split(/\s+/).at(-1)).startsWith('@');
+  const state = /^\(([a-z]+)(?=[\s)]|$)/.exec(line);
+  if (state) return kws[state[1]]?.role === 'state';
+  const kw = /^([a-z]+)(?=\s|$)/.exec(line);
+  return !!kw && OPENING_ROLES.includes(kws[kw[1]]?.role);
+}
+
 /**
  * @typedef {{from: number, to: number, cls: string, title?: string}} Segment
  * @typedef {{from: number, to: number, severity: 'error'|'warning', message: string}} Problem
+ * @typedef {{text: string, value: string, from: number, to: number, quoted: boolean}} Token
+ * @typedef {{keywords: string[], clauses: string[]}} Seen every keyword met so far (for duplicates), and the
+ *   keywords of clauses that parsed (for excludes, like dsl.check_excludes)
  */
 
 /**
@@ -74,7 +99,6 @@ function valueType(v, types) {
  * @returns {{segments: Segment[], problems: Problem[]}}
  */
 function analyze(text) {
-  const kws = schema.keywords;
   const lines = text.split('\n');
   /** @type {number[]} */
   const starts = [];
@@ -84,91 +108,151 @@ function analyze(text) {
   /** @type {Problem[]} */
   const problems = [];
 
-  const titleAt = lines.findIndex((l) => l.trim());
-  if (titleAt < 0) return { segments, problems };
-  const boundary = lines.findIndex((l, i) => {
-    const m = /^([a-z]+)(?=\s|$)/.exec(l);
-    return i > titleAt && !!m && kws[m[1]]?.role === 'primary';
-  });
-  if (boundary < 0) {
-    const primaries = Object.keys(kws).filter((k) => kws[k].role === 'primary');
-    problems.push({ from: starts[titleAt], to: starts[titleAt] + lines[titleAt].length, severity: 'error',
-      message: `no_primary: no line starts with ${primaries.join(' / ')}` });
-    return { segments, problems };
+  const first = lines.findIndex((l) => l.trim());
+  if (first < 0) return { segments, problems };
+  let boundary = first + 1;
+  while (boundary < lines.length && !isSectionOpener(lines[boundary])) boundary++;
+  let marker = boundary;
+  while (marker < lines.length && !isExtraMarker(lines[marker])) marker++;
+
+  /** @type {Seen} */
+  const seen = { keywords: [], clauses: [] };
+  for (let i = boundary; i < marker; i++) sectionLine(lines[i], starts[i], seen, segments, problems);
+
+  if (marker < lines.length) {
+    const markerTo = starts[marker] + lines[marker].trimEnd().length;
+    segments.push({ from: starts[marker], to: markerTo, cls: 'tok-property', title: 'extra content follows, up to the end of the file' });
+    if (lines.slice(marker + 1).some((l) => l.trim())) {
+      segments.push({ from: starts[marker] + lines[marker].length + 1, to: text.length, cls: 'tok-extra' });
+    } else {
+      problems.push({ from: starts[marker], to: markerTo, severity: 'error', message: 'empty_extra: no content after extra' });
+    }
   }
-  /** @type {string[]} */
-  const seen = [];
-  for (let i = boundary; i < lines.length; i++) keywordLine(lines[i], starts[i], kws, seen, segments, problems);
   return { segments, problems };
 }
 
 /**
+ * One keyword-section line: a relationship, a state line, or clauses.
  * @param {string} line
  * @param {number} at offset of the line in the text
- * @param {Record<string, KeywordDef>} kws
- * @param {string[]} seen keywords of earlier lines, appended to
+ * @param {Seen} seen appended to
  * @param {Segment[]} segments appended to
  * @param {Problem[]} problems appended to
  */
-function keywordLine(line, at, kws, seen, segments, problems) {
-  const end = at + line.trimEnd().length;
+function sectionLine(line, at, seen, segments, problems) {
   const trimmed = line.trim();
   if (!trimmed) return;
-  const lineFrom = at + line.indexOf(trimmed[0]);
-  if (trimmed.startsWith('(')) {
-    segments.push({ from: lineFrom, to: end, cls: 'tok-unknown' });
-    problems.push({ from: lineFrom, to: end, severity: 'warning', message: 'unknown_keyword: state lines are reserved' });
+  const from = at + line.indexOf(trimmed[0]);
+  const to = from + trimmed.length;
+  const fail = (/** @type {string} */ message) => problems.push({ from, to, severity: 'error', message });
+
+  if (trimmed === '->' || /^->\s/.test(trimmed)) {
+    const target = trimmed.slice(2).trim().split(/\s+/).at(-1) || '';
+    if (target.length < 2 || !target.startsWith('@') || /[/\\]/.test(target)) return fail('invalid_relation: expected -> label @target');
+    segments.push({ from, to: from + 2, cls: 'tok-relation' }, { from: to - target.length, to, cls: 'tok-target', title: target.slice(1) + '.txt' });
     return;
   }
-  const toks = [...line.matchAll(/"(?:\\"|[^"])*"?|[^\s"]\S*/g)].map((m) =>
-    ({ text: m[0], from: at + m.index, to: at + m.index + m[0].length, quoted: m[0][0] === '"' }));
-  const isKw = (/** @type {number} */ j) => j < toks.length && !toks[j].quoted && kws[toks[j].text] !== undefined;
-  /** @param {number} j @param {ValueType[]} types */
-  const value = (j, types) => (toks[j].quoted ? undefined : valueType(toks[j].text, types));
-  /** @param {number} j @param {string} cls @param {string} [title] */
-  const mark = (j, cls, title) => segments.push({ from: toks[j].from, to: toks[j].to, cls, title });
-  /** an error on token j, or from j to the end of the line; the parser skips the rest of the line */
-  const fail = (/** @type {number} */ j, /** @type {string} */ message, toEnd = true) => {
-    problems.push({ from: toks[j].from, to: toEnd ? end : toks[j].to, severity: 'error', message });
-  };
 
+  if (trimmed.startsWith('(')) {
+    if (!trimmed.endsWith(')')) return fail('invalid_state: a state line ends with )');
+    const toks = tokenize(trimmed.slice(1, -1), from + 1);
+    const kw = toks[0];
+    if (!kw || kw.quoted || !/^[a-z]+$/.test(kw.text)) return fail('invalid_state');
+    const def = schema.keywords[kw.text];
+    if (!def) {
+      segments.push({ from, to, cls: 'tok-unknown' });
+      problems.push({ from, to, severity: 'warning', message: `unknown_keyword: ${kw.text} (the line is kept as is)` });
+      return;
+    }
+    if (def.role !== 'state') return fail(`invalid_state: ${kw.text} is not a state keyword`);
+    const next = clause(toks, 0, to, seen, segments, problems);
+    if (next >= 0 && next < toks.length) problems.push({ from: toks[next].from, to, severity: 'error', message: 'unexpected_token' });
+    return;
+  }
+
+  const toks = tokenize(line, at);
   let i = 0;
   while (i < toks.length) {
     const t = toks[i];
-    const def = kws[t.text];
-    if (t.quoted || !/^[a-z]+$/.test(t.text)) return fail(i, 'unexpected_token');
+    const def = schema.keywords[t.text];
+    if (t.quoted || !/^[a-z]+$/.test(t.text) || def?.role === 'state') {
+      return problems.push({ from: t.from, to, severity: 'error', message: 'unexpected_token' });
+    }
     if (!def) {
-      segments.push({ from: t.from, to: end, cls: 'tok-unknown' });
-      problems.push({ from: t.from, to: end, severity: 'warning', message: `unknown_keyword: ${t.text} (the rest of the line is kept as is)` });
+      segments.push({ from: t.from, to, cls: 'tok-unknown' });
+      problems.push({ from: t.from, to, severity: 'warning', message: `unknown_keyword: ${t.text} (the rest of the line is kept as is)` });
       return;
     }
-    if (seen.includes(t.text)) return fail(i, `duplicate_keyword: ${t.text}`);
-    const conflict = seen.find((k) => def.excludes.includes(k) || kws[k].excludes.includes(t.text));
-    seen.push(t.text);
-    mark(i, `tok-${def.role}`, def.meaning.trim());
-    if (conflict) fail(i, `conflicting_keywords: ${conflict}, ${t.text}`, false);
-    const kwAt = i++;
-    for (const arg of def.args) {
-      if (i >= toks.length || isKw(i)) return fail(kwAt, `missing_arg: ${arg.name} (${arg.type.join(' | ')})`, false);
-      const vt = value(i, arg.type);
-      if (!vt) return fail(i, `invalid_value: ${arg.name} expects ${arg.type.join(' | ')}`);
-      mark(i++, `tok-${vt}`, arg.name);
-    }
-    /** @type {string[]} */
-    const opts = [];
-    while (i < toks.length && !toks[i].quoted && def.options[toks[i].text]) {
-      const name = toks[i].text;
-      const opt = def.options[name];
-      if (opts.includes(name)) return fail(i, `duplicate_keyword: ${name}`);
-      opts.push(name);
-      mark(i, 'tok-option', opt.meaning.trim());
-      const optAt = i++;
-      if (i >= toks.length || isKw(i)) return fail(optAt, `missing_arg: ${name} (${opt.type.join(' | ')})`, false);
-      const vt = value(i, opt.type);
-      if (!vt) return fail(i, `invalid_value: ${name} expects ${opt.type.join(' | ')}`);
-      mark(i++, `tok-${vt}`, name);
-    }
+    i = clause(toks, i, to, seen, segments, problems);
+    if (i < 0) return;
   }
+}
+
+/**
+ * Whitespace-separated tokens of `line`, with absolute offsets; `value` is a quoted token's content.
+ * @param {string} line
+ * @param {number} at offset of `line` in the text
+ * @returns {Token[]}
+ */
+function tokenize(line, at) {
+  return [...line.matchAll(/"(?:\\"|[^"])*"?|[^\s"]\S*/g)].map((m) => {
+    const quoted = m[0][0] === '"';
+    const value = quoted ? m[0].slice(1).replace(/"$/, '').replace(/\\"/g, '"') : m[0];
+    return { text: m[0], value, from: at + (m.index ?? 0), to: at + (m.index ?? 0) + m[0].length, quoted };
+  });
+}
+
+/**
+ * The clause whose keyword is toks[i]; returns the index after it, or -1 after an error
+ * (the parser skips the rest of the line).
+ * @param {Token[]} toks
+ * @param {number} i
+ * @param {number} end offset of the line's end
+ * @param {Seen} seen
+ * @param {Segment[]} segments
+ * @param {Problem[]} problems
+ */
+function clause(toks, i, end, seen, segments, problems) {
+  const kws = schema.keywords;
+  const isKw = (/** @type {number} */ j) => j < toks.length && !toks[j].quoted && kws[toks[j].text] !== undefined;
+  /** @param {number} j @param {string} cls @param {string} [title] */
+  const mark = (j, cls, title) => segments.push({ from: toks[j].from, to: toks[j].to, cls, title });
+  /** an error on token j, or from j to the end of the line */
+  const fail = (/** @type {number} */ j, /** @type {string} */ message, toEnd = true) => {
+    problems.push({ from: toks[j].from, to: toEnd ? end : toks[j].to, severity: 'error', message });
+    return -1;
+  };
+
+  const t = toks[i];
+  const def = kws[t.text];
+  if (seen.keywords.includes(t.text)) return fail(i, `duplicate_keyword: ${t.text}`);
+  seen.keywords.push(t.text);
+  mark(i, `tok-${def.role}`, def.meaning.trim());
+  const kwAt = i++;
+  for (const arg of def.args) {
+    if (i >= toks.length || isKw(i)) return fail(kwAt, `missing_arg: ${arg.name} (${arg.type.join(' | ')})`, false);
+    const vt = valueType(toks[i].value, arg.type, toks[i].quoted);
+    if (!vt) return fail(i, `invalid_value: ${arg.name} expects ${arg.type.join(' | ')}`);
+    mark(i++, `tok-${vt}`, arg.name);
+  }
+  /** @type {string[]} */
+  const opts = [];
+  while (i < toks.length && !toks[i].quoted && def.options[toks[i].text]) {
+    const name = toks[i].text;
+    const opt = def.options[name];
+    if (opts.includes(name)) return fail(i, `duplicate_keyword: ${name}`);
+    opts.push(name);
+    mark(i, 'tok-option', opt.meaning.trim());
+    const optAt = i++;
+    if (i >= toks.length || isKw(i)) return fail(optAt, `missing_arg: ${name} (${opt.type.join(' | ')})`, false);
+    const vt = valueType(toks[i].value, opt.type, toks[i].quoted);
+    if (!vt) return fail(i, `invalid_value: ${name} expects ${opt.type.join(' | ')}`);
+    mark(i++, `tok-${vt}`, name);
+  }
+  const conflict = seen.clauses.find((k) => def.excludes.includes(k) || kws[k].excludes.includes(t.text));
+  if (conflict) fail(kwAt, `conflicting_keywords: ${conflict}, ${t.text}`, false);
+  seen.clauses.push(t.text);
+  return i;
 }
 
 /** @param {string} s */
@@ -281,16 +365,24 @@ const ItemEditor = {
   props: {
     /** existing file name, or null when new */
     editFile: { type: String, default: null },
-    items: { type: Array, required: true },
   },
   emits: ['error', 'saved', 'deleted'],
   setup(/** @type {any} */ props, /** @type {any} */ { emit }) {
-    const existing = /** @type {Item | undefined} */ (props.editFile && props.items.find((/** @type {Item} */ i) => i.file === props.editFile));
-    const item = ref(/** @type {Item | null} */ (existing || null));
-    const text = ref(existing ? existing.text : '');
+    const item = ref(/** @type {Item | null} */ (null));
+    const text = ref('');
+    const loaded = ref(!props.editFile);
     let currentFile = props.editFile;
-    let lastSaved = text.value;
+    let lastSaved = '';
+    /** @type {Promise<void>} */
     let pendingSave = Promise.resolve();
+
+    if (props.editFile) {
+      api('GET', `/api/items/${encodeURIComponent(props.editFile)}`).then((/** @type {Item} */ existing) => {
+        item.value = existing;
+        text.value = lastSaved = existing.text;
+        loaded.value = true;
+      }, (e) => emit('error', e));
+    }
 
     async function save() {
       const sent = text.value;
@@ -321,7 +413,7 @@ const ItemEditor = {
       } catch (e) { emit('error', e); }
     }
 
-    return { text, autosave, remove, listHash };
+    return { text, loaded, autosave, remove, listHash };
   },
   template: `
     <div @focusout="autosave">
@@ -330,50 +422,71 @@ const ItemEditor = {
         <button v-if="editFile" class="btn btn-square btn-error btn-outline" title="delete" @click="remove"><icon name="trash-2"></icon></button>
         <span v-if="editFile" class="ml-auto font-mono text-xs text-base-content/50">{{ editFile }}</span>
       </div>
-      <editor v-model="text" @save="autosave"></editor>
+      <editor v-if="loaded" v-model="text" @save="autosave"></editor>
     </div>`,
 };
 
 const ItemList = {
   components: { Icon },
-  props: { items: { type: Array, required: true }, recent: { type: Array, required: true } },
   emits: ['error', 'deleted'],
-  setup(/** @type {any} */ props, /** @type {any} */ { emit }) {
+  setup(/** @type {any} */ _props, /** @type {any} */ { emit }) {
     const query = ref(hashQuery());
     const attention = ref(false);
+    const page = ref(0);
+    const rows = ref(/** @type {Item[]} */ ([]));
+    const total = ref(0);
+    const flagged = ref(0);
+    const pageSize = ref(1);
+    const recent = ref(/** @type {string[]} */ ([]));
+    let loadTimer = 0;
+
+    async function load() {
+      const params = new URLSearchParams({ q: query.value, page: String(page.value), ...(attention.value ? { attention: '1' } : {}) });
+      try {
+        const res = await api('GET', `/api/items?${params}`);
+        rows.value = res.items;
+        total.value = res.total;
+        flagged.value = res.flagged;
+        pageSize.value = res.page_size;
+        recent.value = res.recent;
+      } catch (e) { emit('error', e); }
+    }
+
     watch(query, (q) => {
       listHash.value = q ? '#/?' + new URLSearchParams({ q }) : '#/';
       history.replaceState(null, '', listHash.value);
-    }, { immediate: true });
-
-    const flagged = computed(() => props.items.filter((/** @type {Item} */ i) => i.errors.length || i.warnings.length));
-    const rows = computed(() => {
-      const q = query.value.trim().toLowerCase();
-      return (attention.value ? flagged.value : props.items).filter((/** @type {Item} */ i) => !q || i.text.toLowerCase().includes(q));
+      page.value = 0;
+      clearTimeout(loadTimer);
+      loadTimer = setTimeout(load, 200);
     });
+    watch([attention, page], load);
+    onMounted(load);
+
+    const pages = computed(() => Math.max(1, Math.ceil(total.value / pageSize.value)));
 
     /** @param {Item} i */
     async function remove(i) {
       try {
         await api('DELETE', `/api/items/${encodeURIComponent(i.file)}`);
         emit('deleted', i);
+        await load();
       } catch (e) { emit('error', e); }
     }
 
     const recentBg = ['bg-yellow-400/50!', 'bg-yellow-400/30!', 'bg-yellow-400/15!'];
     /** @param {Item} i */
-    const rowClass = (i) => recentBg[props.recent.indexOf(i.file)] || 'hover:bg-base-200';
+    const rowClass = (i) => recentBg[recent.value.indexOf(i.file)] || 'hover:bg-base-200';
     /** @param {Item} i */
     const problems = (i) => [...i.errors, ...i.warnings].map(describe).join('\n');
 
-    return { query, attention, flagged, rows, rowClass, problems, remove, highlight: (/** @type {string} */ t) => highlightHtml(t.trimEnd()), edit: (/** @type {string} */ f) => go('#/edit/' + encodeURIComponent(f)) };
+    return { query, attention, page, pages, total, flagged, rows, rowClass, problems, remove, highlight: (/** @type {string} */ t) => highlightHtml(t.trimEnd()), edit: (/** @type {string} */ f) => go('#/edit/' + encodeURIComponent(f)) };
   },
   template: `
     <div>
       <div class="flex gap-1 mb-2">
         <a href="#/new" class="btn" title="new item"><icon name="plus"></icon>New</a>
-        <button class="btn" :class="{'btn-active': attention}" title="needs attention" @click="attention = !attention">
-          <icon name="triangle-alert"></icon>{{ flagged.length }}</button>
+        <button class="btn" :class="{'btn-active': attention}" title="needs attention" @click="attention = !attention; page = 0">
+          <icon name="triangle-alert"></icon>{{ flagged }}</button>
         <a href="#/settings" class="btn" title="settings"><icon name="settings"></icon>Settings</a>
       </div>
       <div class="mb-4">
@@ -393,6 +506,11 @@ const ItemList = {
           </tr>
         </tbody>
       </table>
+      <div v-if="pages > 1" class="join mt-4">
+        <button class="btn join-item" :disabled="page === 0" @click="page--"><icon name="chevron-left"></icon></button>
+        <span class="btn join-item pointer-events-none">{{ page + 1 }} / {{ pages }} · {{ total }}</span>
+        <button class="btn join-item" :disabled="page + 1 >= pages" @click="page++"><icon name="chevron-right"></icon></button>
+      </div>
     </div>`,
 };
 
@@ -435,20 +553,14 @@ createApp({
     const error = ref('');
     const path = ref(/** @type {string | null} */ (null));
     const suggested = ref('');
-    const items = ref(/** @type {Item[]} */ ([]));
-    const recent = ref(/** @type {string[]} */ ([]));
+    /** bumped to remount the list, e.g. after an undo */
+    const listKey = ref(0);
     const ready = ref(false);
     const deleted = ref(/** @type {Item | null} */ (null));
     let undoTimer = 0;
 
     /** @param {any} e */
     const fail = (e) => { error.value = e.message || String(e); };
-
-    async function loadItems() {
-      try {
-        ({ items: items.value, recent: recent.value } = await api('GET', '/api/items'));
-      } catch (e) { fail(e); }
-    }
 
     async function loadSettings() {
       const s = await api('GET', '/api/settings');
@@ -459,14 +571,13 @@ createApp({
     async function init() {
       schema = await api('GET', '/api/schema');
       await loadSettings();
-      if (!path.value) go('#/settings'); else await loadItems();
+      if (!path.value) go('#/settings');
       ready.value = true;
     }
 
     addEventListener('hashchange', () => {
       route.value = location.hash || '#/';
       error.value = '';
-      if (page.value === 'list' && path.value) loadItems();
     });
 
     const page = computed(() => {
@@ -480,14 +591,12 @@ createApp({
 
     async function settingsSaved() {
       await loadSettings();
-      await loadItems();
       go(listHash.value);
     }
 
     /** @param {string} file */
     async function itemSaved(file) {
       error.value = '';
-      await loadItems();
       if (page.value === 'new') {
         history.replaceState(null, '', `#/edit/${encodeURIComponent(file)}`);
         route.value = location.hash;
@@ -496,7 +605,6 @@ createApp({
 
     /** @param {Item} item */
     async function itemDeleted(item) {
-      await loadItems();
       go(listHash.value);
       deleted.value = item;
       clearTimeout(undoTimer);
@@ -510,13 +618,13 @@ createApp({
         await api('POST', '/api/items', { file, text });
         deleted.value = null;
         clearTimeout(undoTimer);
-        await loadItems();
+        listKey.value++;
       } catch (e) { fail(e); }
     }
 
     onMounted(() => init().catch(fail));
 
-    return { ready, error, path, suggested, items, recent, page, editFile, deleted, fail, settingsSaved, itemSaved, itemDeleted, undoDelete };
+    return { ready, error, path, suggested, listKey, page, editFile, deleted, fail, settingsSaved, itemSaved, itemDeleted, undoDelete };
   },
   template: `
     <div v-if="deleted" class="toast toast-top toast-end z-50">
@@ -528,8 +636,8 @@ createApp({
     <div v-if="error" role="alert" class="alert alert-error mb-4"><span>{{ error }}</span></div>
     <template v-if="ready">
       <settings v-if="page === 'settings'" :path="path || ''" :suggested="suggested" @saved="settingsSaved" @error="fail"></settings>
-      <item-editor v-else-if="page === 'new' || page === 'edit'" key="editor" :items="items"
+      <item-editor v-else-if="page === 'new' || page === 'edit'" key="editor"
                    :edit-file="page === 'edit' ? editFile : null" @saved="itemSaved" @deleted="itemDeleted" @error="fail"></item-editor>
-      <item-list v-else :items="items" :recent="recent" @deleted="itemDeleted" @error="fail"></item-list>
+      <item-list v-else :key="listKey" @deleted="itemDeleted" @error="fail"></item-list>
     </template>`,
 }).mount('#app');

@@ -4,6 +4,8 @@ import json
 import os
 import re
 import secrets
+import threading
+from dataclasses import dataclass
 from pathlib import Path
 
 import dsl
@@ -15,6 +17,8 @@ CALENDAR_PREFS = Path.home() / ".local/share/com.example.calendar/shared_prefere
 SCHEMA = dsl.load_schema()
 
 _NAME_RE = re.compile(r"^[^/\\\x00]+\.txt$")
+
+PAGE_SIZE = 50
 
 
 class ValidationError(ValueError):
@@ -83,17 +87,73 @@ def _read(path: Path) -> dict:
                 "errors": [{"code": "unreadable", "line": None, "detail": str(e)}]}
 
 
-def _files() -> list[Path]:
-    return [f for f in _dir().iterdir() if f.is_file() and f.suffix.lower() == ".txt"]
+@dataclass
+class _Entry:
+    mtime_ns: int
+    lower: str
+    flagged: bool
 
 
-def list_items() -> list[dict]:
-    return [_read(f) for f in sorted(_files(), key=lambda f: f.name)]
+class _Index:
+    """Every item's lowercased text and whether it needs attention, re-read
+    only when its mtime changes - so filtering a folder of 200k+ items doesn't
+    read every file on every request."""
+
+    def __init__(self):
+        self._lock = threading.Lock()
+        self._dir: Path | None = None
+        self._entries: dict[str, _Entry] = {}
+
+    def refresh(self) -> dict[str, _Entry]:
+        with self._lock:
+            d = _dir()
+            if d != self._dir:
+                self._dir, self._entries = d, {}
+            seen = {}
+            with os.scandir(d) as it:
+                for e in it:
+                    if e.is_file() and e.name.lower().endswith(".txt") and not e.name.startswith("."):
+                        seen[e.name] = e.stat().st_mtime_ns
+            for name in self._entries.keys() - seen.keys():
+                del self._entries[name]
+            for name, mtime in seen.items():
+                if (cur := self._entries.get(name)) is None or cur.mtime_ns != mtime:
+                    item = _read(d / name)
+                    self._entries[name] = _Entry(mtime, item["text"].lower(), bool(item["errors"] or item["warnings"]))
+            return dict(self._entries)
 
 
-def recent(n: int = 3) -> list[str]:
+_INDEX = _Index()
+
+
+def list_page(q: str = "", attention: bool = False, page: int = 0) -> dict:
+    """One page of items (by file name) whose text contains `q`, optionally
+    only those needing attention; plus the counts and the recently edited."""
+    entries = _INDEX.refresh()
+    needle = q.strip().lower()
+    names = sorted(
+        n for n, e in entries.items() if (not attention or e.flagged) and (not needle or needle in e.lower)
+    )
+    start = max(page, 0) * PAGE_SIZE
+    return {
+        "items": [_read(_dir() / n) for n in names[start : start + PAGE_SIZE]],
+        "total": len(names),
+        "flagged": sum(e.flagged for e in entries.values()),
+        "page_size": PAGE_SIZE,
+        "recent": recent(entries),
+    }
+
+
+def recent(entries: dict[str, _Entry], n: int = 3) -> list[str]:
     """File names of the n most recently modified items, newest first."""
-    return [f.name for f in sorted(_files(), key=lambda f: f.stat().st_mtime_ns, reverse=True)[:n]]
+    return sorted(entries, key=lambda name: entries[name].mtime_ns, reverse=True)[:n]
+
+
+def get(name: str) -> dict:
+    path = _file(name)
+    if not path.exists():
+        raise NotFound(name)
+    return _read(path)
 
 
 def _text(body) -> str:
@@ -105,7 +165,7 @@ def _text(body) -> str:
 
 def _new_name(text: str) -> str:
     """`<slug of the first line>-<hex>.txt`; the name stays when the text changes."""
-    slug = re.sub(r"[^a-z0-9]+", "-", dsl.parse(SCHEMA, text).title.lower()).strip("-")[:40].rstrip("-") or "item"
+    slug = re.sub(r"[^a-z0-9]+", "-", dsl.parse(SCHEMA, text).heading.lower()).strip("-")[:40].rstrip("-") or "item"
     while (_dir() / (name := f"{slug}-{secrets.token_hex(3)}.txt")).exists():
         pass
     return name

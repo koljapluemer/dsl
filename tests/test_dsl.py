@@ -20,18 +20,24 @@ def valid(text: str) -> dsl.Document:
     return doc
 
 
-def test_title_is_never_parsed_for_keywords():
-    assert valid("appointment w/ dentist\nappointment 26-10-12").title == "appointment w/ dentist"
+def test_first_line_is_never_parsed_for_keywords():
+    doc = valid("appointment w/ dentist\nappointment 26-10-12")
+    assert doc.body == ["appointment w/ dentist"]
+    assert doc.heading == "appointment w/ dentist"
 
 
-def test_only_a_primary_at_column_0_starts_the_keyword_section():
-    doc = valid("x\niterable is not a primary\n  recurring, indented\nrecurring mo")
-    assert doc.description == ["iterable is not a primary", "  recurring, indented"]
+def test_a_body_alone_is_a_valid_note():
+    assert valid("just a thought\nprio 3").body == ["just a thought", "prio 3"]
+
+
+def test_only_openers_at_column_0_start_the_keyword_section():
+    doc = valid("x\niterable is not an opener\n  recurring, indented\nrecurring mo")
+    assert doc.body == ["x", "iterable is not an opener", "  recurring, indented"]
     assert doc.clauses[0].keyword == "recurring"
 
 
-def test_description_keeps_inner_blank_lines_and_trailing_spaces():
-    assert valid("\n\nx\n\na \n\nb\n\nappointment 26-10-12\n").description == ["a ", "", "b"]
+def test_body_keeps_inner_blank_lines_and_trailing_spaces():
+    assert valid("\n\nx\n\na \n\nb\n\nappointment 26-10-12\n").body == ["x", "", "a ", "", "b"]
 
 
 def test_several_clauses_on_one_line():
@@ -46,9 +52,25 @@ def test_unknown_keyword_keeps_rest_of_line():
     assert [d.code for d in doc.warnings] == ["unknown_keyword"] * 2
 
 
+@pytest.mark.parametrize("line, opens", [
+    ("recurring mo", True),
+    ("media x.png", True),
+    ("extra", True),
+    ("extra ", True),
+    ("extras", False),
+    ("-> label @target-123456", True),
+    ("-> do this next", False),
+    ("->@x", False),
+    ("(see email)", False),
+    ("iterable d 4", False),
+    (" recurring mo", False),
+])
+def test_is_section_opener(line, opens):
+    assert dsl.is_section_opener(SCHEMA, line) is opens
+
+
 @pytest.mark.parametrize("text, expected", [
     (" \n\n", ["empty@None"]),
-    ("x\nprio 3", ["no_primary@None"]),
     ("x\nappointment", ["missing_arg@2"]),
     ("x\nappointment recurring mo", ["missing_arg@2"]),
     ("x\nrecurring mo until", ["missing_arg@2"]),
@@ -59,6 +81,10 @@ def test_unknown_keyword_keeps_rest_of_line():
     ("x\nrecurring mo\nrecurring tu", ["duplicate_keyword@3"]),
     ("x\nrecurring mo until 27-03 until 27-04", ["duplicate_keyword@2"]),
     ("x\nappointment 26-10-12\nrecurring mo", ["conflicting_keywords@3"]),
+    ("x\nmedia /a.png", ["invalid_value@2"]),
+    ("x\nmedia a.png\n-> no target", ["invalid_relation@3"]),
+    ("x\nmedia a.png\n(media b.png)", ["invalid_state@3"]),
+    ("x\nextra\n", ["empty_extra@2"]),
 ])
 def test_errors(text, expected):
     assert errors(text) == expected

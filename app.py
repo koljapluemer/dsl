@@ -58,7 +58,13 @@ def put_settings():
 
 @app.get("/api/items")
 def list_items():
-    return jsonify(items=store.list_items(), recent=store.recent())
+    args = request.args
+    return jsonify(store.list_page(args.get("q", ""), args.get("attention") == "1", args.get("page", 0, type=int)))
+
+
+@app.get("/api/items/<name>")
+def get_item(name):
+    return jsonify(store.get(name))
 
 
 @app.post("/api/items")
