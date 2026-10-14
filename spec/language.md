@@ -175,6 +175,7 @@ type `path`.
 | `month`   | `yy-mm`    | a whole month, year 20yy                                        |
 | `weekday` | `mo tu we th fr sa su` |                                                     |
 | `path`    | `images/a.webp` | a file relative to the item's folder, `/` as separator. Not empty, no leading `/`, no `\`, no `..` segment. Quote it when it contains spaces. |
+| `text`    | `clean up` | the rest of the line, trimmed, not empty. Words in it are never read as keywords. Must be the keyword's only argument. |
 
 An argument or option declared with several types (e.g. `[date, month]`)
 accepts any of them. The value's form decides which type it is.
