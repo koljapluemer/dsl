@@ -409,9 +409,9 @@ const describe = (d) => [d.code, d.line != null && `line ${d.line}`, d.detail &&
 
 /** CodeMirror editor for item text. */
 const Editor = {
-  props: { modelValue: { type: String, required: true } },
+  props: { modelValue: { type: String, required: true }, autofocus: { type: Boolean, default: true } },
   emits: ['update:modelValue', 'save'],
-  setup(/** @type {{modelValue: string}} */ props, /** @type {any} */ { emit }) {
+  setup(/** @type {{modelValue: string, autofocus: boolean}} */ props, /** @type {any} */ { emit }) {
     const host = ref(/** @type {HTMLElement | null} */ (null));
     /** @type {EditorView | null} kept out of Vue's reactivity */
     let view = null;
@@ -432,7 +432,7 @@ const Editor = {
           ],
         }),
       });
-      view.focus();
+      if (props.autofocus) view.focus();
     });
     onBeforeUnmount(() => view?.destroy());
     return { host };
@@ -652,7 +652,7 @@ const ItemList = {
 };
 
 const TaskList = {
-  components: { Icon },
+  components: { Icon, Editor },
   emits: ['error'],
   setup(/** @type {any} */ _props, /** @type {any} */ { emit }) {
     /** `text` is the textarea's content, `saved` what the file holds; `problem` the last save error */
@@ -697,13 +697,9 @@ const TaskList = {
   template: `
     <div>
       <p v-if="!rows.length" class="text-base-content/50">No tasks.</p>
-      <div v-for="r in rows" :key="r.file" class="mb-4">
-        <div class="font-mono text-xs text-base-content/50 mb-1">
-          <a :href="'#/edit/' + encodeURIComponent(r.file)" class="link">{{ r.file }}</a>
-          <span v-if="r.text !== r.saved" class="ml-2">unsaved</span>
-          <span v-if="r.problem" class="ml-2 text-error">{{ r.problem }}</span>
-        </div>
-        <textarea v-model="r.text" class="textarea w-full font-mono field-sizing-content min-h-24" spellcheck="false" @blur="save(r)"></textarea>
+      <div v-for="r in rows" :key="r.file" class="mb-4" @focusout="save(r)">
+        <editor v-model="r.text" :autofocus="false" @save="save(r)"></editor>
+        <p v-if="r.problem" class="text-error text-sm mt-1">{{ r.problem }}</p>
       </div>
       <div v-if="pages > 1" class="join mt-4">
         <button class="btn join-item" :disabled="page === 0" @click="goPage(page - 1)"><icon name="chevron-left"></icon></button>
