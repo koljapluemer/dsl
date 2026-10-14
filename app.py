@@ -65,6 +65,7 @@ def list_items():
         args.get("page", 0, type=int),
         args.get("seed", 0, type=int),
         args.get("focus") or None,
+        args.get("tasks") == "1",
     ))
 
 

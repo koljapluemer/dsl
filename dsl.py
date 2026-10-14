@@ -15,7 +15,7 @@ SPEC_PATH = Path(__file__).parent / "spec" / "keywords.yaml"
 
 ROLES = ("primary", "property", "modifier", "state")
 OPENING_ROLES = ("primary", "property")
-VALUE_TYPES = ("date", "month", "weekday", "path")
+VALUE_TYPES = ("date", "month", "weekday", "path", "text")
 WEEKDAYS = ("mo", "tu", "we", "th", "fr", "sa", "su")
 EXTRA_MARKER = "extra"
 
@@ -58,7 +58,8 @@ def _types(keyword: str, raw) -> list[str]:
 
 def value_type(token: str, types: list[str], quoted: bool = False) -> str | None:
     """Which of `types` the token is, or None when it's none of them. Only a
-    `path` may be quoted."""
+    `path` may be quoted. `text` is not decided per token: it takes the rest
+    of the line (see `_SectionParser._clause`)."""
     for t in types:
         if t == "path" and _is_path(token):
             return t
@@ -269,7 +270,7 @@ class _SectionParser:
             return self._unknown(line, no, keyword)
         if self.kws[keyword]["role"] != "state":
             return self._error("invalid_state", no, line)
-        clause, i = self._clause(toks, 0, no)
+        clause, i = self._clause(toks, 0, no, line[1:-1])
         if clause is None:
             return
         if i < len(toks):
@@ -287,14 +288,15 @@ class _SectionParser:
                 return self._unknown(line[start:], no, text)
             if self.kws[text]["role"] == "state":
                 return self._error("unexpected_token", no, text)
-            clause, i = self._clause(toks, i, no)
+            clause, i = self._clause(toks, i, no, line)
             if clause is None:
                 return
             self.clauses.append(clause)
 
-    def _clause(self, toks: list, i: int, no: int) -> tuple[Clause | None, int]:
+    def _clause(self, toks: list, i: int, no: int, src: str) -> tuple[Clause | None, int]:
         """The clause whose keyword is toks[i], and the index after it; None
-        (with an error reported) when it's malformed."""
+        (with an error reported) when it's malformed. `src` is the string the
+        tokens were cut from."""
         keyword = toks[i][0]
         spec = self.kws[keyword]
         i += 1
@@ -305,6 +307,13 @@ class _SectionParser:
 
         args = []
         for arg in spec["args"]:
+            if arg["type"] == ["text"]:
+                if i >= len(toks):
+                    self._error("missing_arg", no, keyword)
+                    return None, i
+                args.append(src[toks[i][1] :].strip())
+                i = len(toks)
+                continue
             if i >= len(toks) or self._is_keyword(toks[i]):
                 self._error("missing_arg", no, keyword)
                 return None, i

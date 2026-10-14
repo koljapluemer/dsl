@@ -20,6 +20,7 @@ SCHEMA = dsl.load_schema()
 _NAME_RE = re.compile(r"^[^/\\\x00]+\.txt$")
 
 PAGE_SIZE = 50
+TASKS_KEYWORD = "tasks"
 
 
 class ValidationError(ValueError):
@@ -93,6 +94,7 @@ class _Entry:
     mtime_ns: int
     lower: str
     flagged: bool
+    has_tasks: bool
 
 
 class _Index:
@@ -120,23 +122,31 @@ class _Index:
             for name, mtime in seen.items():
                 if (cur := self._entries.get(name)) is None or cur.mtime_ns != mtime:
                     item = _read(d / name)
-                    self._entries[name] = _Entry(mtime, item["text"].lower(), bool(item["errors"] or item["warnings"]))
+                    has_tasks = any(c.keyword == TASKS_KEYWORD for c in dsl.parse(SCHEMA, item["text"]).clauses)
+                    self._entries[name] = _Entry(
+                        mtime, item["text"].lower(), bool(item["errors"] or item["warnings"]), has_tasks
+                    )
             return dict(self._entries)
 
 
 _INDEX = _Index()
 
 
-def list_page(q: str = "", attention: bool = False, page: int = 0, seed: int = 0, focus: str | None = None) -> dict:
+def list_page(
+    q: str = "", attention: bool = False, page: int = 0, seed: int = 0, focus: str | None = None, tasks: bool = False
+) -> dict:
     """One page of items whose text contains `q`, optionally only those needing
-    attention, in an order shuffled by `seed` (stable across pages and filters
+    attention or only those with a tasks line, in an order shuffled by `seed` (stable across pages and filters
     for one seed); plus the counts. With `focus`, the page holding that file
     instead, and `focused` says whether it was among the matches."""
     entries = _INDEX.refresh()
     needle = q.strip().lower()
     seed &= 0xFFFFFFFF
     names = sorted(
-        (n for n, e in entries.items() if (not attention or e.flagged) and (not needle or needle in e.lower)),
+        (
+            n for n, e in entries.items()
+            if (not attention or e.flagged) and (not tasks or e.has_tasks) and (not needle or needle in e.lower)
+        ),
         key=lambda n: (zlib.crc32(n.encode(), seed), n),
     )
     focused = focus is not None and focus in names
@@ -148,6 +158,7 @@ def list_page(q: str = "", attention: bool = False, page: int = 0, seed: int = 0
         "items": [_with_refs(_read(_dir() / n), entries) for n in names[start : start + PAGE_SIZE]],
         "total": len(names),
         "flagged": sum(e.flagged for e in entries.values()),
+        "tasks": sum(e.has_tasks for e in entries.values()),
         "page_size": PAGE_SIZE,
         "page": page,
         "focused": focused,

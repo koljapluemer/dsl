@@ -93,3 +93,13 @@ def test_errors(text, expected):
 @pytest.mark.skipif(not UPSTREAM.exists(), reason="no ../dsl")
 def test_vendored_schema_matches_dsl_repo():
     assert dsl.SPEC_PATH.read_text() == UPSTREAM.read_text(), "run `just sync-spec`"
+
+
+def test_text_argument_takes_the_rest_of_the_line():
+    doc = valid("x\ntasks fix  media link recurring mo")
+    assert [(c.keyword, c.args) for c in doc.clauses] == [("tasks", ["fix  media link recurring mo"])]
+
+
+def test_text_argument_must_not_be_empty():
+    assert errors("x\ntasks") == ["missing_arg@2"]
+    assert errors("x\ntasks   ") == ["missing_arg@2"]

@@ -1,6 +1,6 @@
 // @ts-check
 /**
- * @typedef {'date'|'month'|'weekday'|'path'} ValueType
+ * @typedef {'date'|'month'|'weekday'|'path'|'text'} ValueType
  * @typedef {{name: string, type: ValueType[]}} ArgDef
  * @typedef {{role: 'primary'|'property'|'modifier'|'state', args: ArgDef[], options: Record<string, {type: ValueType[], meaning: string}>, excludes: string[], meaning: string}} KeywordDef
  * @typedef {{version: number, keywords: Record<string, KeywordDef>}} Schema
@@ -258,6 +258,12 @@ function clause(toks, i, end, seen, segments, problems) {
   mark(i, `tok-${def.role}`, def.meaning.trim());
   const kwAt = i++;
   for (const arg of def.args) {
+    if (arg.type.length === 1 && arg.type[0] === 'text') {
+      if (i >= toks.length) return fail(kwAt, `missing_arg: ${arg.name} (text)`, false);
+      segments.push({ from: toks[i].from, to: end, cls: 'tok-text', title: arg.name });
+      i = toks.length;
+      continue;
+    }
     if (i >= toks.length || isKw(i)) return fail(kwAt, `missing_arg: ${arg.name} (${arg.type.join(' | ')})`, false);
     const vt = valueType(toks[i].value, arg.type, toks[i].quoted);
     if (!vt) return fail(i, `invalid_value: ${arg.name} expects ${arg.type.join(' | ')}`);
@@ -645,6 +651,68 @@ const ItemList = {
     </div>`,
 };
 
+const TaskList = {
+  components: { Icon },
+  emits: ['error'],
+  setup(/** @type {any} */ _props, /** @type {any} */ { emit }) {
+    /** `text` is the textarea's content, `saved` what the file holds; `problem` the last save error */
+    const rows = ref(/** @type {{file: string, text: string, saved: string, problem: string}[]} */ ([]));
+    const page = ref(0);
+    const total = ref(0);
+    const pageSize = ref(1);
+
+    async function load() {
+      try {
+        const params = new URLSearchParams({ tasks: '1', page: String(page.value), seed: String(SEED) });
+        const res = await api('GET', `/api/items?${params}`);
+        rows.value = res.items.map((/** @type {Item} */ i) => ({ file: i.file, text: i.text, saved: i.text, problem: '' }));
+        total.value = res.total;
+        pageSize.value = res.page_size;
+        page.value = res.page;
+      } catch (e) { emit('error', e); }
+    }
+
+    /** @param {{file: string, text: string, saved: string, problem: string}} r */
+    async function save(r) {
+      if (!r.text.trim() || r.text === r.saved) return;
+      const sent = r.text;
+      try {
+        await api('PUT', `/api/items/${encodeURIComponent(r.file)}`, { text: sent });
+        r.saved = sent;
+        r.problem = '';
+      } catch (e) { r.problem = /** @type {Error} */ (e).message; }
+    }
+
+    /** @param {number} p */
+    function goPage(p) {
+      page.value = p;
+      load();
+    }
+
+    onMounted(load);
+    const pages = computed(() => Math.max(1, Math.ceil(total.value / pageSize.value)));
+
+    return { rows, page, pages, total, save, goPage };
+  },
+  template: `
+    <div>
+      <p v-if="!rows.length" class="text-base-content/50">No tasks.</p>
+      <div v-for="r in rows" :key="r.file" class="mb-4">
+        <div class="font-mono text-xs text-base-content/50 mb-1">
+          <a :href="'#/edit/' + encodeURIComponent(r.file)" class="link">{{ r.file }}</a>
+          <span v-if="r.text !== r.saved" class="ml-2">unsaved</span>
+          <span v-if="r.problem" class="ml-2 text-error">{{ r.problem }}</span>
+        </div>
+        <textarea v-model="r.text" class="textarea w-full font-mono field-sizing-content min-h-24" spellcheck="false" @blur="save(r)"></textarea>
+      </div>
+      <div v-if="pages > 1" class="join mt-4">
+        <button class="btn join-item" :disabled="page === 0" @click="goPage(page - 1)"><icon name="chevron-left"></icon></button>
+        <span class="btn join-item pointer-events-none">{{ page + 1 }} / {{ pages }} · {{ total }}</span>
+        <button class="btn join-item" :disabled="page + 1 >= pages" @click="goPage(page + 1)"><icon name="chevron-right"></icon></button>
+      </div>
+    </div>`,
+};
+
 const Settings = {
   components: { Icon },
   props: { path: { type: String, default: '' }, suggested: { type: String, default: '' } },
@@ -678,7 +746,7 @@ const Settings = {
 };
 
 createApp({
-  components: { ItemEditor, ItemList, Settings },
+  components: { ItemEditor, ItemList, TaskList, Settings },
   setup() {
     const route = ref(location.hash || '#/');
     const error = ref('');
@@ -715,6 +783,7 @@ createApp({
       const r = route.value;
       if (r.startsWith('#/settings')) return 'settings';
       if (r === '#/new') return 'new';
+      if (r === '#/tasks') return 'tasks';
       if (r.startsWith('#/edit/')) return 'edit';
       return 'list';
     });
@@ -769,6 +838,13 @@ createApp({
       <settings v-if="page === 'settings'" :path="path || ''" :suggested="suggested" @saved="settingsSaved" @error="fail"></settings>
       <item-editor v-else-if="page === 'new' || page === 'edit'" key="editor"
                    :edit-file="page === 'edit' ? editFile : null" @saved="itemSaved" @deleted="itemDeleted" @error="fail"></item-editor>
-      <item-list v-else :key="listKey" @deleted="itemDeleted" @error="fail"></item-list>
+      <template v-else>
+        <div role="tablist" class="tabs tabs-border mb-4">
+          <a role="tab" class="tab" :class="{'tab-active': page === 'list'}" href="#/">Notes</a>
+          <a role="tab" class="tab" :class="{'tab-active': page === 'tasks'}" href="#/tasks">Tasks</a>
+        </div>
+        <task-list v-if="page === 'tasks'" key="tasks" @error="fail"></task-list>
+        <item-list v-else :key="listKey" @deleted="itemDeleted" @error="fail"></item-list>
+      </template>
     </template>`,
 }).mount('#app');

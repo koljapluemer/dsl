@@ -122,3 +122,13 @@ def test_unchanged_write_keeps_mtime(data_dir):
 def test_invalid(body):
     with pytest.raises(store.ValidationError):
         store.create(body)
+
+
+def test_tasks_filter(data_dir, monkeypatch):
+    monkeypatch.setattr(store, "PAGE_SIZE", 2)
+    for k in "abcde":
+        store.create({"file": f"{k}.txt", "text": f"note {k}\n" + ("tasks clean up" if k in "bd" else "")})
+    r = store.list_page(tasks=True)
+    assert sorted(i["file"] for i in r["items"]) == ["b.txt", "d.txt"]
+    assert r["total"] == 2 and r["tasks"] == 2
+    assert store.list_page()["total"] == 5
