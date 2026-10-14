@@ -1,0 +1,8 @@
+{
+  "body": "Both",
+  "clauses": [{ "keyword": "tasks", "line": 7, "args": ["clean up"], "options": {} }],
+  "data": { "a": 1 },
+  "extra": "free text: not yaml\n- not a list",
+  "errors": [],
+  "warnings": []
+}

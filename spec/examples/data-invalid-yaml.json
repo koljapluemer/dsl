@@ -1,0 +1,5 @@
+{
+  "body": "Bad",
+  "data": null,
+  "errors": [{ "code": "invalid_yaml", "line": 2 }]
+}

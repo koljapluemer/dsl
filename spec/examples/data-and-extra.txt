@@ -1,0 +1,7 @@
+Both
+data
+a: 1
+extra
+free text: not yaml
+- not a list
+tasks clean up

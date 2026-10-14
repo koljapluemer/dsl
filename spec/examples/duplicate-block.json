@@ -1,0 +1,5 @@
+{
+  "body": "Twice",
+  "data": { "a": 1 },
+  "errors": [{ "code": "duplicate_keyword", "line": 4 }]
+}

@@ -31,3 +31,8 @@ a bit simpler but with more convenience options.
 Read-only queue view, for inspiration.
 
 `queue`, 🎲
+## sources
+
+Literature list: one `source` item per file, fields in a `data` YAML block, free
+text in `extra`. Desktop only, flask.
+Application Name: `sources`

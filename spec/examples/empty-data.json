@@ -1,0 +1,6 @@
+{
+  "body": "Nothing",
+  "clauses": [{ "keyword": "media", "line": 5, "args": ["images/a.png"], "options": {} }],
+  "data": null,
+  "errors": [{ "code": "empty_data", "line": 2 }]
+}

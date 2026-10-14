@@ -2,7 +2,7 @@
   "body": "With extra",
   "clauses": [],
   "relations": [{ "label": "see", "target": "other-123456", "line": 2 }],
-  "extra": "Long text\nappointment 26-10-12\n-> also text @x-123456\nextra\n(not state)",
+  "extra": "Long text\nunknownword 26-10-12\n-> not a relation\n(not state)\n appointment 26-10-12",
   "errors": [],
   "warnings": []
 }

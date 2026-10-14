@@ -3,9 +3,9 @@ With extra
 extra
 
 Long text
-appointment 26-10-12
--> also text @x-123456
-extra
+unknownword 26-10-12
+-> not a relation
 (not state)
+ appointment 26-10-12
 
 

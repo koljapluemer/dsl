@@ -1,0 +1,9 @@
+{
+  "body": "Meeting",
+  "clauses": [{ "keyword": "recurring", "line": 6, "args": ["mo"], "options": {} }],
+  "relations": [{ "label": "see", "target": "other-123456", "line": 7 }],
+  "data": { "a": 1, "b": ["x", "y"] },
+  "extra": null,
+  "errors": [],
+  "warnings": []
+}

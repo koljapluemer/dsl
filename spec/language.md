@@ -1,7 +1,7 @@
 # Item language
 
-A plain-text language for items: notes, appointments, recurring events, and
-later other kinds. One item per file. Files are meant to be written by hand
+A plain-text language for items: notes, appointments, recurring events,
+bibliographic sources, and later other kinds. One item per file. Files are meant to be written by hand
 and read by several frontends.
 
 The spec has two parts:
@@ -20,11 +20,13 @@ HCI lecture 4pm-7pm                ← body (the first line is never parsed)
 recurring mo until 27-03           ← boundary: first line that is a section opener
 media images/hci-slides.webp       ← keyword section
 -> is part of @semester-plan-a1b2c3
-extra                              ← extra marker
-Long-form text, kept verbatim      ← extra content, up to the end of the file
+data                               ← block keyword
+title: Example                     ← block content (YAML), up to the next keyword
+extra                              ← block keyword
+Long-form text, kept verbatim      ← block content, up to the next keyword or the end of the file
 ```
 
-An item has up to three parts, in this order:
+An item has up to two parts, in this order:
 
 1. **Body**: every line from the first non-blank line up to the boundary.
    - Lines are kept verbatim.
@@ -32,9 +34,9 @@ An item has up to three parts, in this order:
      kept.
    - The first non-blank line is never a boundary, so `appointment w/ dentist`
      is a fine first line.
-2. **Keyword section**: starts at the **boundary** and runs up to the extra
-   marker, or to the end of the file when there is none.
-3. **Extra**: starts at the extra marker and runs to the end of the file.
+2. **Keyword section**: starts at the **boundary** and runs to the end of the
+   file. It holds clause lines, relationship lines, state lines and
+   [blocks](#block-keywords), in any order.
 
 An item with only a body is valid: it is just a note. Primary keywords are
 optional.
@@ -48,7 +50,7 @@ opener**. A section opener starts at column 0 and is one of:
   `keywords.yaml`), followed by whitespace or the end of the line
 - a [relationship line](#relationship-lines): `->` followed by whitespace,
   whose last token starts with `@`
-- the [extra marker](#extra)
+- a [block keyword](#block-keywords) alone on its line
 - a [state line](#state-lines): `(` directly followed by a keyword whose role
   is `state`, then whitespace, `)` or the end of the line
 
@@ -60,25 +62,52 @@ existing data before adding one.
 **Escaping**: to keep a body line that would be a section opener, indent it.
 Writers that produce body text indent such lines by one space.
 
-### Extra
+### Block keywords
 
-The **extra marker** is a line that holds only `extra` at column 0 (trailing
-whitespace allowed). Every line after it, to the end of the file, is the
-item's extra content:
+A keyword with a `block` entry in `keywords.yaml` (`data`, `extra`) takes no
+arguments and holds a multi-line **block**. Its line holds only the keyword at
+column 0 (trailing whitespace allowed): `extra credit` is not a block keyword.
 
-- Lines are kept verbatim and never parsed, so they may look like keywords,
-  relationships or state lines.
-- Leading and trailing blank lines are dropped.
-- There must be at least one non-blank line (`empty_extra` otherwise).
+The block is every line after the keyword up to, not including, the first
+**terminator**, or up to the end of the file. A terminator is a line that
+starts at column 0 and is:
 
-The first extra marker is the one that counts; a later `extra` line is
-content.
+- a known keyword of any role, followed by whitespace or the end of the line
+  (a block keyword only when it is alone on its line),
+- a [relationship line](#relationship-lines) with a valid `@target`,
+- a [state line](#state-lines) whose keyword has the role `state`.
+
+An unknown keyword does not terminate a block. To keep a line that would
+terminate the block, indent it by one space; indentation is kept.
+
+Block lines are kept verbatim, with leading and trailing blank lines dropped.
+Where the keyword section continues after a block, it is parsed as usual, so
+blocks and clause lines may interleave. A block keyword appearing twice is a
+`duplicate_keyword`. A block keyword inside a clause line is an
+`unexpected_token`.
+
+The `block` entry says how the content is read:
+
+| `block` | content                                                                    |
+| ------- | -------------------------------------------------------------------------- |
+| `text`  | free text, never parsed (`extra`)                                          |
+| `yaml`  | a YAML 1.2 document whose top level is a mapping, read with a safe loader that accepts no custom tags (`data`) |
+
+YAML scalars follow the 1.2 core schema: `2017-06-12` is a string, not a
+date. A parser whose library implements YAML 1.1 must not resolve timestamps.
+
+A block needs at least one non-blank line (`empty_extra` for `text` blocks,
+`empty_data` for `yaml` blocks). A `yaml` block that is not valid YAML, or
+whose top level is not a mapping, is an `invalid_yaml` error on the keyword's
+line. Frontends keep the text of blocks they don't edit.
 
 ## Keyword section
 
 Each line is trimmed, and blank lines are ignored. Lines may come in any
 order. A line is:
 
+- a [block keyword](#block-keywords) alone on its line, which starts a block
+  (its content lines are not parsed as section lines),
 - a [relationship line](#relationship-lines) when it starts with `->`
   followed by whitespace or the end of the line,
 - a [state line](#state-lines) when it starts with `(`,
@@ -199,7 +228,9 @@ Errors are identified by these codes, plus the line they occur on.
 | `conflicting_keywords` | two keywords listed in each other's `excludes` both appear             |
 | `invalid_relation`     | see [Relationship lines](#relationship-lines)                          |
 | `invalid_state`        | see [State lines](#state-lines)                                        |
-| `empty_extra`          | the extra marker is not followed by a non-blank line                   |
+| `empty_extra`          | an `extra` block has no non-blank line                                 |
+| `empty_data`           | a `data` block has no non-blank line                                   |
+| `invalid_yaml`         | a `data` block is not valid YAML or not a mapping                      |
 
 ### Warnings
 
@@ -223,7 +254,8 @@ result matches every key the JSON lists; absent keys aren't checked.
 | `relations` | `[{label, target, line}]`                                        |
 | `state`     | `[{keyword, line, args, options}]`, like `clauses`              |
 | `unknown`   | unknown keyword lines from the keyword on; whole state lines    |
-| `extra`     | the extra lines joined with `\n`, or `null` when there is none  |
+| `extra`     | the `extra` block's lines joined with `\n`, or `null` when there is none |
+| `data`      | the `data` block parsed as YAML, or `null` when there is none or it is invalid |
 | `errors`    | `[{code, line}]`, sorted by line (`null` first), then code      |
 | `warnings`  | `[{code, line}]`, sorted the same way                            |
 
