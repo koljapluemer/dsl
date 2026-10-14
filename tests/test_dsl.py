@@ -58,6 +58,9 @@ def test_unknown_keyword_keeps_rest_of_line():
     ("extra", True),
     ("extra ", True),
     ("extras", False),
+    ("extra credit", False),
+    ("data", True),
+    ("source", True),
     ("-> label @target-123456", True),
     ("-> do this next", False),
     ("->@x", False),
@@ -85,6 +88,11 @@ def test_is_section_opener(line, opens):
     ("x\nmedia a.png\n-> no target", ["invalid_relation@3"]),
     ("x\nmedia a.png\n(media b.png)", ["invalid_state@3"]),
     ("x\nextra\n", ["empty_extra@2"]),
+    ("x\ndata\n\nmedia a.png", ["empty_data@2"]),
+    ("x\ndata\na: [1", ["invalid_yaml@2"]),
+    ("x\ndata\n- a", ["invalid_yaml@2"]),
+    ("x\ndata\na: 1\ndata\na: 2", ["duplicate_keyword@4"]),
+    ("x\nmedia a.png extra", ["unexpected_token@2"]),
 ])
 def test_errors(text, expected):
     assert errors(text) == expected
@@ -103,3 +111,14 @@ def test_text_argument_takes_the_rest_of_the_line():
 def test_text_argument_must_not_be_empty():
     assert errors("x\ntasks") == ["missing_arg@2"]
     assert errors("x\ntasks   ") == ["missing_arg@2"]
+
+
+def test_block_ends_at_next_keyword_and_section_resumes():
+    doc = valid("x\nextra\nfree text\n media indented\nunknownword 1\nmedia a.png\ndata\na: 1")
+    assert doc.extra == ["free text", " media indented", "unknownword 1"]
+    assert [c.keyword for c in doc.clauses] == ["media"]
+    assert doc.data == {"a": 1}
+
+
+def test_yaml_dates_stay_strings():
+    assert valid("x\ndata\ndate: 2017-06-12").data == {"date": "2017-06-12"}

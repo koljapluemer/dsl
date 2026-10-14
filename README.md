@@ -12,9 +12,9 @@ Opens http://127.0.0.1:8766. On first start, set the data folder (stored in `~/.
 
 ## Editing
 
-One [CodeMirror 6](https://codemirror.net) editor per item. A single pass over the text (`analyze` in `static/app.js`, mirroring `dsl.py`) provides the highlighting (keywords, options and values by type, relationships, the extra block, unknown keyword lines muted; hover for meanings) and inline lint for the errors and warnings of `../dsl/spec/language.md`. Saved on blur or Ctrl+S.
+One [CodeMirror 6](https://codemirror.net) editor per item. A single pass over the text (`analyze` in `static/app.js`, mirroring `dsl.py`) provides the highlighting (keywords, options and values by type, relationships, `data` and `extra` blocks, unknown keyword lines muted; hover for meanings) and inline lint for the errors and warnings of `../dsl/spec/language.md`. Saved on blur or Ctrl+S.
 
-The list shows body and extra content as markdown (marked + DOMPurify), relationships as links headed by the target's first line (a click scrolls to the target, paging and clearing the filter as needed), and only keyword lines in monospace with the editor's highlighting. Its order is shuffled per page load (a seed sent with each request), stable across paging and filtering.
+The list shows body and `extra` content as markdown (marked + DOMPurify), `data` blocks as highlighted code, relationships as links headed by the target's first line (a click scrolls to the target, paging and clearing the filter as needed), and only keyword lines in monospace with the editor's highlighting. Its order is shuffled per page load (a seed sent with each request), stable across paging and filtering.
 
 The list is filtered and paged on the server, so a folder of many items (e.g. one shared with graphirst's notes) stays usable: `store.py` keeps each item's text and problem flags in memory and re-reads a file only when its mtime changes. The warning button filters to items needing attention.
 

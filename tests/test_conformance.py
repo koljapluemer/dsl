@@ -28,6 +28,7 @@ def _result(doc: dsl.Document) -> dict:
         "state": [_clause(c) for c in doc.state],
         "unknown": doc.unknown,
         "extra": None if doc.extra is None else "\n".join(doc.extra),
+        "data": doc.data,
         "errors": _diagnostics(doc.errors),
         "warnings": _diagnostics(doc.warnings),
     }

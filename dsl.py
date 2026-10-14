@@ -14,10 +14,21 @@ import yaml
 SPEC_PATH = Path(__file__).parent / "spec" / "keywords.yaml"
 
 ROLES = ("primary", "property", "modifier", "state")
+BLOCKS = ("text", "yaml")
+EMPTY_BLOCK_CODE = {"text": "empty_extra", "yaml": "empty_data"}
 OPENING_ROLES = ("primary", "property")
 VALUE_TYPES = ("date", "month", "weekday", "path", "text")
 WEEKDAYS = ("mo", "tu", "we", "th", "fr", "sa", "su")
-EXTRA_MARKER = "extra"
+
+# Core schema: `2017-06-12` stays a string (PyYAML implements 1.1, which resolves timestamps).
+class _CoreLoader(yaml.SafeLoader):
+    pass
+
+
+_CoreLoader.yaml_implicit_resolvers = {
+    ch: [(tag, rx) for tag, rx in resolvers if tag != "tag:yaml.org,2002:timestamp"]
+    for ch, resolvers in yaml.SafeLoader.yaml_implicit_resolvers.items()
+}
 
 _KEYWORD_TOKEN = re.compile(r"^[a-z]+$")
 _KEYWORD_OPENER = re.compile(r"^([a-z]+)(?=\s|$)")
@@ -28,15 +39,18 @@ _MONTH = re.compile(r"^(\d{2})-(\d{2})$")
 
 
 def load_schema(path: Path = SPEC_PATH) -> dict:
-    """keywords.yaml, with every keyword's `args`, `options` and `excludes`
-    filled in and each type normalised to a list."""
+    """keywords.yaml, with every keyword's `args`, `options`, `excludes` and
+    `block` filled in and each type normalised to a list."""
     raw = yaml.safe_load(path.read_text(encoding="utf-8"))
     keywords = {}
     for name, spec in raw["keywords"].items():
         if spec.get("role") not in ROLES:
             raise ValueError(f"keyword {name}: invalid role {spec.get('role')!r}")
+        if spec.get("block") not in (None, *BLOCKS):
+            raise ValueError(f"keyword {name}: invalid block {spec['block']!r}")
         keywords[name] = {
             "role": spec["role"],
+            "block": spec.get("block"),
             "args": [{"name": a["name"], "type": _types(name, a["type"])} for a in spec.get("args") or []],
             "options": {
                 o: {"type": _types(name, v["type"]), "meaning": v.get("meaning", "")}
@@ -83,16 +97,32 @@ def _is_path(token: str) -> bool:
 def is_section_opener(schema: dict, line: str) -> bool:
     """Whether a body line (other than the first) would start the keyword
     section; writers indent such lines to keep them in the body."""
+    return _starts_line_of(schema, line, OPENING_ROLES)
+
+
+def ends_block(schema: dict, line: str) -> bool:
+    """Whether a line terminates a block: any known keyword, a relationship
+    with a target, or a state line."""
+    return _starts_line_of(schema, line, ROLES)
+
+
+def _starts_line_of(schema: dict, line: str, roles: tuple[str, ...]) -> bool:
     kws = schema["keywords"]
-    if line.rstrip() == EXTRA_MARKER:
-        return True
     if _RELATION_OPENER.match(line):
         return line.split()[-1].startswith("@")
     if m := _STATE_OPENER.match(line):
-        return kws.get(m[1], {}).get("role") == "state"
+        return kws.get(m[1], {}).get("role") == "state" and "state" in roles
     if m := _KEYWORD_OPENER.match(line):
-        return kws.get(m[1], {}).get("role") in OPENING_ROLES
+        spec = kws.get(m[1])
+        if spec is None or spec["role"] not in roles:
+            return False
+        return not spec["block"] or line.rstrip() == m[1]
     return False
+
+
+def _block_keyword(schema: dict, line: str) -> str | None:
+    name = line.rstrip()
+    return name if schema["keywords"].get(name, {}).get("block") else None
 
 
 @dataclass
@@ -123,16 +153,22 @@ class Relation:
 
 @dataclass
 class Document:
-    """`body` is empty only for an empty file. `extra` is None when the file
-    has no extra marker."""
+    """`body` is empty only for an empty file. `blocks` holds the lines of each
+    block keyword that appears (`extra` and `data` among them); `data` is the
+    parsed `data` block, None when absent or invalid."""
 
     body: list[str] = field(default_factory=list)
     clauses: list[Clause] = field(default_factory=list)
     relations: list[Relation] = field(default_factory=list)
     state: list[Clause] = field(default_factory=list)
     unknown: list[str] = field(default_factory=list)
-    extra: list[str] | None = None
+    blocks: dict[str, list[str]] = field(default_factory=dict)
+    data: dict | None = None
     diagnostics: list[Diagnostic] = field(default_factory=list)
+
+    @property
+    def extra(self) -> list[str] | None:
+        return self.blocks.get("extra")
 
     @property
     def errors(self) -> list[Diagnostic]:
@@ -161,19 +197,18 @@ def parse(schema: dict, text: str) -> Document:
         return Document(diagnostics=[Diagnostic("empty")])
 
     boundary = next((i for i in range(first + 1, len(lines)) if is_section_opener(schema, lines[i])), len(lines))
-    marker = next((i for i in range(boundary, len(lines)) if lines[i].rstrip() == EXTRA_MARKER), None)
-    section_end = len(lines) if marker is None else marker
-
     p = _SectionParser(schema["keywords"])
-    for i in range(boundary, section_end):
-        p.line(lines[i], i + 1)
+    i = boundary
+    while i < len(lines):
+        keyword = _block_keyword(schema, lines[i])
+        if keyword is None:
+            p.line(lines[i], i + 1)
+            i += 1
+            continue
+        end = next((j for j in range(i + 1, len(lines)) if ends_block(schema, lines[j])), len(lines))
+        p.block(keyword, _trim_blank_ends(lines[i + 1 : end]), i + 1)
+        i = end
     p.check_excludes()
-
-    extra = None
-    if marker is not None:
-        extra = _trim_blank_ends(lines[marker + 1 :])
-        if not extra:
-            p.diagnostics.append(Diagnostic("empty_extra", marker + 1, EXTRA_MARKER))
 
     return Document(
         body=_trim_blank_ends(lines[first:boundary]),
@@ -181,7 +216,8 @@ def parse(schema: dict, text: str) -> Document:
         relations=p.relations,
         state=p.state,
         unknown=p.unknown,
-        extra=extra,
+        blocks=p.blocks,
+        data=p.data,
         diagnostics=p.diagnostics,
     )
 
@@ -228,6 +264,8 @@ class _SectionParser:
         self.relations: list[Relation] = []
         self.state: list[Clause] = []
         self.unknown: list[str] = []
+        self.blocks: dict[str, list[str]] = {}
+        self.data: dict | None = None
         self.diagnostics: list[Diagnostic] = []
         self._seen: set[str] = set()
 
@@ -240,6 +278,27 @@ class _SectionParser:
     def _unknown(self, raw: str, line: int, keyword: str) -> None:
         self.unknown.append(raw)
         self.diagnostics.append(Diagnostic("unknown_keyword", line, keyword))
+
+    def block(self, keyword: str, content: list[str], no: int) -> None:
+        if keyword in self._seen:
+            return self._error("duplicate_keyword", no, keyword)
+        self._seen.add(keyword)
+        kind = self.kws[keyword]["block"]
+        self.blocks[keyword] = content
+        if not content:
+            return self._error(EMPTY_BLOCK_CODE[kind], no, keyword)
+        if kind == "yaml":
+            self._yaml(keyword, "\n".join(content), no)
+
+    def _yaml(self, keyword: str, text: str, no: int) -> None:
+        try:
+            value = yaml.load(text, Loader=_CoreLoader)
+        except yaml.YAMLError as e:
+            return self._error("invalid_yaml", no, str(e).splitlines()[0])
+        if not isinstance(value, dict):
+            return self._error("invalid_yaml", no, "not a mapping")
+        if keyword == "data":
+            self.data = value
 
     def line(self, raw: str, no: int) -> None:
         line = raw.strip()
@@ -286,7 +345,7 @@ class _SectionParser:
                 return self._error("unexpected_token", no, text)
             if text not in self.kws:
                 return self._unknown(line[start:], no, text)
-            if self.kws[text]["role"] == "state":
+            if self.kws[text]["role"] == "state" or self.kws[text]["block"]:
                 return self._error("unexpected_token", no, text)
             clause, i = self._clause(toks, i, no, line)
             if clause is None:

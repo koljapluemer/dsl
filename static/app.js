@@ -49,8 +49,8 @@ const hashQuery = () => (location.hash.startsWith('#/?') ? new URLSearchParams(l
 let schema = { version: 0, keywords: {} };
 
 const WEEKDAYS = ['mo', 'tu', 'we', 'th', 'fr', 'sa', 'su'];
-const EXTRA_MARKER = 'extra';
 const OPENING_ROLES = ['primary', 'property'];
+const ALL_ROLES = ['primary', 'property', 'modifier', 'state'];
 
 /**
  * Which of `types` the token is; mirrors dsl.value_type. Only a `path` may be quoted.
@@ -71,22 +71,34 @@ function valueType(v, types, quoted) {
   });
 }
 
-/** @param {string} line */
-const isExtraMarker = (line) => line.trimEnd() === EXTRA_MARKER;
+/**
+ * The block keyword a line consists of, or undefined; mirrors dsl._block_keyword.
+ * @param {string} line
+ */
+const blockKeyword = (line) => (schema.keywords[line.trimEnd()]?.block ? line.trimEnd() : undefined);
+
+/**
+ * Whether a line at column 0 starts a keyword, relationship or state line of one of
+ * `roles`; mirrors dsl._starts_line_of.
+ * @param {string} line
+ * @param {string[]} roles
+ */
+function startsLineOf(line, roles) {
+  const kws = schema.keywords;
+  if (/^->\s/.test(line)) return /** @type {string} */ (line.trim().split(/\s+/).at(-1)).startsWith('@');
+  const state = /^\(([a-z]+)(?=[\s)]|$)/.exec(line);
+  if (state) return kws[state[1]]?.role === 'state' && roles.includes('state');
+  const kw = /^([a-z]+)(?=\s|$)/.exec(line);
+  const def = kw && kws[kw[1]];
+  if (!def || !roles.includes(def.role)) return false;
+  return !def.block || line.trimEnd() === kw[1];
+}
 
 /**
  * Whether a body line (after the first) starts the keyword section; mirrors dsl.is_section_opener.
  * @param {string} line
  */
-function isSectionOpener(line) {
-  const kws = schema.keywords;
-  if (isExtraMarker(line)) return true;
-  if (/^->\s/.test(line)) return /** @type {string} */ (line.trim().split(/\s+/).at(-1)).startsWith('@');
-  const state = /^\(([a-z]+)(?=[\s)]|$)/.exec(line);
-  if (state) return kws[state[1]]?.role === 'state';
-  const kw = /^([a-z]+)(?=\s|$)/.exec(line);
-  return !!kw && OPENING_ROLES.includes(kws[kw[1]]?.role);
-}
+const isSectionOpener = (line) => startsLineOf(line, OPENING_ROLES);
 
 /**
  * @typedef {{from: number, to: number, cls: string, title?: string}} Segment
@@ -98,8 +110,10 @@ function isSectionOpener(line) {
 
 /**
  * The parts of item text, as line indices: the body runs from `first` (-1 for an
- * empty text) to `boundary`, the keyword section from there to `marker`, which
- * is `lines.length` when there's no extra block. Mirrors the start of dsl.parse.
+ * empty text) to `boundary`; from there `parts` lists the keyword section in
+ * order, each a plain line or a block (`line` is its keyword's line, `end` the
+ * line after its content). Mirrors the start of dsl.parse.
+ * @typedef {{line: number, end: number, keyword?: string}} Part
  * @param {string} text
  */
 function outline(text) {
@@ -110,19 +124,27 @@ function outline(text) {
   const first = lines.findIndex((l) => l.trim());
   let boundary = first < 0 ? lines.length : first + 1;
   while (boundary < lines.length && !isSectionOpener(lines[boundary])) boundary++;
-  let marker = boundary;
-  while (marker < lines.length && !isExtraMarker(lines[marker])) marker++;
-  return { lines, starts, first, boundary, marker };
+  /** @type {Part[]} */
+  const parts = [];
+  for (let i = boundary; i < lines.length;) {
+    const keyword = blockKeyword(lines[i]);
+    let end = i + 1;
+    if (keyword) while (end < lines.length && !startsLineOf(lines[end], ALL_ROLES)) end++;
+    parts.push({ line: i, end, keyword });
+    i = end;
+  }
+  return { lines, starts, first, boundary, parts };
 }
 
 /**
  * Highlighting and problems for item text, as absolute offsets; mirrors dsl.parse.
- * Drives the editor's decorations and lint, and the list's keyword lines.
+ * Drives the editor's decorations and lint, and the list's keyword lines. YAML
+ * validity is only checked by the server.
  * @param {string} text
  * @returns {{segments: Segment[], problems: Problem[]}}
  */
 function analyze(text) {
-  const { lines, starts, first, boundary, marker } = outline(text);
+  const { lines, starts, first, parts } = outline(text);
   /** @type {Segment[]} */
   const segments = [];
   /** @type {Problem[]} */
@@ -131,15 +153,23 @@ function analyze(text) {
 
   /** @type {Seen} */
   const seen = { keywords: [], clauses: [] };
-  for (let i = boundary; i < marker; i++) sectionLine(lines[i], starts[i], seen, segments, problems);
-
-  if (marker < lines.length) {
-    const markerTo = starts[marker] + lines[marker].trimEnd().length;
-    segments.push({ from: starts[marker], to: markerTo, cls: 'tok-property', title: 'extra content follows, up to the end of the file' });
-    if (lines.slice(marker + 1).some((l) => l.trim())) {
-      segments.push({ from: starts[marker] + lines[marker].length + 1, to: text.length, cls: 'tok-extra' });
+  for (const { line, end, keyword } of parts) {
+    if (!keyword) {
+      sectionLine(lines[line], starts[line], seen, segments, problems);
+      continue;
+    }
+    const def = schema.keywords[keyword];
+    const from = starts[line];
+    const to = from + lines[line].trimEnd().length;
+    segments.push({ from, to, cls: `tok-${def.role}`, title: def.meaning.trim() });
+    if (seen.keywords.includes(keyword)) problems.push({ from, to, severity: 'error', message: `duplicate_keyword: ${keyword}` });
+    seen.keywords.push(keyword);
+    if (lines.slice(line + 1, end).some((l) => l.trim())) {
+      const blockTo = end < lines.length ? starts[end] - 1 : text.length;
+      segments.push({ from: to + 1, to: blockTo, cls: 'tok-extra' });
     } else {
-      problems.push({ from: starts[marker], to: markerTo, severity: 'error', message: 'empty_extra: no content after extra' });
+      const code = def.block === 'yaml' ? 'empty_data' : 'empty_extra';
+      problems.push({ from, to, severity: 'error', message: `${code}: no content after ${keyword}` });
     }
   }
   return { segments, problems };
@@ -189,7 +219,7 @@ function sectionLine(line, at, seen, segments, problems) {
   while (i < toks.length) {
     const t = toks[i];
     const def = schema.keywords[t.text];
-    if (t.quoted || !/^[a-z]+$/.test(t.text) || def?.role === 'state') {
+    if (t.quoted || !/^[a-z]+$/.test(t.text) || def?.role === 'state' || def?.block) {
       return problems.push({ from: t.from, to, severity: 'error', message: 'unexpected_token' });
     }
     if (!def) {
@@ -329,25 +359,29 @@ const markdown = (s) => purify.sanitize(marked_.parse(s, { breaks: true, async: 
  */
 function overviewHtml(item) {
   const text = item.text.trimEnd();
-  const { lines, starts, first, boundary, marker } = outline(text);
+  const { lines, starts, first, boundary, parts } = outline(text);
   const analysis = analyze(text);
-  const code = (/** @type {number} */ i) =>
-    `<div class="ov-code">${highlightHtml(text, analysis, starts[i], starts[i] + lines[i].length)}</div>`;
+  const code = (/** @type {number} */ i, /** @type {number} */ end = i + 1) =>
+    `<div class="ov-code">${highlightHtml(text, analysis, starts[i], starts[end - 1] + lines[end - 1].length)}</div>`;
   let section = '';
-  for (let i = boundary; i < marker; i++) {
-    const trimmed = lines[i].trim();
+  let blocks = '';
+  for (const { line, end, keyword } of parts) {
+    if (keyword) {
+      const content = lines.slice(line + 1, end).join('\n');
+      const def = schema.keywords[keyword];
+      if (!content.trim()) blocks += code(line);
+      else if (def.block === 'yaml') blocks += code(line, end);
+      else blocks += `<div class="ov-extra md">${markdown(content)}</div>`;
+      continue;
+    }
+    const trimmed = lines[line].trim();
     const rel = isRelationLine(trimmed) && relation(trimmed);
     if (rel) section += refHtml(rel, item.refs);
-    else if (trimmed) section += code(i);
-  }
-  let extra = '';
-  if (marker < lines.length) {
-    const content = lines.slice(marker + 1).join('\n');
-    extra = content.trim() ? `<div class="ov-extra md">${markdown(content)}</div>` : code(marker);
+    else if (trimmed) section += code(line);
   }
   return (first < 0 ? '' : `<div class="md">${markdown(lines.slice(first, boundary).join('\n'))}</div>`)
     + (section && `<div class="ov-section">${section}</div>`)
-    + extra;
+    + blocks;
 }
 
 /**
