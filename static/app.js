@@ -1,8 +1,8 @@
 // @ts-check
 /**
- * @typedef {'date'|'month'|'weekday'|'path'|'text'} ValueType
+ * @typedef {'date'|'month'|'weekday'|'path'|'text'|'tags'} ValueType
  * @typedef {{name: string, type: ValueType[]}} ArgDef
- * @typedef {{role: 'primary'|'property'|'modifier'|'state', args: ArgDef[], options: Record<string, {type: ValueType[], meaning: string}>, excludes: string[], meaning: string}} KeywordDef
+ * @typedef {{role: 'primary'|'property'|'modifier'|'state', args: ArgDef[], line_start: boolean, options: Record<string, {type: ValueType[], meaning: string}>, excludes: string[], meaning: string}} KeywordDef
  * @typedef {{version: number, keywords: Record<string, KeywordDef>}} Schema
  * @typedef {{code: string, line: number | null, detail: string | null}} Diagnostic
  * @typedef {{file: string, text: string, errors: Diagnostic[], warnings: Diagnostic[], refs?: Record<string, string | null>}} Item
@@ -227,6 +227,9 @@ function sectionLine(line, at, seen, segments, problems) {
       problems.push({ from: t.from, to, severity: 'warning', message: `unknown_keyword: ${t.text} (the rest of the line is kept as is)` });
       return;
     }
+    if (i > 0 && def.line_start) {
+      return problems.push({ from: t.from, to, severity: 'error', message: `unexpected_token: ${t.text} must start its line` });
+    }
     i = clause(toks, i, to, seen, segments, problems);
     if (i < 0) return;
   }
@@ -292,6 +295,14 @@ function clause(toks, i, end, seen, segments, problems) {
       if (i >= toks.length) return fail(kwAt, `missing_arg: ${arg.name} (text)`, false);
       segments.push({ from: toks[i].from, to: end, cls: 'tok-text', title: arg.name });
       i = toks.length;
+      continue;
+    }
+    if (arg.type.length === 1 && arg.type[0] === 'tags') {
+      if (i >= toks.length) return fail(kwAt, `missing_arg: ${arg.name} (tags)`, false);
+      for (; i < toks.length; i++) {
+        if (toks[i].quoted || !/^[a-z0-9-]+$/.test(toks[i].text)) return fail(i, `invalid_value: ${arg.name} are a-z, 0-9 and -`, false);
+        mark(i, 'tok-tags', arg.name);
+      }
       continue;
     }
     if (i >= toks.length || isKw(i)) return fail(kwAt, `missing_arg: ${arg.name} (${arg.type.join(' | ')})`, false);

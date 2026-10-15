@@ -113,6 +113,18 @@ def test_text_argument_must_not_be_empty():
     assert errors("x\ntasks   ") == ["missing_arg@2"]
 
 
+def test_tags_argument_is_one_arg_per_tag():
+    doc = valid("x\ntags break 10k  do-this appointment")
+    assert [(c.keyword, c.args) for c in doc.clauses] == [("tags", ["break", "10k", "do-this", "appointment"])]
+
+
+def test_tags_must_be_lowercase_tags_and_start_their_line():
+    assert errors("x\ntags Break") == ["invalid_value@2"]
+    assert errors("x\ntags a_b") == ["invalid_value@2"]
+    assert errors("x\ntags") == ["missing_arg@2"]
+    assert errors("x\nmedia a.png tags a") == ["unexpected_token@2"]
+
+
 def test_block_ends_at_next_keyword_and_section_resumes():
     doc = valid("x\nextra\nfree text\n media indented\nunknownword 1\nmedia a.png\ndata\na: 1")
     assert doc.extra == ["free text", " media indented", "unknownword 1"]

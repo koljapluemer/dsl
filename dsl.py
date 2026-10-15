@@ -17,7 +17,7 @@ ROLES = ("primary", "property", "modifier", "state")
 BLOCKS = ("text", "yaml")
 EMPTY_BLOCK_CODE = {"text": "empty_extra", "yaml": "empty_data"}
 OPENING_ROLES = ("primary", "property")
-VALUE_TYPES = ("date", "month", "weekday", "path", "text")
+VALUE_TYPES = ("date", "month", "weekday", "path", "text", "tags")
 WEEKDAYS = ("mo", "tu", "we", "th", "fr", "sa", "su")
 
 # Core schema: `2017-06-12` stays a string (PyYAML implements 1.1, which resolves timestamps).
@@ -36,6 +36,7 @@ _STATE_OPENER = re.compile(r"^\(([a-z]+)(?=[\s)]|$)")
 _RELATION_OPENER = re.compile(r"^->\s")
 _DATE = re.compile(r"^(\d{2})-(\d{2})-(\d{2})$")
 _MONTH = re.compile(r"^(\d{2})-(\d{2})$")
+_TAG = re.compile(r"^[a-z0-9-]+$")
 
 
 def load_schema(path: Path = SPEC_PATH) -> dict:
@@ -51,6 +52,7 @@ def load_schema(path: Path = SPEC_PATH) -> dict:
         keywords[name] = {
             "role": spec["role"],
             "block": spec.get("block"),
+            "line_start": bool(spec.get("line_start")),
             "args": [{"name": a["name"], "type": _types(name, a["type"])} for a in spec.get("args") or []],
             "options": {
                 o: {"type": _types(name, v["type"]), "meaning": v.get("meaning", "")}
@@ -72,8 +74,8 @@ def _types(keyword: str, raw) -> list[str]:
 
 def value_type(token: str, types: list[str], quoted: bool = False) -> str | None:
     """Which of `types` the token is, or None when it's none of them. Only a
-    `path` may be quoted. `text` is not decided per token: it takes the rest
-    of the line (see `_SectionParser._clause`)."""
+    `path` may be quoted. `text` and `tags` are not decided per token: they
+    take the rest of the line (see `_SectionParser._clause`)."""
     for t in types:
         if t == "path" and _is_path(token):
             return t
@@ -88,6 +90,10 @@ def value_type(token: str, types: list[str], quoted: bool = False) -> str | None
             if 1 <= mo <= 12 and 1 <= d <= calendar.monthrange(y, mo)[1]:
                 return t
     return None
+
+
+def is_tag(token: str) -> bool:
+    return bool(_TAG.match(token))
 
 
 def _is_path(token: str) -> bool:
@@ -347,6 +353,8 @@ class _SectionParser:
                 return self._unknown(line[start:], no, text)
             if self.kws[text]["role"] == "state" or self.kws[text]["block"]:
                 return self._error("unexpected_token", no, text)
+            if i > 0 and self.kws[text]["line_start"]:
+                return self._error("unexpected_token", no, text)
             clause, i = self._clause(toks, i, no, line)
             if clause is None:
                 return
@@ -371,6 +379,17 @@ class _SectionParser:
                     self._error("missing_arg", no, keyword)
                     return None, i
                 args.append(src[toks[i][1] :].strip())
+                i = len(toks)
+                continue
+            if arg["type"] == ["tags"]:
+                if i >= len(toks):
+                    self._error("missing_arg", no, keyword)
+                    return None, i
+                for text, _, quoted in toks[i:]:
+                    if quoted or not is_tag(text):
+                        self._error("invalid_value", no, text)
+                        return None, len(toks)
+                args.extend(text for text, _, _ in toks[i:])
                 i = len(toks)
                 continue
             if i >= len(toks) or self._is_keyword(toks[i]):
