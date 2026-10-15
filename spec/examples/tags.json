@@ -1,0 +1,12 @@
+{
+  "body": "Note",
+  "clauses": [
+    { "keyword": "tags", "line": 2, "args": ["break", "10k", "do-this"], "options": {} }
+  ],
+  "relations": [],
+  "state": [],
+  "unknown": [],
+  "extra": null,
+  "errors": [],
+  "warnings": []
+}

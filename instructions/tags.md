@@ -14,4 +14,6 @@ The user should able to:
 - blacklist tags, with a standard tag input modality.
 
 Notes then should be simply ignored by this app completely in all respects when they include one of these tags.
-Add this feature for `dsl-graph` and `queue`. 
+Add this feature for `dsl-graph` and `queue`.
+
+For this to make sense in dsl-graph, adopt a policy of rendering the note's full content in the graph node, rendering `extra` in a smaller font and omitting boring lines (such as tags). When in edit mode, full note data should be shown, with syntax highlighting, as dsl-crud supports.

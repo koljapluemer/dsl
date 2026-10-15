@@ -133,6 +133,10 @@ appointment 26-10-12
 recurring mo until 27-03
 ```
 
+A keyword marked `line_start` in `keywords.yaml` (`tags`) must be the first
+token of its line. Found after another clause on the same line, it is an
+`unexpected_token`, and it and the rest of the line are skipped.
+
 A `state` keyword in a clause line is an `unexpected_token`; it belongs in a
 state line.
 
@@ -204,7 +208,13 @@ type `path`.
 | `month`   | `yy-mm`    | a whole month, year 20yy                                        |
 | `weekday` | `mo tu we th fr sa su` |                                                     |
 | `path`    | `images/a.webp` | a file relative to the item's folder, `/` as separator. Not empty, no leading `/`, no `\`, no `..` segment. Quote it when it contains spaces. |
-| `text`    | `clean up` | the rest of the line, trimmed, not empty. Words in it are never read as keywords. Must be the keyword's only argument. |
+| `text`    | `clean up` | the rest of the line, trimmed, not empty. |
+| `tags`    | `break 10k do-this` | the rest of the line, split on whitespace: one or more tags, each made of `a-z`, `0-9` and `-` only. |
+
+`text` and `tags` are **rest-of-line** types: their words are never read as
+keywords, and they must be the keyword's only argument and its only type.
+A missing value is a `missing_arg`. A `tags` value with a token that isn't a
+tag (uppercase, other characters, quoted) is an `invalid_value`.
 
 An argument or option declared with several types (e.g. `[date, month]`)
 accepts any of them. The value's form decides which type it is.
@@ -250,7 +260,7 @@ result matches every key the JSON lists; absent keys aren't checked.
 | key         | value                                                            |
 | ----------- | ---------------------------------------------------------------- |
 | `body`      | the body lines joined with `\n`, or `null` for an empty file    |
-| `clauses`   | `[{keyword, line, args, options}]`, values as their token text  |
+| `clauses`   | `[{keyword, line, args, options}]`, values as their token text; a `text` value is one entry, a `tags` value one entry per tag |
 | `relations` | `[{label, target, line}]`                                        |
 | `state`     | `[{keyword, line, args, options}]`, like `clauses`              |
 | `unknown`   | unknown keyword lines from the keyword on; whole state lines    |
