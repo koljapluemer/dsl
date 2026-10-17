@@ -22,6 +22,16 @@ CodeMirror loads without a build step: each package comes from esm.sh with its d
 
 New files are named `<slug of the first line>-<6 hex>.txt`; the name doesn't change when the text does. Other items refer to it by that name without `.txt` (`-> label @name`).
 
+## Questions
+
+The Questions tab shows a random note whose body contains `>` or `~`, that has at most one relationship and isn't tagged `no-questions` (`questions.is_candidate`). Below it are up to 3 of the questions in `questions.py`. An answer links the note with `-> <label> @<target>`, to an existing note picked from the search suggestions (a word index in `store.py`, prefix-matched as you type) or to a new note made from the text. Skip shows another note. Disable adds the `no-questions` tag.
+
+When `questions.py` lists more than 3 questions, a local LLM chooses the 3 that fit the note best (prompt: `prompts/pick-questions.md`). Without an LLM it asks the first 3. The LLM is an [Ollama](https://ollama.com) server, set in Settings and stored under `llm` in the config file:
+
+- `url`: defaults to `OLLAMA_HOST`, then `http://127.0.0.1:11434`
+- `model`: chosen from the server's installed models. There is no default, so without one the questions aren't chosen
+- `think` (default `false`), `keep_alive` (default `"30m"`), `options`: passed on to Ollama's `/api/chat`
+
 ## Spec
 
 The parser (`dsl.py`) reads `spec/keywords.yaml` at startup and names no keyword itself. The tests run `../dsl/spec/examples` against it. After a change in `../dsl`:

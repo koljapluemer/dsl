@@ -754,8 +754,302 @@ const TaskList = {
     </div>`,
 };
 
-const Settings = {
+/**
+ * @typedef {{id: string, question: string, label: string}} Question
+ * @typedef {{file: string, heading: string}} Suggestion
+ */
+
+/** One question about a note: a field whose text either links an existing note (picked from search suggestions) or becomes a new one. */
+const QuestionAnswer = {
   components: { Icon },
+  props: {
+    file: { type: String, required: true },
+    question: { type: Object, required: true },
+    /** resolves once pending edits of the note are saved */
+    flush: { type: Function, required: true },
+  },
+  emits: ['answered', 'error'],
+  setup(/** @type {any} */ props, /** @type {any} */ { emit }) {
+    const text = ref('');
+    const suggestions = ref(/** @type {Suggestion[]} */ ([]));
+    const active = ref(-1);
+    const busy = ref(false);
+    /** the notes linked so far */
+    const linked = ref(/** @type {Suggestion[]} */ ([]));
+    let timer = 0;
+    let searches = 0;
+
+    async function search() {
+      const n = ++searches;
+      const q = text.value.trim();
+      if (q.length < 2) {
+        suggestions.value = [];
+        return;
+      }
+      const exclude = [props.file, ...linked.value.map((l) => l.file)].join(',');
+      try {
+        const res = await api('GET', `/api/search?${new URLSearchParams({ q, exclude })}`);
+        if (n !== searches) return;
+        suggestions.value = res;
+        active.value = -1;
+      } catch (e) { emit('error', e); }
+    }
+
+    function input() {
+      clearTimeout(timer);
+      timer = setTimeout(search, 120);
+    }
+
+    /** @param {{target?: string, text?: string}} how */
+    async function submit(how) {
+      if (busy.value) return;
+      busy.value = true;
+      try {
+        await props.flush();
+        const res = await api('POST', `/api/questions/answer/${encodeURIComponent(props.file)}`, { qid: props.question.id, ...how });
+        linked.value.push(res.target);
+        text.value = '';
+        suggestions.value = [];
+        searches++;
+        emit('answered', res);
+      } catch (e) { emit('error', e); } finally { busy.value = false; }
+    }
+
+    /** @param {Suggestion} s */
+    const link = (s) => submit({ target: s.file });
+
+    function createNew() {
+      if (text.value.trim()) submit({ text: text.value.trim() });
+    }
+
+    /** @param {KeyboardEvent} e */
+    function keydown(e) {
+      const n = suggestions.value.length;
+      if (e.key === 'ArrowDown' && n) {
+        e.preventDefault();
+        active.value = (active.value + 1) % n;
+      } else if (e.key === 'ArrowUp' && n) {
+        e.preventDefault();
+        active.value = active.value <= 0 ? n - 1 : active.value - 1;
+      } else if (e.key === 'Enter') {
+        e.preventDefault();
+        if (active.value >= 0) link(suggestions.value[active.value]);
+        else createNew();
+      } else if (e.key === 'Escape') {
+        suggestions.value = [];
+        active.value = -1;
+      }
+    }
+
+    return { text, suggestions, active, busy, linked, input, keydown, link, createNew };
+  },
+  template: `
+    <div>
+      <p class="font-medium mb-1">{{ question.question }}</p>
+      <div v-for="l in linked" :key="l.file" class="text-sm"><span class="ov-muted">{{ question.label }} →</span> {{ l.heading || l.file }}</div>
+      <div class="join w-full mt-1">
+        <input class="input join-item w-full" v-model="text" @input="input" @keydown="keydown" :disabled="busy"
+               placeholder="Search a note to link, or write a new one">
+        <button class="btn join-item" :disabled="busy || !text.trim()" title="create as new note" @click="createNew">
+          <icon name="plus"></icon>New note</button>
+      </div>
+      <ul v-if="suggestions.length" class="menu menu-sm bg-base-200 rounded-box w-full mt-1">
+        <li v-for="(s, i) in suggestions" :key="s.file">
+          <a :class="{'menu-active': i === active}" @mousedown.prevent="link(s)">
+            <span class="truncate">{{ s.heading || s.file }}</span>
+            <span class="ml-auto font-mono text-xs text-base-content/50">{{ s.file }}</span>
+          </a>
+        </li>
+      </ul>
+    </div>`,
+};
+
+/** A random loosely-linked note (see questions.py) and the questions picked for it. */
+const QuestionView = {
+  components: { Icon, Editor, QuestionAnswer },
+  emits: ['error'],
+  setup(/** @type {any} */ _props, /** @type {any} */ { emit }) {
+    const item = ref(/** @type {Item | null} */ (null));
+    const total = ref(0);
+    const loaded = ref(false);
+    const editing = ref(false);
+    const text = ref('');
+    /** bumped to remount the editor when the note changed underneath it */
+    const editorKey = ref(0);
+    const questions = ref(/** @type {Question[]} */ ([]));
+    const picking = ref(false);
+    const pickNote = ref('');
+    /** skipped this session, so Skip doesn't bring them right back */
+    const skipped = /** @type {string[]} */ ([]);
+    let lastSaved = '';
+    /** @type {Promise<void>} */
+    let pendingSave = Promise.resolve();
+
+    /** @param {Item | null} i */
+    function show(i) {
+      item.value = i;
+      text.value = lastSaved = i?.text ?? '';
+      editorKey.value++;
+    }
+
+    async function next() {
+      editing.value = false;
+      try {
+        const exclude = [...skipped, ...(item.value ? [item.value.file] : [])].join(',');
+        const res = await api('GET', `/api/questions/next?${new URLSearchParams({ exclude })}`);
+        show(res.item);
+        total.value = res.total;
+        loaded.value = true;
+        if (res.item) pick(res.item.file);
+        else questions.value = [];
+      } catch (e) { emit('error', e); }
+    }
+
+    /** @param {string} file */
+    async function pick(file) {
+      questions.value = [];
+      pickNote.value = '';
+      picking.value = true;
+      try {
+        const res = await api('GET', `/api/questions/pick/${encodeURIComponent(file)}`);
+        if (item.value?.file !== file) return;
+        questions.value = res.questions;
+        if (res.source === 'fallback') pickNote.value = `LLM unavailable, asking the first ones: ${res.reason}`;
+      } catch (e) { emit('error', e); } finally {
+        if (item.value?.file === file) picking.value = false;
+      }
+    }
+
+    function skip() {
+      if (item.value) skipped.push(item.value.file);
+      next();
+    }
+
+    async function disable() {
+      if (!item.value) return;
+      try {
+        await pendingSave;
+        await api('POST', `/api/questions/disable/${encodeURIComponent(item.value.file)}`);
+        next();
+      } catch (e) { emit('error', e); }
+    }
+
+    async function save() {
+      const sent = text.value;
+      if (!item.value || !sent.trim() || sent === lastSaved) return;
+      const file = item.value.file;
+      try {
+        await api('PUT', `/api/items/${encodeURIComponent(file)}`, { text: sent });
+        lastSaved = sent;
+        const fresh = await api('GET', `/api/questions/note/${encodeURIComponent(file)}`);
+        if (item.value?.file === file) item.value = fresh;
+      } catch (e) { emit('error', e); }
+    }
+
+    function autosave() {
+      pendingSave = pendingSave.then(save);
+      return pendingSave;
+    }
+
+    function toggleEdit() {
+      if (editing.value) autosave();
+      editing.value = !editing.value;
+    }
+
+    /** @param {Item} res the note after the answer was linked */
+    function answered(res) {
+      show(res);
+    }
+
+    /** relationship links open the target in the editor */
+    function previewClick(/** @type {MouseEvent} */ e) {
+      const a = /** @type {HTMLAnchorElement | null} */ ((/** @type {Element} */ (e.target)).closest('a'));
+      if (a?.dataset.ref) go('#/edit/' + encodeURIComponent(a.dataset.ref));
+      else if (a?.href) {
+        e.preventDefault();
+        window.open(a.href, '_blank', 'noopener');
+      }
+    }
+
+    onMounted(next);
+
+    return {
+      item, total, loaded, editing, text, editorKey, questions, picking, pickNote,
+      skip, disable, toggleEdit, autosave, answered, previewClick, fail: (/** @type {any} */ e) => emit('error', e),
+      overview: overviewHtml,
+    };
+  },
+  template: `
+    <div>
+      <p v-if="loaded && !item" class="text-base-content/50">No notes to ask about.</p>
+      <template v-if="item">
+        <div class="flex items-center gap-1 mb-4">
+          <button class="btn" title="next note" @click="skip"><icon name="skip-forward"></icon>Skip</button>
+          <button class="btn" title="never ask about this note (tag no-questions)" @click="disable"><icon name="ban"></icon>Disable</button>
+          <button class="btn btn-square" :class="{'btn-active': editing}" title="edit" @click="toggleEdit"><icon name="pencil"></icon></button>
+          <span class="ml-auto font-mono text-xs text-base-content/50">{{ item.file }} · {{ total }}</span>
+        </div>
+        <div v-if="editing" @focusout="autosave">
+          <editor :key="editorKey" v-model="text" @save="autosave"></editor>
+        </div>
+        <div v-else class="overview rounded-box border border-base-300 p-4" v-html="overview(item)" @click="previewClick"></div>
+        <div class="mt-6 space-y-6">
+          <span v-if="picking" class="loading loading-dots loading-sm"></span>
+          <p v-if="pickNote" class="text-sm text-base-content/50">{{ pickNote }}</p>
+          <question-answer v-for="q in questions" :key="item.file + ':' + q.id" :file="item.file" :question="q"
+                           :flush="autosave" @answered="answered" @error="fail"></question-answer>
+        </div>
+      </template>
+    </div>`,
+};
+
+const LlmSettings = {
+  emits: ['error'],
+  setup(/** @type {any} */ _props, /** @type {any} */ { emit }) {
+    const info = ref(/** @type {{available: boolean, reason: string | null, url: string, default_url: string, model: string | null, models: string[]} | null} */ (null));
+    const url = ref('');
+    const model = ref('');
+
+    async function load() {
+      try {
+        const res = await api('GET', '/api/llm');
+        info.value = res;
+        url.value = res.url === res.default_url ? '' : res.url;
+        model.value = res.model || '';
+      } catch (e) { emit('error', e); }
+    }
+
+    async function save() {
+      try {
+        await api('PUT', '/api/settings', { llm: { url: url.value, model: model.value } });
+        await load();
+      } catch (e) { emit('error', e); }
+    }
+
+    const models = computed(() => {
+      const m = info.value?.models || [];
+      return model.value && !m.includes(model.value) ? [model.value, ...m] : m;
+    });
+
+    onMounted(load);
+    return { info, url, model, models, save };
+  },
+  template: `
+    <fieldset v-if="info" class="fieldset"><legend class="fieldset-legend">LLM (Ollama)</legend>
+      <div class="join w-full">
+        <input class="input join-item w-full" v-model="url" :placeholder="info.default_url" @keydown.enter="save">
+        <select class="select join-item" v-model="model" @change="save">
+          <option value="">no model</option>
+          <option v-for="m in models" :key="m" :value="m">{{ m }}</option>
+        </select>
+        <button class="btn join-item" @click="save">Save</button>
+      </div>
+      <p class="label">{{ info.available ? info.models.length + ' models at ' + info.url : 'unavailable: ' + info.reason }}</p>
+    </fieldset>`,
+};
+
+const Settings = {
+  components: { Icon, LlmSettings },
   props: { path: { type: String, default: '' }, suggested: { type: String, default: '' } },
   emits: ['error', 'saved'],
   setup(/** @type {any} */ props, /** @type {any} */ { emit }) {
@@ -769,7 +1063,7 @@ const Settings = {
       } catch (e) { emit('error', e); }
     }
 
-    return { value, save, listHash };
+    return { value, save, listHash, fail: (/** @type {any} */ e) => emit('error', e) };
   },
   template: `
     <div>
@@ -783,11 +1077,12 @@ const Settings = {
         </div>
         <p v-if="suggested && suggested !== value" class="label">calendar: <a class="link font-mono" @click="value = suggested">{{ suggested }}</a></p>
       </fieldset>
+      <llm-settings @error="fail"></llm-settings>
     </div>`,
 };
 
 createApp({
-  components: { ItemEditor, ItemList, TaskList, Settings },
+  components: { ItemEditor, ItemList, TaskList, QuestionView, Settings },
   setup() {
     const route = ref(location.hash || '#/');
     const error = ref('');
@@ -825,6 +1120,7 @@ createApp({
       if (r.startsWith('#/settings')) return 'settings';
       if (r === '#/new') return 'new';
       if (r === '#/tasks') return 'tasks';
+      if (r === '#/questions') return 'questions';
       if (r.startsWith('#/edit/')) return 'edit';
       return 'list';
     });
@@ -883,8 +1179,10 @@ createApp({
         <div role="tablist" class="tabs tabs-border mb-4">
           <a role="tab" class="tab" :class="{'tab-active': page === 'list'}" href="#/">Notes</a>
           <a role="tab" class="tab" :class="{'tab-active': page === 'tasks'}" href="#/tasks">Tasks</a>
+          <a role="tab" class="tab" :class="{'tab-active': page === 'questions'}" href="#/questions">Questions</a>
         </div>
         <task-list v-if="page === 'tasks'" key="tasks" @error="fail"></task-list>
+        <question-view v-else-if="page === 'questions'" key="questions" @error="fail"></question-view>
         <item-list v-else :key="listKey" @deleted="itemDeleted" @error="fail"></item-list>
       </template>
     </template>`,

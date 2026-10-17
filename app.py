@@ -4,6 +4,8 @@ import webbrowser
 
 from flask import Flask, jsonify, render_template, request
 
+import llm
+import questions
 import store
 
 PORT = 8766
@@ -49,11 +51,73 @@ def get_settings():
 
 @app.put("/api/settings")
 def put_settings():
-    path = ((request.get_json() or {}).get("path") or "").strip()
-    if not path:
-        raise store.ValidationError("path required")
-    store.set_path(path)
+    """`path` and/or `llm` (`{url, model}`)."""
+    body = request.get_json(silent=True) or {}
+    if "llm" in body:
+        if not isinstance(body["llm"], dict):
+            raise store.ValidationError("llm must be an object")
+        store.set_llm(body["llm"])
+    if "path" in body or "llm" not in body:
+        path = (body.get("path") or "").strip()
+        if not path:
+            raise store.ValidationError("path required")
+        store.set_path(path)
     return _settings()
+
+
+@app.get("/api/llm")
+def get_llm():
+    try:
+        models, available, reason = llm.models(), True, None
+    except llm.Unavailable as e:
+        models, available, reason = [], False, str(e)
+    return jsonify(available=available, reason=reason, url=llm.url(), default_url=llm.default_url(),
+                   model=llm.model(), models=models)
+
+
+def _excluded() -> list[str]:
+    return [f for f in request.args.get("exclude", "").split(",") if f]
+
+
+@app.get("/api/search")
+def search():
+    return jsonify(store.search(request.args.get("q", ""), _excluded()))
+
+
+@app.get("/api/questions/next")
+def next_question_note():
+    return jsonify(store.random_candidate(_excluded()))
+
+
+@app.get("/api/questions/note/<name>")
+def question_note(name):
+    return jsonify(store.get_with_refs(name))
+
+
+@app.get("/api/questions/pick/<name>")
+def pick_questions(name):
+    """The questions to ask about the note; the first ones when the LLM can't choose."""
+    text = store.get(name)["text"]
+    by_id = {q["id"]: q for q in questions.QUESTIONS}
+    if len(by_id) <= questions.ASK_COUNT:
+        ids, source, reason = list(by_id), "all", None
+    else:
+        try:
+            ids, source, reason = llm.pick(text, questions.QUESTIONS, questions.ASK_COUNT), "llm", None
+        except llm.Unavailable as e:
+            ids, source, reason = list(by_id)[: questions.ASK_COUNT], "fallback", str(e)
+    return jsonify(questions=[by_id[i] for i in ids], source=source, reason=reason)
+
+
+@app.post("/api/questions/answer/<name>")
+def answer_question(name):
+    return jsonify(store.answer(name, request.get_json(silent=True)))
+
+
+@app.post("/api/questions/disable/<name>")
+def disable_questions(name):
+    store.disable(name)
+    return "", 204
 
 
 @app.get("/api/items")

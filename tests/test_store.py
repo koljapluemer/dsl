@@ -132,3 +132,74 @@ def test_tasks_filter(data_dir, monkeypatch):
     assert sorted(i["file"] for i in r["items"]) == ["b.txt", "d.txt"]
     assert r["total"] == 2 and r["tasks"] == 2
     assert store.list_page()["total"] == 5
+
+
+def test_random_candidate(data_dir):
+    store.create({"file": "a.txt", "text": "a > b"})
+    store.create({"file": "b.txt", "text": "b ~ c\n-> r @a"})
+    store.create({"file": "c.txt", "text": "plain"})
+    store.create({"file": "d.txt", "text": "d > e\ntags no-questions"})
+    assert store.random_candidate(["a.txt"])["item"]["file"] == "b.txt"
+    assert store.random_candidate(["a.txt"])["item"]["refs"] == {"a": "a > b"}
+    assert store.random_candidate(["a.txt", "b.txt"])["item"]["file"] in ("a.txt", "b.txt")
+    assert store.random_candidate()["total"] == 2
+    store.delete("a.txt")
+    store.delete("b.txt")
+    assert store.random_candidate() == {"item": None, "total": 0}
+
+
+def test_search_ranks_and_prefixes(data_dir):
+    store.create({"file": "ml.txt", "text": "Machine learning basics\nabout models"})
+    store.create({"file": "body.txt", "text": "Notes\nsome machine learning in the body"})
+    store.create({"file": "mach.txt", "text": "Machinery"})
+    store.create({"file": "cafe.txt", "text": "Café culture"})
+    files = lambda q, ex=(): [r["file"] for r in store.search(q, list(ex))]
+    assert files("machine learning") == ["ml.txt", "body.txt", "mach.txt"]
+    assert files("machine lea")[:2] == ["ml.txt", "body.txt"]
+    assert files("mach")[0] == "mach.txt"  # heading, prefix
+    assert files("cafe") == files("CAFÉ") == ["cafe.txt"]
+    assert files("machine learning", ["ml.txt"]) == ["body.txt", "mach.txt"]
+    assert store.search("machine")[0] == {"file": "ml.txt", "heading": "Machine learning basics"}
+    assert files("  ") == []
+
+
+def test_search_sees_own_writes_at_once(data_dir):
+    store.search("x")
+    store.create({"file": "n.txt", "text": "zebra"})
+    assert [r["file"] for r in store.search("zeb")] == ["n.txt"]
+    store.update("n.txt", {"text": "yak"})
+    assert store.search("zeb") == []
+    store.delete("n.txt")
+    assert store.search("yak") == []
+
+
+def test_answer_links_existing_and_new(data_dir):
+    store.create({"file": "a.txt", "text": "a > b"})
+    store.create({"file": "x.txt", "text": "X person"})
+    res = store.answer("a.txt", {"qid": "experts", "target": "x.txt"})
+    assert res["target"] == {"file": "x.txt", "heading": "X person"}
+    assert res["refs"] == {"x": "X person"}
+    res = store.answer("a.txt", {"qid": "solves", "text": "Some problem"})
+    new = res["target"]["file"]
+    assert (data_dir / "a.txt").read_text() == f"a > b\n-> experts on this: @x\n-> solves @{new[:-4]}\n"
+    assert (data_dir / new).read_text() == "Some problem\n"
+    with pytest.raises(store.ValidationError):
+        store.answer("a.txt", {"qid": "nope", "text": "t"})
+    with pytest.raises(store.NotFound):
+        store.answer("a.txt", {"qid": "solves", "target": "missing.txt"})
+    with pytest.raises(store.ValidationError):
+        store.answer("a.txt", {"qid": "solves", "text": " "})
+
+
+def test_disable(data_dir):
+    store.create({"file": "a.txt", "text": "a > b"})
+    store.disable("a.txt")
+    assert (data_dir / "a.txt").read_text() == "a > b\ntags no-questions\n"
+    assert store.random_candidate()["total"] == 0
+
+
+def test_set_llm_merges(data_dir):
+    store.set_llm({"url": " http://h:1 ", "model": "m"})
+    store.set_llm({"model": ""})
+    assert store._config()["llm"] == {"url": "http://h:1"}
+    assert store.get_path() == data_dir

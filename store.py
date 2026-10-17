@@ -1,15 +1,21 @@
 """Config and one-.txt-file-per-item storage, directly inside the data folder."""
 
+import bisect
 import json
+import math
 import os
+import random
 import re
 import secrets
 import threading
+import time
+import unicodedata
 import zlib
 from dataclasses import dataclass
 from pathlib import Path
 
 import dsl
+import questions
 
 CONFIG_PATH = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config")) / "dsl-crud" / "config.json"
 # The calendar app's folder setting, offered as the default on first start.
@@ -43,6 +49,11 @@ def _config() -> dict:
     return cfg if isinstance(cfg, dict) else {}
 
 
+def _save_config(cfg: dict) -> None:
+    CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
+    CONFIG_PATH.write_text(json.dumps(cfg, indent=2) + "\n")
+
+
 def get_path() -> Path | None:
     p = _config().get("path")
     return Path(p) if p else None
@@ -51,10 +62,24 @@ def get_path() -> Path | None:
 def set_path(path: str) -> Path:
     p = Path(path).expanduser().resolve()
     p.mkdir(parents=True, exist_ok=True)
-    cfg = _config() | {"path": str(p)}
-    CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
-    CONFIG_PATH.write_text(json.dumps(cfg, indent=2) + "\n")
+    _save_config(_config() | {"path": str(p)})
     return p
+
+
+def set_llm(llm: dict) -> None:
+    """Merges `url` and `model` into the `llm` config; an empty value removes the key."""
+    cur = _config().get("llm")
+    cur = dict(cur) if isinstance(cur, dict) else {}
+    for k in ("url", "model"):
+        if k in llm:
+            v = llm[k]
+            if v is not None and not isinstance(v, str):
+                raise ValidationError(f"llm.{k} must be a string")
+            if v and v.strip():
+                cur[k] = v.strip()
+            else:
+                cur.pop(k, None)
+    _save_config(_config() | {"llm": cur})
 
 
 def calendar_path() -> str | None:
@@ -89,44 +114,144 @@ def _read(path: Path) -> dict:
                 "errors": [{"code": "unreadable", "line": None, "detail": str(e)}]}
 
 
+_WORD_RE = re.compile(r"\w+")
+# Search: how much a match counts when it's only a prefix of the word, or in the heading.
+_PREFIX_WEIGHT = 0.6
+_HEADING_WEIGHT = 2.0
+# Words a query token may expand to as a prefix; bounds the cost of one-letter queries.
+_MAX_EXPANSION = 500
+
+
+def _words(s: str) -> list[str]:
+    """Lowercase words without accents, in order."""
+    folded = "".join(c for c in unicodedata.normalize("NFKD", s.lower()) if not unicodedata.combining(c))
+    return _WORD_RE.findall(folded)
+
+
 @dataclass
 class _Entry:
     mtime_ns: int
     lower: str
     flagged: bool
     has_tasks: bool
+    candidate: bool
+    heading: str
+    head_words: frozenset[str]
+    words: frozenset[str]
 
 
 class _Index:
-    """Every item's lowercased text and whether it needs attention, re-read
-    only when its mtime changes - so filtering a folder of 200k+ items doesn't
-    read every file on every request."""
+    """Every item's lowercased text, whether it needs attention, and a word
+    index for search, re-read only when its mtime changes - so filtering a
+    folder of 200k+ items doesn't read every file on every request."""
 
     def __init__(self):
         self._lock = threading.Lock()
         self._dir: Path | None = None
         self._entries: dict[str, _Entry] = {}
+        self._postings: dict[str, set[str]] = {}
+        self._vocab: list[str] = []
+        self._vocab_dirty = False
+        self._scanned = -math.inf
 
-    def refresh(self) -> dict[str, _Entry]:
+    def invalidate(self) -> None:
+        """Our own writes: the next refresh rescans even within `max_age`."""
+        self._scanned = -math.inf
+
+    def _remove(self, name: str) -> None:
+        for w in self._entries.pop(name).words:
+            names = self._postings[w]
+            names.discard(name)
+            if not names:
+                del self._postings[w]
+                self._vocab_dirty = True
+
+    def _add(self, name: str, entry: _Entry) -> None:
+        self._entries[name] = entry
+        for w in entry.words:
+            if w not in self._postings:
+                self._postings[w] = set()
+                self._vocab_dirty = True
+            self._postings[w].add(name)
+
+    def refresh(self, max_age: float = 0) -> dict[str, _Entry]:
+        """Rescans the folder unless that was done less than `max_age` seconds ago."""
         with self._lock:
-            d = _dir()
-            if d != self._dir:
-                self._dir, self._entries = d, {}
-            seen = {}
-            with os.scandir(d) as it:
-                for e in it:
-                    if e.is_file() and e.name.lower().endswith(".txt") and not e.name.startswith("."):
-                        seen[e.name] = e.stat().st_mtime_ns
-            for name in self._entries.keys() - seen.keys():
-                del self._entries[name]
-            for name, mtime in seen.items():
-                if (cur := self._entries.get(name)) is None or cur.mtime_ns != mtime:
-                    item = _read(d / name)
-                    has_tasks = any(c.keyword == TASKS_KEYWORD for c in dsl.parse(SCHEMA, item["text"]).clauses)
-                    self._entries[name] = _Entry(
-                        mtime, item["text"].lower(), bool(item["errors"] or item["warnings"]), has_tasks
-                    )
+            self._refresh(max_age)
             return dict(self._entries)
+
+    def _refresh(self, max_age: float) -> None:
+        d = _dir()
+        if d != self._dir:
+            self._dir, self._entries, self._postings, self._vocab = d, {}, {}, []
+        elif time.monotonic() - self._scanned < max_age:
+            return
+        seen = {}
+        with os.scandir(d) as it:
+            for e in it:
+                if e.is_file() and e.name.lower().endswith(".txt") and not e.name.startswith("."):
+                    seen[e.name] = e.stat().st_mtime_ns
+        for name in self._entries.keys() - seen.keys():
+            self._remove(name)
+        for name, mtime in seen.items():
+            if (cur := self._entries.get(name)) is None or cur.mtime_ns != mtime:
+                if cur is not None:
+                    self._remove(name)
+                item = _read(d / name)
+                doc = dsl.parse(SCHEMA, item["text"])
+                self._add(name, _Entry(
+                    mtime,
+                    item["text"].lower(),
+                    bool(item["errors"] or item["warnings"]),
+                    any(c.keyword == TASKS_KEYWORD for c in doc.clauses),
+                    questions.is_candidate(doc),
+                    doc.heading,
+                    frozenset(_words(doc.heading)),
+                    frozenset(_words(item["text"])),
+                ))
+        self._scanned = time.monotonic()
+
+    def _expand(self, token: str) -> list[str]:
+        """Indexed words starting with `token`."""
+        if self._vocab_dirty:
+            self._vocab = sorted(self._postings)
+            self._vocab_dirty = False
+        i = bisect.bisect_left(self._vocab, token)
+        out = []
+        while i < len(self._vocab) and self._vocab[i].startswith(token) and len(out) < _MAX_EXPANSION:
+            out.append(self._vocab[i])
+            i += 1
+        return out
+
+    def search(self, q: str, exclude: set[str], limit: int, max_age: float) -> list[dict]:
+        """Items matching the words of `q`, each word also as a prefix: those
+        matching all words first, then those matching the most; within that by
+        idf-weighted score, exact over prefix matches, heading over body."""
+        tokens = list(dict.fromkeys(_words(q)))
+        if not tokens:
+            return []
+        with self._lock:
+            self._refresh(max_age)
+            n = len(self._entries)
+            matched: dict[str, int] = {}
+            score: dict[str, float] = {}
+            for token in tokens:
+                best: dict[str, float] = {}
+                for w in self._expand(token):
+                    names = self._postings[w]
+                    base = math.log(1 + n / len(names)) * (1.0 if w == token else _PREFIX_WEIGHT)
+                    for name in names:
+                        s = base * (_HEADING_WEIGHT if w in self._entries[name].head_words else 1.0)
+                        if s > best.get(name, 0.0):
+                            best[name] = s
+                for name, s in best.items():
+                    matched[name] = matched.get(name, 0) + 1
+                    score[name] = score.get(name, 0.0) + s
+            ranked = sorted(
+                (name for name in matched if name not in exclude),
+                key=lambda name: (-matched[name], -score[name], name),
+            )
+            return [{"file": name, "heading": self._entries[name].heading} for name in ranked[:limit]]
 
 
 _INDEX = _Index()
@@ -211,6 +336,7 @@ def _write(path: Path, text: str) -> None:
     tmp = path.with_name(f".{path.name}.tmp")
     tmp.write_text(text, encoding="utf-8")
     tmp.replace(path)
+    _INDEX.invalidate()
 
 
 def create(body: dict) -> dict:
@@ -240,3 +366,55 @@ def delete(name: str) -> None:
     if not path.exists():
         raise NotFound(name)
     path.unlink()
+    _INDEX.invalidate()
+
+
+SEARCH_LIMIT = 8
+# Search runs per keystroke: a folder scan per query would lag on a big folder.
+SEARCH_MAX_AGE = 2.0
+
+
+def search(q: str, exclude: list[str] = ()) -> list[dict]:
+    """Up to SEARCH_LIMIT `{file, heading}` best matching `q`, for picking a note to link."""
+    return _INDEX.search(q, set(exclude), SEARCH_LIMIT, SEARCH_MAX_AGE)
+
+
+def random_candidate(exclude: list[str] = ()) -> dict:
+    """A random note to ask questions about (see questions.is_candidate), other
+    than those in `exclude` - or, when that leaves none, any; `item` is None
+    when there are none at all. `total` counts all candidates."""
+    entries = _INDEX.refresh()
+    names = sorted(n for n, e in entries.items() if e.candidate)
+    pool = [n for n in names if n not in set(exclude)] or names
+    item = _with_refs(_read(_dir() / random.choice(pool)), entries) if pool else None
+    return {"item": item, "total": len(names)}
+
+
+def get_with_refs(name: str) -> dict:
+    return _with_refs(get(name), _INDEX.refresh())
+
+
+def answer(name: str, body: dict) -> dict:
+    """Links the note to the answer of question `qid`: to the existing note
+    `target` (a file name), or to a new note with `text`. Returns the updated
+    note with refs, and `target` as `{file, heading}`."""
+    body = body if isinstance(body, dict) else {}
+    q = questions.by_id(body.get("qid") or "")
+    if q is None:
+        raise ValidationError(f"unknown question '{body.get('qid')}'")
+    note = get(name)
+    if body.get("target"):
+        target = get(body["target"])
+    else:
+        target = create({"text": body.get("text")})
+    updated = update(name, {"text": questions.add_relation(note["text"], q["label"], target["file"].removesuffix(".txt"))})
+    return {
+        **_with_refs(updated, _INDEX.refresh()),
+        "target": {"file": target["file"], "heading": dsl.parse(SCHEMA, target["text"]).heading},
+    }
+
+
+def disable(name: str) -> None:
+    """Tags the note so the questions view skips it."""
+    note = get(name)
+    update(name, {"text": questions.add_tag(SCHEMA, note["text"], questions.NO_QUESTIONS_TAG)})
