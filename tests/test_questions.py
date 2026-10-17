@@ -58,36 +58,47 @@ def test_is_candidate(text, expected):
     assert questions.is_candidate(parse(text)) is expected
 
 
-QS = [{"id": k, "question": f"q {k}?", "label": k} for k in "abcde"]
+QS = [{"id": k, "question": f"q {k}?", "label": k} for k in ("a", "b", "c", "so-what", "what")]
 
 
 def test_pick_skips_llm_when_nothing_to_choose(monkeypatch):
+    monkeypatch.setattr(questions, "QUESTIONS", QS[:3])
     monkeypatch.setattr(llm, "_post", lambda *a, **k: pytest.fail("LLM called"))
-    assert llm.pick("note", QS[:3], 3) == ["a", "b", "c"]
+    assert questions.pick("note") == ["a", "b", "c"]
 
 
-def test_pick_uses_llm_reply(monkeypatch):
-    monkeypatch.setattr(llm, "model", lambda: "m")
+def test_pick_asks_pinned_model_once(monkeypatch):
+    monkeypatch.setattr(questions, "QUESTIONS", QS)
+    monkeypatch.setattr(questions, "_cache", {})
     calls = []
 
     def post(path, body, timeout):
         calls.append(body)
-        return {"message": {"content": '{"ids": ["d", "zzz", "b", "d", "a", "c"]}'}}
+        return {"message": {"content": '{"ids": ["what", "zzz", "b", "what", "a", "c"]}'}}
 
     monkeypatch.setattr(llm, "_post", post)
-    monkeypatch.setattr(llm, "_cache", {})
-    assert llm.pick("note text", QS, 3) == ["d", "b", "a"]
-    assert llm.pick("note text", QS, 3) == ["d", "b", "a"]
+    assert questions.pick("note text") == ["what", "b", "a"]
+    assert questions.pick("note text") == ["what", "b", "a"]
     assert len(calls) == 1
-    assert calls[0]["format"]["properties"]["ids"]["items"]["enum"] == list("abcde")
+    assert calls[0]["model"] == questions.MODEL
+    assert calls[0]["format"]["properties"]["ids"]["items"]["enum"] == [q["id"] for q in QS]
     assert calls[0]["think"] is False
-    assert calls[0]["keep_alive"] == llm.DEFAULT_KEEP_ALIVE
 
 
-def test_pick_without_model_is_unavailable(monkeypatch):
-    monkeypatch.setattr(llm, "model", lambda: None)
+@pytest.mark.parametrize("reply,expected", [
+    ('{"ids": []}', []),
+    ('{"ids": ["so-what", "a"]}', ["so-what", "a"]),
+    ("so-what, what and b", ["so-what", "what", "b"]),  # ids as words, not inside each other
+    ("```json\n[\"c\", \"a\"]\n```", ["c", "a"]),
+    ("a b c so-what", ["a", "b", "c"]),
+])
+def test_ids_in_reply(reply, expected):
+    assert questions._ids_in(reply, [q["id"] for q in QS]) == expected
+
+
+def test_reply_without_ids_is_unavailable():
     with pytest.raises(llm.Unavailable):
-        llm.pick("note", QS, 3)
+        questions._ids_in("7, 9, 11", [q["id"] for q in QS])
 
 
 def test_unreachable_server_is_unavailable(monkeypatch):

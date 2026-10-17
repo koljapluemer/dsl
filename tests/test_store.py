@@ -198,8 +198,9 @@ def test_disable(data_dir):
     assert store.random_candidate()["total"] == 0
 
 
-def test_set_llm_merges(data_dir):
-    store.set_llm({"url": " http://h:1 ", "model": "m"})
-    store.set_llm({"model": ""})
+def test_set_llm(data_dir):
+    store.set_llm({"url": " http://h:1 "})
     assert store._config()["llm"] == {"url": "http://h:1"}
+    store.set_llm({"url": ""})
+    assert store._config()["llm"] == {}
     assert store.get_path() == data_dir

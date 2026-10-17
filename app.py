@@ -51,7 +51,7 @@ def get_settings():
 
 @app.put("/api/settings")
 def put_settings():
-    """`path` and/or `llm` (`{url, model}`)."""
+    """`path` and/or `llm` (`{url}`)."""
     body = request.get_json(silent=True) or {}
     if "llm" in body:
         if not isinstance(body["llm"], dict):
@@ -68,11 +68,11 @@ def put_settings():
 @app.get("/api/llm")
 def get_llm():
     try:
-        models, available, reason = llm.models(), True, None
+        llm.models()
+        available, reason = True, None
     except llm.Unavailable as e:
-        models, available, reason = [], False, str(e)
-    return jsonify(available=available, reason=reason, url=llm.url(), default_url=llm.default_url(),
-                   model=llm.model(), models=models)
+        available, reason = False, str(e)
+    return jsonify(available=available, reason=reason, url=llm.url(), default_url=llm.default_url())
 
 
 def _excluded() -> list[str]:
@@ -96,17 +96,33 @@ def question_note(name):
 
 @app.get("/api/questions/pick/<name>")
 def pick_questions(name):
-    """The questions to ask about the note; the first ones when the LLM can't choose."""
+    """The questions to ask about the note; the first ones when the LLM can't
+    choose, with `missing_model` set when that's because its model isn't installed."""
     text = store.get(name)["text"]
-    by_id = {q["id"]: q for q in questions.QUESTIONS}
-    if len(by_id) <= questions.ASK_COUNT:
-        ids, source, reason = list(by_id), "all", None
-    else:
-        try:
-            ids, source, reason = llm.pick(text, questions.QUESTIONS, questions.ASK_COUNT), "llm", None
-        except llm.Unavailable as e:
-            ids, source, reason = list(by_id)[: questions.ASK_COUNT], "fallback", str(e)
-    return jsonify(questions=[by_id[i] for i in ids], source=source, reason=reason)
+    missing_model, reason = None, None
+    try:
+        ids = questions.pick(text)
+    except llm.Unavailable as e:
+        ids, reason = [q["id"] for q in questions.QUESTIONS[: questions.ASK_COUNT]], str(e)
+        if isinstance(e, llm.ModelMissing):
+            missing_model = questions.MODEL
+    return jsonify(questions=[questions.by_id(i) for i in ids], reason=reason, missing_model=missing_model)
+
+
+@app.get("/api/questions/model")
+def question_model():
+    """Whether the questions' model is installed, and this session's download of it."""
+    try:
+        installed, reason = questions.MODEL in llm.models(), None
+    except llm.Unavailable as e:
+        installed, reason = False, str(e)
+    return jsonify(model=questions.MODEL, installed=installed, reason=reason, pull=llm.pull_status(questions.MODEL))
+
+
+@app.post("/api/questions/model/pull")
+def pull_question_model():
+    llm.pull(questions.MODEL)
+    return question_model()
 
 
 @app.post("/api/questions/answer/<name>")

@@ -879,6 +879,10 @@ const QuestionView = {
     const questions = ref(/** @type {Question[]} */ ([]));
     const picking = ref(false);
     const pickNote = ref('');
+    /** the LLM's model when it isn't installed, and its download's progress */
+    const missingModel = ref('');
+    const pull = ref(/** @type {{status: string, completed: number, total: number, error: string | null} | null} */ (null));
+    let pollTimer = 0;
     /** skipped this session, so Skip doesn't bring them right back */
     const skipped = /** @type {string[]} */ ([]);
     let lastSaved = '';
@@ -909,16 +913,51 @@ const QuestionView = {
     async function pick(file) {
       questions.value = [];
       pickNote.value = '';
+      missingModel.value = '';
       picking.value = true;
       try {
         const res = await api('GET', `/api/questions/pick/${encodeURIComponent(file)}`);
         if (item.value?.file !== file) return;
         questions.value = res.questions;
-        if (res.source === 'fallback') pickNote.value = `LLM unavailable, asking the first ones: ${res.reason}`;
+        missingModel.value = res.missing_model || '';
+        if (res.missing_model) pickNote.value = `${res.missing_model} isn't installed, asking the first ones.`;
+        else if (res.reason) pickNote.value = `LLM unavailable, asking the first ones: ${res.reason}`;
+        else if (!res.questions.length) pickNote.value = 'No question fits this note.';
       } catch (e) { emit('error', e); } finally {
         if (item.value?.file === file) picking.value = false;
       }
     }
+
+    async function download() {
+      try {
+        const res = await api('POST', '/api/questions/model/pull');
+        pull.value = res.pull;
+        poll();
+      } catch (e) { emit('error', e); }
+    }
+
+    async function poll() {
+      clearTimeout(pollTimer);
+      try {
+        const res = await api('GET', '/api/questions/model');
+        pull.value = res.pull;
+        if (res.installed) {
+          pull.value = null;
+          if (item.value) pick(item.value.file);
+        } else if (!res.pull?.error) {
+          pollTimer = setTimeout(poll, 1000);
+        }
+      } catch (e) { emit('error', e); }
+    }
+
+    const pullText = computed(() => {
+      const p = pull.value;
+      if (!p) return '';
+      if (p.error) return `download failed: ${p.error}`;
+      return p.total ? `${p.status} · ${Math.floor((100 * p.completed) / p.total)}%` : p.status;
+    });
+
+    onBeforeUnmount(() => clearTimeout(pollTimer));
 
     function skip() {
       if (item.value) skipped.push(item.value.file);
@@ -974,7 +1013,7 @@ const QuestionView = {
     onMounted(next);
 
     return {
-      item, total, loaded, editing, text, editorKey, questions, picking, pickNote,
+      item, total, loaded, editing, text, editorKey, questions, picking, pickNote, missingModel, pull, pullText, download,
       skip, disable, toggleEdit, autosave, answered, previewClick, fail: (/** @type {any} */ e) => emit('error', e),
       overview: overviewHtml,
     };
@@ -995,7 +1034,11 @@ const QuestionView = {
         <div v-else class="overview rounded-box border border-base-300 p-4" v-html="overview(item)" @click="previewClick"></div>
         <div class="mt-6 space-y-6">
           <span v-if="picking" class="loading loading-dots loading-sm"></span>
-          <p v-if="pickNote" class="text-sm text-base-content/50">{{ pickNote }}</p>
+          <p v-if="pickNote" class="text-sm text-base-content/50">{{ pickNote }}
+            <button v-if="missingModel && (!pull || pull.error)" class="btn btn-xs ml-1" @click="download">
+              <icon name="download" :size="14"></icon>Download {{ missingModel }}</button>
+            <span v-if="pullText" class="ml-1">{{ pullText }}</span>
+          </p>
           <question-answer v-for="q in questions" :key="item.file + ':' + q.id" :file="item.file" :question="q"
                            :flush="autosave" @answered="answered" @error="fail"></question-answer>
         </div>
@@ -1006,45 +1049,34 @@ const QuestionView = {
 const LlmSettings = {
   emits: ['error'],
   setup(/** @type {any} */ _props, /** @type {any} */ { emit }) {
-    const info = ref(/** @type {{available: boolean, reason: string | null, url: string, default_url: string, model: string | null, models: string[]} | null} */ (null));
+    const info = ref(/** @type {{available: boolean, reason: string | null, url: string, default_url: string} | null} */ (null));
     const url = ref('');
-    const model = ref('');
 
     async function load() {
       try {
         const res = await api('GET', '/api/llm');
         info.value = res;
         url.value = res.url === res.default_url ? '' : res.url;
-        model.value = res.model || '';
       } catch (e) { emit('error', e); }
     }
 
     async function save() {
       try {
-        await api('PUT', '/api/settings', { llm: { url: url.value, model: model.value } });
+        await api('PUT', '/api/settings', { llm: { url: url.value } });
         await load();
       } catch (e) { emit('error', e); }
     }
 
-    const models = computed(() => {
-      const m = info.value?.models || [];
-      return model.value && !m.includes(model.value) ? [model.value, ...m] : m;
-    });
-
     onMounted(load);
-    return { info, url, model, models, save };
+    return { info, url, save };
   },
   template: `
-    <fieldset v-if="info" class="fieldset"><legend class="fieldset-legend">LLM (Ollama)</legend>
+    <fieldset v-if="info" class="fieldset"><legend class="fieldset-legend">Ollama server</legend>
       <div class="join w-full">
         <input class="input join-item w-full" v-model="url" :placeholder="info.default_url" @keydown.enter="save">
-        <select class="select join-item" v-model="model" @change="save">
-          <option value="">no model</option>
-          <option v-for="m in models" :key="m" :value="m">{{ m }}</option>
-        </select>
         <button class="btn join-item" @click="save">Save</button>
       </div>
-      <p class="label">{{ info.available ? info.models.length + ' models at ' + info.url : 'unavailable: ' + info.reason }}</p>
+      <p class="label">{{ info.available ? 'reachable at ' + info.url : 'unavailable: ' + info.reason }}</p>
     </fieldset>`,
 };
 

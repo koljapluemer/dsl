@@ -1,26 +1,25 @@
-"""Optional local-LLM calls via an Ollama server; configured under `llm` in
-the app's config (`url`, `model`, and optionally `options`, `think`,
-`keep_alive`). Every failure is `Unavailable`."""
+"""Local-LLM calls via an Ollama server. Only its `url` is configured (under
+`llm` in the app's config); each feature names the model it was tuned with.
+Every failure is `Unavailable`."""
 
-import hashlib
 import json
 import os
 import threading
 import urllib.error
 import urllib.request
-from pathlib import Path
 
 import store
 
-PICK_PROMPT_PATH = Path(__file__).parent / "prompts" / "pick-questions.md"
-# Picking from a list needs no reasoning; a thinking model's reasoning would take minutes on a laptop.
-DEFAULT_THINK = False
-# Keeps the model loaded between notes, so only the first one waits for it to load.
-DEFAULT_KEEP_ALIVE = "30m"
+# Keeps the model loaded between calls, so only the first one waits for it to load.
+KEEP_ALIVE = "30m"
 
 
 class Unavailable(Exception):
     pass
+
+
+class ModelMissing(Unavailable):
+    """The server is up but doesn't have the model; `pull` gets it."""
 
 
 def _normalize(u: str) -> str:
@@ -32,30 +31,25 @@ def default_url() -> str:
     return _normalize(os.environ.get("OLLAMA_HOST") or "127.0.0.1:11434")
 
 
-def _cfg() -> dict:
-    cfg = store._config().get("llm")
-    return cfg if isinstance(cfg, dict) else {}
-
-
 def url() -> str:
-    return _normalize(_cfg().get("url") or default_url())
+    cfg = store._config().get("llm")
+    return _normalize((cfg.get("url") if isinstance(cfg, dict) else None) or default_url())
 
 
-def model() -> str | None:
-    return _cfg().get("model") or None
-
-
-def _post(path: str, body: dict | None, timeout: float) -> dict:
-    req = urllib.request.Request(
+def _request(path: str, body: dict | None) -> urllib.request.Request:
+    return urllib.request.Request(
         url() + path,
         data=json.dumps(body).encode() if body is not None else None,
         headers={"Content-Type": "application/json"},
     )
+
+
+def _post(path: str, body: dict | None, timeout: float) -> dict:
     try:
-        with urllib.request.urlopen(req, timeout=timeout) as r:
+        with urllib.request.urlopen(_request(path, body), timeout=timeout) as r:
             return json.load(r)
     except urllib.error.HTTPError as e:
-        raise Unavailable(_server_error(e)) from e
+        raise (ModelMissing if e.code == 404 else Unavailable)(_server_error(e)) from e
     except (OSError, ValueError) as e:
         raise Unavailable(str(e)) from e
 
@@ -69,62 +63,65 @@ def _server_error(e: urllib.error.HTTPError) -> str:
 
 
 def models() -> list[str]:
+    """The installed models."""
     try:
         return sorted(m["name"] for m in _post("/api/tags", None, 2)["models"])
     except (KeyError, TypeError) as e:
         raise Unavailable(f"unexpected reply: {e}") from e
 
 
-def chat_json(system: str, user: str, schema: dict) -> dict:
-    """The model's reply, constrained to the JSON `schema`."""
-    m = model()
-    if not m:
-        raise Unavailable("no model configured")
+def chat(model: str, system: str, user: str, schema: dict | None = None) -> str:
+    """The model's reply text. `schema` asks for JSON of that shape, but not
+    every model honours it: parse the reply leniently."""
     res = _post("/api/chat", {
-        "model": m,
+        "model": model,
         "messages": [{"role": "system", "content": system}, {"role": "user", "content": user}],
-        "format": schema,
+        **({"format": schema} if schema else {}),
         "stream": False,
-        "think": _cfg().get("think", DEFAULT_THINK),
-        "keep_alive": _cfg().get("keep_alive", DEFAULT_KEEP_ALIVE),
-        "options": _cfg().get("options") or {},
+        "think": False,  # a thinking model's reasoning takes minutes on a laptop
+        "keep_alive": KEEP_ALIVE,
     }, timeout=180)
     try:
-        return json.loads(res["message"]["content"])
-    except (KeyError, TypeError, ValueError) as e:
+        return res["message"]["content"]
+    except (KeyError, TypeError) as e:
         raise Unavailable(f"unexpected reply: {e}") from e
 
 
-_cache: dict[tuple, list[str]] = {}
-_cache_lock = threading.Lock()
+_pulls: dict[str, dict] = {}
+_pulls_lock = threading.Lock()
 
 
-def _sha(s: str) -> str:
-    return hashlib.sha1(s.encode()).hexdigest()
+def pull_status(model: str) -> dict | None:
+    """This session's download of the model, if any: `{status, completed,
+    total, error}`; `status` is "success" when done, `error` set when it failed."""
+    with _pulls_lock:
+        p = _pulls.get(model)
+        return dict(p) if p else None
 
 
-def pick(text: str, questions: list[dict], n: int = 3) -> list[str]:
-    """Ids of up to `n` of `questions` that suit the note best, best first. With
-    no more than `n` questions there's nothing to choose and the LLM isn't asked."""
-    ids = [q["id"] for q in questions]
-    if len(ids) <= n:
-        return ids
-    prompt = PICK_PROMPT_PATH.read_text(encoding="utf-8")
-    key = (_sha(text), model(), _sha(json.dumps(questions) + prompt), n)
-    with _cache_lock:
-        if key in _cache:
-            return _cache[key]
-    listing = "\n".join(f"{i + 1}. [{q['id']}] {q['question']}" for i, q in enumerate(questions))
-    user = f"Choose at most {n} questions.\n\nQuestions:\n{listing}\n\nNote:\n{text}"
-    schema = {
-        "type": "object",
-        "properties": {"ids": {"type": "array", "items": {"type": "string", "enum": ids}, "maxItems": n}},
-        "required": ["ids"],
-    }
-    reply = chat_json(prompt, user, schema).get("ids")
-    if not isinstance(reply, list):
-        raise Unavailable("unexpected reply: no ids")
-    chosen = list(dict.fromkeys(i for i in reply if i in ids))[:n]
-    with _cache_lock:
-        _cache[key] = chosen
-    return chosen
+def pull(model: str) -> None:
+    """Starts downloading the model in the background, unless that's under way."""
+    with _pulls_lock:
+        cur = _pulls.get(model)
+        if cur and not cur["error"] and cur["status"] != "success":
+            return
+        _pulls[model] = {"status": "starting", "completed": 0, "total": 0, "error": None}
+    threading.Thread(target=_pull, args=(model,), daemon=True).start()
+
+
+def _pull(model: str) -> None:
+    def update(**kw):
+        with _pulls_lock:
+            _pulls[model].update(kw)
+
+    try:
+        with urllib.request.urlopen(_request("/api/pull", {"model": model, "stream": True}), timeout=60) as r:
+            for line in r:  # one JSON object per progress step
+                msg = json.loads(line)
+                if msg.get("error"):
+                    return update(error=msg["error"])
+                update(status=msg.get("status", ""), completed=msg.get("completed", 0), total=msg.get("total", 0))
+    except urllib.error.HTTPError as e:
+        update(error=_server_error(e))
+    except (OSError, ValueError) as e:
+        update(error=str(e))

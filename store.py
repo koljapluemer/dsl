@@ -67,19 +67,11 @@ def set_path(path: str) -> Path:
 
 
 def set_llm(llm: dict) -> None:
-    """Merges `url` and `model` into the `llm` config; an empty value removes the key."""
-    cur = _config().get("llm")
-    cur = dict(cur) if isinstance(cur, dict) else {}
-    for k in ("url", "model"):
-        if k in llm:
-            v = llm[k]
-            if v is not None and not isinstance(v, str):
-                raise ValidationError(f"llm.{k} must be a string")
-            if v and v.strip():
-                cur[k] = v.strip()
-            else:
-                cur.pop(k, None)
-    _save_config(_config() | {"llm": cur})
+    """Sets the Ollama `url`; an empty one means the default."""
+    url = llm.get("url")
+    if url is not None and not isinstance(url, str):
+        raise ValidationError("llm.url must be a string")
+    _save_config(_config() | {"llm": {"url": url.strip()} if url and url.strip() else {}})
 
 
 def calendar_path() -> str | None:

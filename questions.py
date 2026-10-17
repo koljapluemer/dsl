@@ -1,7 +1,15 @@
 """Questions asked about a note in the questions view; an answer becomes a
-relationship `-> <label> @<answer>` on the note."""
+relationship `-> <label> @<answer>` on the note. When there are more than
+ASK_COUNT, a local LLM picks the ones that fit the note."""
+
+import hashlib
+import json
+import re
+import threading
+from pathlib import Path
 
 import dsl
+import llm
 
 QUESTIONS = [
     {"id": "experts", "question": "Who would be the experts on this?", "label": "experts on this:"},
@@ -19,6 +27,9 @@ QUESTIONS = [
 
 # How many questions are asked per note; the LLM picks them when there are more.
 ASK_COUNT = 3
+# Tuned together with the prompt: small, fast without a GPU, and it keeps to the reply format.
+MODEL = "gemma3:4b"
+PROMPT_PATH = Path(__file__).parent / "prompts" / "pick-questions.md"
 NO_QUESTIONS_TAG = "no-questions"
 TAGS_KEYWORD = "tags"
 # The body must contain one of these for a note to be asked about.
@@ -58,3 +69,55 @@ def add_tag(schema: dict, text: str, tag: str) -> str:
     lines = text.split("\n")
     lines[tags.line - 1] = lines[tags.line - 1].rstrip() + " " + tag
     return "\n".join(lines)
+
+
+_cache: dict[tuple, list[str]] = {}
+_cache_lock = threading.Lock()
+
+
+def _sha(s: str) -> str:
+    return hashlib.sha1(s.encode()).hexdigest()
+
+
+def pick(text: str) -> list[str]:
+    """Ids of up to ASK_COUNT questions that suit the note best, best first;
+    possibly none. With no more than ASK_COUNT questions there's nothing to
+    choose and the LLM isn't asked."""
+    ids = [q["id"] for q in QUESTIONS]
+    if len(ids) <= ASK_COUNT:
+        return ids
+    prompt = PROMPT_PATH.read_text(encoding="utf-8")
+    key = (_sha(text), MODEL, _sha(json.dumps(QUESTIONS) + prompt))
+    with _cache_lock:
+        if key in _cache:
+            return _cache[key]
+    listing = "\n".join(f"- {q['id']}: {q['question']}" for q in QUESTIONS)
+    user = (
+        f"Questions:\n{listing}\n\nNote:\n{text}\n\n"
+        f'Choose at most {ASK_COUNT}. Answer with JSON only, like {{"ids": ["<id>", ...]}}.'
+    )
+    schema = {
+        "type": "object",
+        "properties": {"ids": {"type": "array", "items": {"type": "string", "enum": ids}, "maxItems": ASK_COUNT}},
+        "required": ["ids"],
+    }
+    chosen = _ids_in(llm.chat(MODEL, prompt, user, schema), ids)
+    with _cache_lock:
+        _cache[key] = chosen
+    return chosen
+
+
+def _ids_in(reply: str, ids: list[str]) -> list[str]:
+    """The known ids in the reply, in order: from `{"ids": [...]}` when it's
+    that JSON, else wherever they appear in the text (models don't all keep to
+    the schema)."""
+    try:
+        found = json.loads(reply).get("ids")
+    except (ValueError, AttributeError):
+        found = None
+    if not isinstance(found, list):
+        pattern = r"(?<![\w-])(" + "|".join(map(re.escape, sorted(ids, key=len, reverse=True))) + r")(?![\w-])"
+        found = re.findall(pattern, reply)
+        if not found:
+            raise llm.Unavailable(f"unexpected reply: {reply[:100]!r}")
+    return list(dict.fromkeys(i for i in found if i in ids))[:ASK_COUNT]
