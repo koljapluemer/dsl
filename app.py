@@ -6,6 +6,7 @@ from flask import Flask, jsonify, render_template, request
 
 import llm
 import questions
+import semantic
 import store
 
 PORT = 8766
@@ -136,6 +137,18 @@ def disable_questions(name):
     return "", 204
 
 
+@app.get("/api/semantic")
+def semantic_status():
+    """The background embedding's progress, and this session's download of its model."""
+    return jsonify(semantic.status() | {"model": semantic.MODEL, "pull": llm.pull_status(semantic.MODEL)})
+
+
+@app.post("/api/semantic/model/pull")
+def pull_semantic_model():
+    llm.pull(semantic.MODEL)
+    return semantic_status()
+
+
 @app.get("/api/items")
 def list_items():
     args = request.args
@@ -146,6 +159,7 @@ def list_items():
         args.get("seed", 0, type=int),
         args.get("focus") or None,
         args.get("tasks") == "1",
+        args.get("semantic") == "1",
     ))
 
 

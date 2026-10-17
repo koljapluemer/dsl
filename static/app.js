@@ -43,10 +43,11 @@ const go = (/** @type {string} */ hash) => { location.hash = hash; };
 
 /** list route including the current filter, e.g. '#/?q=foo' */
 const listHash = ref('#/');
-const hashQuery = () => {
+const hashParams = () => {
   const queryAt = location.hash.indexOf('?');
-  return queryAt < 0 ? '' : new URLSearchParams(location.hash.slice(queryAt + 1)).get('q') || '';
+  return new URLSearchParams(queryAt < 0 ? '' : location.hash.slice(queryAt + 1));
 };
+const hashQuery = () => hashParams().get('q') || '';
 
 /** @type {Schema} */
 let schema = { version: 0, keywords: {} };
@@ -566,6 +567,11 @@ const ItemList = {
   emits: ['error', 'deleted'],
   setup(/** @type {any} */ props, /** @type {any} */ { emit }) {
     const query = ref(hashQuery());
+    /** rank by similarity to the query instead of filtering by its text */
+    const semantic = ref(hashParams().get('s') === '1');
+    const semanticStatus = ref(/** @type {{indexed: number, total: number, embedding: boolean, error: string | null, missing_model: string | null} | null} */ (null));
+    const pull = ref(/** @type {{status: string, completed: number, total: number, error: string | null} | null} */ (null));
+    let pollTimer = 0;
     const page = ref(0);
     const rows = ref(/** @type {Item[]} */ ([]));
     const total = ref(0);
@@ -585,6 +591,7 @@ const ItemList = {
       const params = new URLSearchParams({
         q: query.value, page: String(page.value), seed: String(SEED),
         ...(props.attention ? { attention: '1' } : {}), ...(focus ? { focus } : {}),
+        ...(semantic.value ? { semantic: '1' } : {}),
       });
       try {
         const res = await api('GET', `/api/items?${params}`);
@@ -597,6 +604,8 @@ const ItemList = {
         }
         rows.value = res.items;
         total.value = res.total;
+        semanticStatus.value = res.semantic;
+        if (res.semantic?.embedding) pollStatus();
         pageSize.value = res.page_size;
         page.value = res.page;
         focused.value = focus;
@@ -607,10 +616,66 @@ const ItemList = {
       } catch (e) { emit('error', e); }
     }
 
+    const routeHash = () => {
+      const params = new URLSearchParams({ ...(query.value ? { q: query.value } : {}), ...(semantic.value ? { s: '1' } : {}) });
+      return props.route + (params.size ? '?' + params : '');
+    };
+
     function syncHash() {
-      listHash.value = props.route + (query.value ? '?' + new URLSearchParams({ q: query.value }) : '');
+      listHash.value = routeHash();
       window.history.replaceState(null, '', listHash.value);
     }
+
+    function toggleSemantic() {
+      semantic.value = !semantic.value;
+      semanticStatus.value = null;
+      syncHash();
+      page.value = 0;
+      clearTimeout(loadTimer);
+      load();
+    }
+
+    /** Follows the background embedding (and a download of its model) while it runs. */
+    async function pollStatus() {
+      clearTimeout(pollTimer);
+      try {
+        const res = await api('GET', '/api/semantic');
+        pull.value = res.pull;
+        const wasEmbedding = semanticStatus.value?.embedding;
+        if (semanticStatus.value) semanticStatus.value = { ...semanticStatus.value, ...res };
+        if (res.pull && !res.pull.error && res.pull.status !== 'success') pollTimer = setTimeout(pollStatus, 1000);
+        else if (res.pull?.status === 'success' && semanticStatus.value?.missing_model) { pull.value = null; load(); }
+        // the list was ranked on what was embedded then: rank again once it's all done, or while it's still empty
+        else if (wasEmbedding && !res.embedding && semantic.value && query.value) load();
+        else if (res.embedding) pollTimer = setTimeout(!rows.value.length && semantic.value && query.value ? load : pollStatus, 2000);
+      } catch (e) { emit('error', e); }
+    }
+
+    async function download() {
+      try {
+        const res = await api('POST', '/api/semantic/model/pull');
+        pull.value = res.pull;
+        pollStatus();
+      } catch (e) { emit('error', e); }
+    }
+
+    onBeforeUnmount(() => clearTimeout(pollTimer));
+
+    const semanticNote = computed(() => {
+      const st = semanticStatus.value;
+      if (!semantic.value || !st) return '';
+      if (st.missing_model) return `${st.missing_model} isn't installed, filtering by text.`;
+      if (st.error) return `Semantic search unavailable, filtering by text: ${st.error}`;
+      if (st.indexed < st.total) return `Ranking the ${st.indexed} of ${st.total} notes embedded so far.`;
+      return '';
+    });
+
+    const pullText = computed(() => {
+      const p = pull.value;
+      if (!p) return '';
+      if (p.error) return `download failed: ${p.error}`;
+      return p.total ? `${p.status} · ${Math.floor((100 * p.completed) / p.total)}%` : p.status;
+    });
 
     /** @param {string} q */
     function setQuery(q) {
@@ -628,7 +693,7 @@ const ItemList = {
     }
 
     onMounted(() => {
-      listHash.value = props.route + (query.value ? '?' + new URLSearchParams({ q: query.value }) : '');
+      listHash.value = routeHash();
       load();
     });
 
@@ -660,12 +725,24 @@ const ItemList = {
     /** @param {Item} i */
     const problems = (i) => [...i.errors, ...i.warnings].map(describe).join('\n');
 
-    return { query, page, pages, total, rows, focused, problems, remove, setQuery, goPage, rowClick, overview: overviewHtml };
+    return {
+      query, semantic, semanticStatus, semanticNote, pull, pullText, page, pages, total, rows, focused,
+      problems, remove, setQuery, toggleSemantic, download, goPage, rowClick, overview: overviewHtml,
+    };
   },
   template: `
     <div>
       <div class="mb-4">
-        <input class="input w-full" type="search" :value="query" @input="setQuery($event.target.value)" placeholder="Filter" autofocus>
+        <div class="flex items-center gap-3">
+          <input class="input w-full" type="search" :value="query" @input="setQuery($event.target.value)"
+                 :placeholder="semantic ? 'Semantic search' : 'Filter'" autofocus>
+          <label class="label shrink-0 text-sm"><input type="checkbox" class="toggle toggle-sm" :checked="semantic" @change="toggleSemantic">semantic</label>
+        </div>
+        <p v-if="semanticNote || pullText" class="mt-2 text-sm text-base-content/50">{{ semanticNote }}
+          <button v-if="semanticStatus?.missing_model && (!pull || pull.error)" class="btn btn-xs ml-1" @click="download">
+            <icon name="download" :size="14"></icon>Download {{ semanticStatus.missing_model }}</button>
+          <span v-if="pullText" class="ml-1">{{ pullText }}</span>
+        </p>
       </div>
       <table class="table table-zebra">
         <tbody>

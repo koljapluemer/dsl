@@ -87,6 +87,15 @@ def chat(model: str, system: str, user: str, schema: dict | None = None) -> str:
         raise Unavailable(f"unexpected reply: {e}") from e
 
 
+def embed(model: str, inputs: list[str]) -> list[list[float]]:
+    """One normalized embedding per input."""
+    res = _post("/api/embed", {"model": model, "input": inputs, "keep_alive": KEEP_ALIVE}, timeout=180)
+    try:
+        return res["embeddings"]
+    except (KeyError, TypeError) as e:
+        raise Unavailable(f"unexpected reply: {e}") from e
+
+
 _pulls: dict[str, dict] = {}
 _pulls_lock = threading.Lock()
 

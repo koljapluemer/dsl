@@ -15,7 +15,9 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import dsl
+import llm
 import questions
+import semantic
 
 CONFIG_PATH = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config")) / "dsl-crud" / "config.json"
 # The calendar app's folder setting, offered as the default on first start.
@@ -128,6 +130,7 @@ class _Entry:
     has_tasks: bool
     candidate: bool
     heading: str
+    body: str
     head_words: frozenset[str]
     words: frozenset[str]
 
@@ -198,6 +201,7 @@ class _Index:
                     any(c.keyword == TASKS_KEYWORD for c in doc.clauses),
                     questions.is_candidate(doc),
                     doc.heading,
+                    "\n".join(doc.body),
                     frozenset(_words(doc.heading)),
                     frozenset(_words(item["text"])),
                 ))
@@ -250,22 +254,33 @@ _INDEX = _Index()
 
 
 def list_page(
-    q: str = "", attention: bool = False, page: int = 0, seed: int = 0, focus: str | None = None, tasks: bool = False
+    q: str = "", attention: bool = False, page: int = 0, seed: int = 0, focus: str | None = None, tasks: bool = False,
+    semantic_search: bool = False,
 ) -> dict:
     """One page of items whose text contains `q`, optionally only those needing
     attention or only those with a tasks line, in an order shuffled by `seed` (stable across pages and filters
     for one seed); plus the counts. With `focus`, the page holding that file
-    instead, and `focused` says whether it was among the matches."""
+    instead, and `focused` says whether it was among the matches.
+    With `semantic_search` and a `q`, the items whose body is embedded, ranked by
+    similarity to `q` instead (see semantic), and `semantic` holds the
+    embedding's status; when the query can't be embedded, the text filter
+    applies and `semantic.error` says why."""
     entries = _INDEX.refresh()
     needle = q.strip().lower()
     seed &= 0xFFFFFFFF
-    names = sorted(
-        (
-            n for n, e in entries.items()
-            if (not attention or e.flagged) and (not tasks or e.has_tasks) and (not needle or needle in e.lower)
-        ),
-        key=lambda n: (zlib.crc32(n.encode(), seed), n),
-    )
+    keep = lambda e: (not attention or e.flagged) and (not tasks or e.has_tasks)
+    names, status = None, None
+    if semantic_search and needle:
+        try:
+            names = semantic.rank(q.strip(), {n: e.body for n, e in entries.items() if keep(e)})
+            status = semantic.status()
+        except llm.Unavailable as e:
+            status = semantic.status() | {"error": str(e), "missing_model": semantic.MODEL if isinstance(e, llm.ModelMissing) else None}
+    if names is None:
+        names = sorted(
+            (n for n, e in entries.items() if keep(e) and (not needle or needle in e.lower)),
+            key=lambda n: (zlib.crc32(n.encode(), seed), n),
+        )
     focused = focus is not None and focus in names
     if focused:
         page = names.index(focus) // PAGE_SIZE
@@ -279,6 +294,7 @@ def list_page(
         "page_size": PAGE_SIZE,
         "page": page,
         "focused": focused,
+        "semantic": status,
     }
 
 
