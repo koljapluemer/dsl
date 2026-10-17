@@ -43,7 +43,10 @@ const go = (/** @type {string} */ hash) => { location.hash = hash; };
 
 /** list route including the current filter, e.g. '#/?q=foo' */
 const listHash = ref('#/');
-const hashQuery = () => (location.hash.startsWith('#/?') ? new URLSearchParams(location.hash.slice(3)).get('q') || '' : '');
+const hashQuery = () => {
+  const queryAt = location.hash.indexOf('?');
+  return queryAt < 0 ? '' : new URLSearchParams(location.hash.slice(queryAt + 1)).get('q') || '';
+};
 
 /** @type {Schema} */
 let schema = { version: 0, keywords: {} };
@@ -556,14 +559,16 @@ const SEED = Math.floor(Math.random() * 2 ** 32);
 
 const ItemList = {
   components: { Icon },
+  props: {
+    attention: { type: Boolean, default: false },
+    route: { type: String, default: '#/' },
+  },
   emits: ['error', 'deleted'],
-  setup(/** @type {any} */ _props, /** @type {any} */ { emit }) {
+  setup(/** @type {any} */ props, /** @type {any} */ { emit }) {
     const query = ref(hashQuery());
-    const attention = ref(false);
     const page = ref(0);
     const rows = ref(/** @type {Item[]} */ ([]));
     const total = ref(0);
-    const flagged = ref(0);
     const pageSize = ref(1);
     /** the item last jumped to via a reference */
     const focused = ref(/** @type {string | null} */ (null));
@@ -579,21 +584,19 @@ const ItemList = {
       const n = ++loads;
       const params = new URLSearchParams({
         q: query.value, page: String(page.value), seed: String(SEED),
-        ...(attention.value ? { attention: '1' } : {}), ...(focus ? { focus } : {}),
+        ...(props.attention ? { attention: '1' } : {}), ...(focus ? { focus } : {}),
       });
       try {
         const res = await api('GET', `/api/items?${params}`);
         if (n !== loads) return;
         if (focus && !res.focused) {
-          if (!query.value && !attention.value) throw new Error(`'${focus}' not found`);
+          if (!query.value) throw new Error(`'${focus}' not found`);
           query.value = '';
-          attention.value = false;
           syncHash();
           return load(focus);
         }
         rows.value = res.items;
         total.value = res.total;
-        flagged.value = res.flagged;
         pageSize.value = res.page_size;
         page.value = res.page;
         focused.value = focus;
@@ -605,7 +608,7 @@ const ItemList = {
     }
 
     function syncHash() {
-      listHash.value = query.value ? '#/?' + new URLSearchParams({ q: query.value }) : '#/';
+      listHash.value = props.route + (query.value ? '?' + new URLSearchParams({ q: query.value }) : '');
       window.history.replaceState(null, '', listHash.value);
     }
 
@@ -618,19 +621,16 @@ const ItemList = {
       loadTimer = setTimeout(load, 200);
     }
 
-    function toggleAttention() {
-      attention.value = !attention.value;
-      page.value = 0;
-      load();
-    }
-
     /** @param {number} p */
     function goPage(p) {
       page.value = p;
       load();
     }
 
-    onMounted(load);
+    onMounted(() => {
+      listHash.value = props.route + (query.value ? '?' + new URLSearchParams({ q: query.value }) : '');
+      load();
+    });
 
     const pages = computed(() => Math.max(1, Math.ceil(total.value / pageSize.value)));
 
@@ -660,16 +660,10 @@ const ItemList = {
     /** @param {Item} i */
     const problems = (i) => [...i.errors, ...i.warnings].map(describe).join('\n');
 
-    return { query, attention, page, pages, total, flagged, rows, focused, problems, remove, setQuery, toggleAttention, goPage, rowClick, overview: overviewHtml };
+    return { query, page, pages, total, rows, focused, problems, remove, setQuery, goPage, rowClick, overview: overviewHtml };
   },
   template: `
     <div>
-      <div class="flex gap-1 mb-2">
-        <a href="#/new" class="btn" title="new item"><icon name="plus"></icon>New</a>
-        <button class="btn" :class="{'btn-active': attention}" title="needs attention" @click="toggleAttention">
-          <icon name="triangle-alert"></icon>{{ flagged }}</button>
-        <a href="#/settings" class="btn" title="settings"><icon name="settings"></icon>Settings</a>
-      </div>
       <div class="mb-4">
         <input class="input w-full" type="search" :value="query" @input="setQuery($event.target.value)" placeholder="Filter" autofocus>
       </div>
@@ -1081,7 +1075,7 @@ const LlmSettings = {
 };
 
 const Settings = {
-  components: { Icon, LlmSettings },
+  components: { LlmSettings },
   props: { path: { type: String, default: '' }, suggested: { type: String, default: '' } },
   emits: ['error', 'saved'],
   setup(/** @type {any} */ props, /** @type {any} */ { emit }) {
@@ -1095,13 +1089,10 @@ const Settings = {
       } catch (e) { emit('error', e); }
     }
 
-    return { value, save, listHash, fail: (/** @type {any} */ e) => emit('error', e) };
+    return { value, save, fail: (/** @type {any} */ e) => emit('error', e) };
   },
   template: `
     <div>
-      <div class="flex gap-1 mb-4">
-        <a v-if="path" :href="listHash" class="btn btn-square" title="back"><icon name="arrow-left"></icon></a>
-      </div>
       <fieldset class="fieldset"><legend class="fieldset-legend">data directory</legend>
         <div class="join w-full">
           <input class="input join-item w-full" v-model="value" @keydown.enter="save" autofocus>
@@ -1151,6 +1142,7 @@ createApp({
       const r = route.value;
       if (r.startsWith('#/settings')) return 'settings';
       if (r === '#/new') return 'new';
+      if (r.startsWith('#/broken')) return 'broken';
       if (r === '#/tasks') return 'tasks';
       if (r === '#/questions') return 'questions';
       if (r.startsWith('#/edit/')) return 'edit';
@@ -1193,7 +1185,9 @@ createApp({
 
     onMounted(() => init().catch(fail));
 
-    return { ready, error, path, suggested, listKey, page, editFile, deleted, fail, settingsSaved, itemSaved, itemDeleted, undoDelete };
+    const notesTab = computed(() => page.value === 'list' || page.value === 'edit');
+
+    return { ready, error, path, suggested, listKey, page, notesTab, editFile, deleted, fail, settingsSaved, itemSaved, itemDeleted, undoDelete };
   },
   template: `
     <div v-if="deleted" class="toast toast-top toast-end z-50">
@@ -1204,18 +1198,20 @@ createApp({
     </div>
     <div v-if="error" role="alert" class="alert alert-error mb-4"><span>{{ error }}</span></div>
     <template v-if="ready">
+      <div role="tablist" class="tabs tabs-border mb-4">
+        <a role="tab" class="tab" :class="{'tab-active': notesTab}" href="#/">Notes</a>
+        <a role="tab" class="tab" :class="{'tab-active': page === 'new'}" href="#/new">New</a>
+        <a role="tab" class="tab" :class="{'tab-active': page === 'broken'}" href="#/broken">Broken</a>
+        <a role="tab" class="tab" :class="{'tab-active': page === 'tasks'}" href="#/tasks">Tasks</a>
+        <a role="tab" class="tab" :class="{'tab-active': page === 'questions'}" href="#/questions">Questions</a>
+        <a role="tab" class="tab" :class="{'tab-active': page === 'settings'}" href="#/settings">Settings</a>
+      </div>
       <settings v-if="page === 'settings'" :path="path || ''" :suggested="suggested" @saved="settingsSaved" @error="fail"></settings>
       <item-editor v-else-if="page === 'new' || page === 'edit'" key="editor"
                    :edit-file="page === 'edit' ? editFile : null" @saved="itemSaved" @deleted="itemDeleted" @error="fail"></item-editor>
-      <template v-else>
-        <div role="tablist" class="tabs tabs-border mb-4">
-          <a role="tab" class="tab" :class="{'tab-active': page === 'list'}" href="#/">Notes</a>
-          <a role="tab" class="tab" :class="{'tab-active': page === 'tasks'}" href="#/tasks">Tasks</a>
-          <a role="tab" class="tab" :class="{'tab-active': page === 'questions'}" href="#/questions">Questions</a>
-        </div>
-        <task-list v-if="page === 'tasks'" key="tasks" @error="fail"></task-list>
-        <question-view v-else-if="page === 'questions'" key="questions" @error="fail"></question-view>
-        <item-list v-else :key="listKey" @deleted="itemDeleted" @error="fail"></item-list>
-      </template>
+      <task-list v-else-if="page === 'tasks'" key="tasks" @error="fail"></task-list>
+      <question-view v-else-if="page === 'questions'" key="questions" @error="fail"></question-view>
+      <item-list v-else-if="page === 'broken'" key="broken" attention route="#/broken" @deleted="itemDeleted" @error="fail"></item-list>
+      <item-list v-else :key="listKey" @deleted="itemDeleted" @error="fail"></item-list>
     </template>`,
 }).mount('#app');

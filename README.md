@@ -16,7 +16,7 @@ One [CodeMirror 6](https://codemirror.net) editor per item. A single pass over t
 
 The list shows body and `extra` content as markdown (marked + DOMPurify), `data` blocks as highlighted code, relationships as links headed by the target's first line (a click scrolls to the target, paging and clearing the filter as needed), and only keyword lines in monospace with the editor's highlighting. Its order is shuffled per page load (a seed sent with each request), stable across paging and filtering.
 
-The list is filtered and paged on the server, so a folder of many items (e.g. one shared with graphirst's notes) stays usable: `store.py` keeps each item's text and problem flags in memory and re-reads a file only when its mtime changes. The warning button filters to items needing attention.
+The list is filtered and paged on the server, so a folder of many items (e.g. one shared with graphirst's notes) stays usable: `store.py` keeps each item's text and problem flags in memory and re-reads a file only when its mtime changes. The Broken tab shows items needing attention.
 
 CodeMirror loads without a build step: each package comes from esm.sh with its dependencies left external (`*` prefix) and pinned once in the import map in `templates/index.html`, so only one copy of `@codemirror/state` loads. When bumping a version there, keep every package's dependency ranges satisfied.
 
