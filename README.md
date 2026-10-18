@@ -1,6 +1,6 @@
 # dsl-crud
 
-Create, edit and delete the plain-text items read by [`../calendar`](../calendar): one `*.txt` file per item, directly inside a data folder, in the item language specified in [`../dsl`](../dsl). Small Flask + Vue app.
+Create, edit and delete the plain-text items read by [`../calendar`](../calendar): one `*.txt` file per item, directly inside a data folder, in the item language specified in [`../dsl`](../dsl). Small Flask app with a React frontend.
 
 ## Run
 
@@ -10,15 +10,26 @@ just run
 
 Opens http://127.0.0.1:8766. On first start, set the data folder (stored in `~/.config/dsl-crud/config.json`); the calendar's folder is offered if it has one.
 
+Flask serves the frontend's build from `frontend/dist`: `just run` builds it when it's missing, `just build` rebuilds it, `just reinstall` does both. `just dev` runs Flask and Vite's dev server (http://127.0.0.1:5173, hot reload, `/api` proxied to Flask) together. `just check` lints, typechecks and tests both sides.
+
+## Frontend
+
+Vite + React + TypeScript in `frontend/`, with TanStack Router (the list's filter, semantic toggle and page are in the URL) and TanStack Query (requests, polling, cache), styled with Tailwind + daisyUI. `frontend/src` is feature-sliced; each layer imports only from those below it, and slices of one layer don't import each other (enforced by `eslint-plugin-boundaries`, see `frontend/eslint.config.js`):
+
+- `api`: the fetch wrapper and the API's types
+- `dumb`: generic pieces without app logic (pager, CodeMirror host, markdown, a tiny store)
+- `entities`: `item` (queries, the item language's client-side mirror in `dsl/`, the read-only `ItemOverview`), `ollama` (model status and downloads), `settings`
+- `features`: `item-edit` (the item editor and its autosave), `item-delete` (delete with undo), `model-download`
+- `pages`: one folder per route; code only one page uses lives there
+- `main.tsx`, `router.tsx`, `App.tsx` (tabs, error banner, undo toast) at the root
+
 ## Editing
 
-One [CodeMirror 6](https://codemirror.net) editor per item. A single pass over the text (`analyze` in `static/app.js`, mirroring `dsl.py`) provides the highlighting (keywords, options and values by type, relationships, `data` and `extra` blocks, unknown keyword lines muted; hover for meanings) and inline lint for the errors and warnings of `../dsl/spec/language.md`. Saved on blur or Ctrl+S.
+One [CodeMirror 6](https://codemirror.net) editor per item. A single pass over the text (`analyze` in `frontend/src/entities/item/dsl/analyze.ts`, mirroring `dsl.py`; tested against `../dsl/spec/examples`) provides the highlighting (keywords, options and values by type, relationships, `data` and `extra` blocks, unknown keyword lines muted; hover for meanings) and inline lint for the errors and warnings of `../dsl/spec/language.md`. Saved on blur or Ctrl+S.
 
 The list shows body and `extra` content as markdown (marked + DOMPurify), `data` blocks as highlighted code, relationships as links headed by the target's first line (a click scrolls to the target, paging and clearing the filter as needed), and only keyword lines in monospace with the editor's highlighting. Its order is shuffled per page load (a seed sent with each request), stable across paging and filtering.
 
 The list is filtered and paged on the server, so a folder of many items (e.g. one shared with graphirst's notes) stays usable: `store.py` keeps each item's text and problem flags in memory and re-reads a file only when its mtime changes. The Broken tab shows items needing attention.
-
-CodeMirror loads without a build step: each package comes from esm.sh with its dependencies left external (`*` prefix) and pinned once in the import map in `templates/index.html`, so only one copy of `@codemirror/state` loads. When bumping a version there, keep every package's dependency ranges satisfied.
 
 New files are named `<slug of the first line>-<6 hex>.txt`; the name doesn't change when the text does. Other items refer to it by that name without `.txt` (`-> label @name`).
 

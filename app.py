@@ -1,8 +1,9 @@
 import socket
 import threading
 import webbrowser
+from pathlib import Path
 
-from flask import Flask, jsonify, render_template, request
+from flask import Flask, abort, jsonify, request, send_from_directory
 
 import llm
 import questions
@@ -10,9 +11,10 @@ import semantic
 import store
 
 PORT = 8766
+# the frontend's build (`just build`)
+DIST = Path(__file__).parent / "frontend" / "dist"
 
-app = Flask(__name__)
-app.config["TEMPLATES_AUTO_RELOAD"] = True
+app = Flask(__name__, static_folder=None)
 
 
 @app.errorhandler(store.ValidationError)
@@ -28,11 +30,6 @@ def _conflict(e):
 @app.errorhandler(store.NotFound)
 def _not_found(e):
     return jsonify(error=f"'{e}' not found"), 404
-
-
-@app.get("/")
-def index():
-    return render_template("index.html")
 
 
 @app.get("/api/schema")
@@ -182,6 +179,17 @@ def update_item(name):
 def delete_item(name):
     store.delete(name)
     return "", 204
+
+
+@app.get("/", defaults={"path": ""})
+@app.get("/<path:path>")
+def frontend(path):
+    """The frontend's files; any other path is one of its routes."""
+    if path.startswith("api/"):
+        abort(404)
+    if path and (DIST / path).is_file():
+        return send_from_directory(DIST, path)
+    return send_from_directory(DIST, "index.html")
 
 
 def _running() -> bool:

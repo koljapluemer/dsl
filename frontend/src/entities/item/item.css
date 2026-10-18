@@ -1,0 +1,19 @@
+/* item language tokens, shared by the editor and the list */
+.tok-primary { color: var(--color-primary); font-weight: 600; }
+.tok-property, .tok-relation { color: var(--color-accent); font-weight: 600; }
+.tok-modifier, .tok-state { color: var(--color-secondary); font-weight: 600; }
+.tok-option { color: var(--color-accent); }
+.tok-date, .tok-month, .tok-path, .tok-text, .tok-target { color: var(--color-info); }
+.tok-weekday, .tok-tags { color: var(--color-success); }
+.tok-extra { color: color-mix(in oklab, var(--color-base-content) 70%, transparent); }
+.tok-unknown { color: color-mix(in oklab, var(--color-base-content) 50%, transparent); font-style: italic; }
+.tok-error { text-decoration: underline wavy var(--color-error); }
+/* the list: one base size per row, every part sized relative to it */
+.overview { font-size: 0.875rem; line-height: 1.5; overflow-wrap: anywhere; }
+.overview > * + * { margin-top: 0.4em; }
+.ov-section > * + * { margin-top: 0.15em; }
+.ov-muted { color: color-mix(in oklab, var(--color-base-content) 60%, transparent); }
+.ov-missing { text-decoration: line-through; color: color-mix(in oklab, var(--color-base-content) 50%, transparent); }
+/* monospace only for keyword lines; it runs wide, so a bit smaller */
+.ov-code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.9em; white-space: pre-wrap; }
+.ov-extra { font-size: 0.9em; color: color-mix(in oklab, var(--color-base-content) 70%, transparent); }
