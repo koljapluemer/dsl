@@ -1,7 +1,6 @@
-"""The item language from ../dsl: parse a file and report its diagnostics.
+"""Parse the item language described in spec/language.md and report diagnostics.
 
-Syntax per spec/language.md; keywords come from spec/keywords.yaml (copied in
-from ../dsl via `just sync-spec`), so nothing here names a keyword.
+Keywords come from spec/keywords.yaml, so nothing here names a keyword.
 """
 
 import calendar

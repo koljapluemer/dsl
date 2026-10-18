@@ -1,0 +1,4 @@
+{
+  "body": "Clash",
+  "errors": [{ "code": "conflicting_keywords", "line": 3 }]
+}

@@ -1,0 +1,13 @@
+{
+  "body": "Everything\nsecond line",
+  "clauses": [
+    { "keyword": "recurring", "line": 3, "args": ["tu"], "options": {} },
+    { "keyword": "media", "line": 4, "args": ["images/everything-a1b2c3-1758540000000.webp"], "options": {} }
+  ],
+  "relations": [{ "label": "part of", "target": "collection-ffffff", "line": 5 }],
+  "state": [],
+  "unknown": [],
+  "extra": "Details.",
+  "errors": [],
+  "warnings": []
+}

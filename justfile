@@ -28,10 +28,6 @@ check:
     npm --prefix {{dir}}/frontend test
     uv run --project {{dir}} pytest {{dir}}/tests
 
-# copy the item language's keyword schema in from the sibling dsl repo
-sync-spec:
-    cp {{dir}}/../dsl/spec/keywords.yaml {{dir}}/spec/keywords.yaml
-
 # regenerate favicon/desktop icons from the app's emoji (needs ../scripts)
 icons:
     uv run --project {{dir}}/../scripts {{dir}}/../scripts/emoji-icons/run.py ✍️ {{dir}}/frontend/public/icons --name dsl

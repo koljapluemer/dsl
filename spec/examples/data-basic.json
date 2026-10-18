@@ -1,0 +1,13 @@
+{
+  "body": "Attention",
+  "clauses": [{ "keyword": "source", "line": 2, "args": [], "options": {} }],
+  "extra": null,
+  "data": {
+    "entrytype": "article",
+    "author": [{ "family": "Vaswani", "given": "Ashish" }],
+    "date": "2017-06-12",
+    "pages": "1--10"
+  },
+  "errors": [],
+  "warnings": []
+}

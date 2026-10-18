@@ -1,6 +1,6 @@
 # dsl-crud
 
-Create, edit and delete the plain-text items read by [`../calendar`](../calendar): one `*.txt` file per item, directly inside a data folder, in the item language specified in [`../dsl`](../dsl). Small Flask app with a React frontend.
+Create, edit and delete the plain-text items read by [`../calendar`](../calendar): one `*.txt` file per item, directly inside a data folder, in the item language specified in [`spec/`](spec/). Small Flask app with a React frontend.
 
 ## Run
 
@@ -25,7 +25,7 @@ Vite + React + TypeScript in `frontend/`, with TanStack Router (the list's filte
 
 ## Editing
 
-One [CodeMirror 6](https://codemirror.net) editor per item. A single pass over the text (`analyze` in `frontend/src/entities/item/dsl/analyze.ts`, mirroring `dsl.py`; tested against `../dsl/spec/examples`) provides the highlighting (keywords, options and values by type, relationships, `data` and `extra` blocks, unknown keyword lines muted; hover for meanings) and inline lint for the errors and warnings of `../dsl/spec/language.md`. Saved on blur or Ctrl+S.
+One [CodeMirror 6](https://codemirror.net) editor per item. A single pass over the text (`analyze` in `frontend/src/entities/item/dsl/analyze.ts`, mirroring `dsl.py`; tested against `spec/examples`) provides the highlighting (keywords, options and values by type, relationships, `data` and `extra` blocks, unknown keyword lines muted; hover for meanings) and inline lint for the errors and warnings of `spec/language.md`. Saved on blur or Ctrl+S.
 
 The list shows body and `extra` content as markdown (marked + DOMPurify), `data` blocks as highlighted code, relationships as links headed by the target's first line (a click scrolls to the target, paging and clearing the filter as needed), and only keyword lines in monospace with the editor's highlighting. Its order is shuffled per page load (a seed sent with each request), stable across paging and filtering.
 
@@ -70,11 +70,7 @@ Attachments go into `images/` in the data folder as `<note>-<ms>.<ext>`; one the
 
 ## Spec
 
-The parser (`dsl.py`) reads `spec/keywords.yaml` at startup and names no keyword itself. The tests run `../dsl/spec/examples` against it. After a change in `../dsl`:
-
-```
-just sync-spec
-```
+The item language lives in `spec/`: `language.md` defines its syntax, `keywords.yaml` defines the available keywords, and `examples/` contains conformance cases. The Python and TypeScript parsers both run those local examples in their test suites. The Python parser reads `keywords.yaml` at startup and names no keyword itself.
 
 ## Add as desktop app (Ubuntu / Fedora, GNOME)
 

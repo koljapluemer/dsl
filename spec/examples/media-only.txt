@@ -1,0 +1,2 @@
+A photo
+media "images/holiday 2026.webp"

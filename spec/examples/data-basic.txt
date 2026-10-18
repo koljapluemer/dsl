@@ -1,0 +1,8 @@
+Attention
+source
+data
+entrytype: article
+author:
+  - {family: Vaswani, given: Ashish}
+date: 2017-06-12
+pages: 1--10

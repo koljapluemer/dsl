@@ -1,0 +1,6 @@
+Bad relations
+appointment 26-10-12
+-> no target
+-> @
+-> into @a/b
+->

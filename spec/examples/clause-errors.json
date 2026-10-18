@@ -1,0 +1,6 @@
+{
+  "errors": [
+    { "code": "missing_arg", "line": 2 },
+    { "code": "invalid_value", "line": 3 }
+  ]
+}

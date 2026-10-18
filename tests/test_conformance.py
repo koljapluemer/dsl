@@ -1,4 +1,4 @@
-"""Runs ../dsl/spec/examples against dsl.py (see the spec's Conformance section)."""
+"""Run spec/examples against dsl.py (see the spec's Conformance section)."""
 
 import json
 from pathlib import Path
@@ -8,8 +8,8 @@ import pytest
 import dsl
 
 SCHEMA = dsl.load_schema()
-EXAMPLES = Path(__file__).parent.parent.parent / "dsl" / "spec" / "examples"
-CASES = sorted(EXAMPLES.glob("*.txt")) if EXAMPLES.exists() else []
+EXAMPLES = Path(__file__).parent.parent / "spec" / "examples"
+CASES = sorted(EXAMPLES.glob("*.txt"))
 
 
 def _clause(c: dsl.Clause) -> dict:
@@ -34,7 +34,6 @@ def _result(doc: dsl.Document) -> dict:
     }
 
 
-@pytest.mark.skipif(not CASES, reason="no ../dsl")
 @pytest.mark.parametrize("case", CASES, ids=lambda p: p.stem)
 def test_example(case: Path):
     expected = json.loads(case.with_suffix(".json").read_text(encoding="utf-8"))

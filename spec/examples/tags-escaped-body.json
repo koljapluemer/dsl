@@ -1,0 +1,8 @@
+{
+  "body": "Escaped\n tags in the body",
+  "clauses": [
+    { "keyword": "tags", "line": 3, "args": ["real"], "options": {} }
+  ],
+  "errors": [],
+  "warnings": []
+}

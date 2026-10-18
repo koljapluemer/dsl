@@ -1,0 +1,11 @@
+{
+  "state": [],
+  "unknown": ["(lastgenerated 26-10-11)"],
+  "errors": [
+    { "code": "invalid_state", "line": 4 },
+    { "code": "invalid_state", "line": 5 },
+    { "code": "invalid_state", "line": 6 },
+    { "code": "invalid_state", "line": 7 }
+  ],
+  "warnings": [{ "code": "unknown_keyword", "line": 3 }]
+}

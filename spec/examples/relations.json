@@ -1,0 +1,10 @@
+{
+  "body": "Thesis outline",
+  "relations": [
+    { "label": "clarifies", "target": "research-question-0a1b2c", "line": 3 },
+    { "label": "is  part of", "target": "thesis-ab12cd", "line": 4 },
+    { "label": "", "target": "loose-link-1758540000000", "line": 5 }
+  ],
+  "errors": [],
+  "warnings": []
+}

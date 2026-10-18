@@ -1,0 +1,8 @@
+{
+  "clauses": [
+    { "keyword": "media", "line": 2, "args": ["a.png"], "options": {} },
+    { "keyword": "tags", "line": 3, "args": ["appointment", "media", "source"], "options": {} }
+  ],
+  "errors": [],
+  "warnings": []
+}

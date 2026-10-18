@@ -1,0 +1,7 @@
+{
+  "data": { "a": 1 },
+  "clauses": [
+    { "keyword": "tags", "line": 4, "args": ["x"], "options": {} }
+  ],
+  "errors": []
+}

@@ -1,12 +1,12 @@
-import { existsSync, readdirSync, readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { describe, expect, inject, it } from 'vitest';
 import { analyze } from './analyze';
 import { highlight } from './highlight';
 import { outline } from './outline';
 
 const schema = inject('schema');
-const EXAMPLES = new URL('../../../../../../dsl/spec/examples/', import.meta.url).pathname;
-const cases = existsSync(EXAMPLES) ? readdirSync(EXAMPLES).filter((f) => f.endsWith('.txt')).sort() : [];
+const EXAMPLES = new URL('../../../../../spec/examples/', import.meta.url).pathname;
+const cases = readdirSync(EXAMPLES).filter((f) => f.endsWith('.txt')).sort();
 /** found only by the server: YAML validity, and an empty item */
 const SERVER_ONLY = ['invalid_yaml', 'empty'];
 

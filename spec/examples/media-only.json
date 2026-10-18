@@ -1,0 +1,6 @@
+{
+  "body": "A photo",
+  "clauses": [{ "keyword": "media", "line": 2, "args": ["images/holiday 2026.webp"], "options": {} }],
+  "errors": [],
+  "warnings": []
+}

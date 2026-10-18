@@ -1,13 +1,8 @@
-from pathlib import Path
-
 import pytest
 
 import dsl
 
 SCHEMA = dsl.load_schema()
-UPSTREAM = Path(__file__).parent.parent.parent / "dsl" / "spec" / "keywords.yaml"
-
-
 def errors(text: str) -> list[str]:
     doc = dsl.parse(SCHEMA, text)
     assert not doc.valid, text
@@ -96,11 +91,6 @@ def test_is_section_opener(line, opens):
 ])
 def test_errors(text, expected):
     assert errors(text) == expected
-
-
-@pytest.mark.skipif(not UPSTREAM.exists(), reason="no ../dsl")
-def test_vendored_schema_matches_dsl_repo():
-    assert dsl.SPEC_PATH.read_text() == UPSTREAM.read_text(), "run `just sync-spec`"
 
 
 def test_text_argument_takes_the_rest_of_the_line():
