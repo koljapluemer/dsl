@@ -12,8 +12,23 @@ if [ ! -x "$venv/bin/python" ]; then
     python -c 'import sys; sys.exit(sys.version_info < (3, 13))' || { echo "needs Python 3.13+"; exit 1; }
     # numpy from Termux's package: there's no PyPI wheel for Termux
     python -m venv --system-site-packages "$venv"
-    "$venv/bin/pip" install flask pyyaml
 fi
+
+# pyproject's dependencies except numpy, reinstalled when they change
+deps=$("$venv/bin/python" - "$dir/pyproject.toml" <<'EOF'
+import sys, tomllib
+with open(sys.argv[1], "rb") as f:
+    print("\n".join(d for d in tomllib.load(f)["project"]["dependencies"] if not d.startswith("numpy")))
+EOF
+)
+if [ "$deps" != "$(cat "$venv/.deps" 2>/dev/null)" ]; then
+    mapfile -t reqs <<<"$deps"
+    "$venv/bin/pip" install "${reqs[@]}"
+    printf '%s' "$deps" >"$venv/.deps"
+fi
+
+# the frontend is built on the desktop and committed
+[ -f "$dir/frontend/dist/index.html" ] || { echo "frontend/dist missing: run 'just build' on the desktop and commit it"; exit 1; }
 
 # webbrowser.open in app.py runs $BROWSER
 export BROWSER=termux-open-url PYTHONDONTWRITEBYTECODE=1

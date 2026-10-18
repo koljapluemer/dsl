@@ -71,7 +71,7 @@ Clone the repo into Termux's home (not shared storage: it can't hold executables
 ./termux.sh
 ```
 
-The first run installs Python, numpy (Termux's package) and a venv in `~/.venvs/dsl-crud`. Every run starts the server and opens the browser. Set the data folder to the notes under `/storage/emulated/0/...`. One-tap start with Termux:Widget: `mkdir -p ~/.shortcuts && ln -s ~/dsl-crud/termux.sh ~/.shortcuts/dsl`.
+The first run installs Python, numpy (Termux's package) and a venv in `~/.venvs/dsl-crud`; the other dependencies follow `pyproject.toml`. The phone doesn't build the frontend: `frontend/dist` is committed, so run `just build` before committing frontend changes. Every run starts the server and opens the browser. Set the data folder to the notes under `/storage/emulated/0/...`. One-tap start with Termux:Widget: `mkdir -p ~/.shortcuts && ln -s ~/dsl-crud/termux.sh ~/.shortcuts/dsl`.
 
 ## Test
 

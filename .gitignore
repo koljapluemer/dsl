@@ -11,3 +11,5 @@ wheels/
 
 # Frontend
 node_modules/
+# committed so the phone (termux.sh) doesn't need Node
+!frontend/dist/
