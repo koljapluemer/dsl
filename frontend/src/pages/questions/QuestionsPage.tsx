@@ -49,7 +49,7 @@ export function QuestionsPage() {
   }
 
   // the first note, once; its state is set after the fetch, not during the effect
-  // eslint-disable-next-line react-hooks/exhaustive-deps, react-hooks/set-state-in-effect
+  // eslint-disable-next-line react-hooks/exhaustive-deps, react-hooks-js/set-state-in-effect
   useEffect(() => { next(); }, []);
 
   const pick = useQuery({ ...pickQuery(item?.file ?? ''), enabled: !!item });
