@@ -18,7 +18,7 @@ Vite + React + TypeScript in `frontend/`, with TanStack Router (the list's filte
 
 - `api`: the fetch wrapper and the API's types
 - `dumb`: generic pieces without app logic (pager, modal, media, CodeMirror host, markdown, a tiny store)
-- `entities`: `item` (queries, the item language's client-side mirror in `dsl/`, the read-only `ItemOverview` and `ItemView`), `ollama` (model status and downloads), `settings`
+- `entities`: `graph` (the graph page's requests), `item` (queries, the item language's client-side mirror in `dsl/`, the read-only `ItemOverview` and `ItemView`), `ollama` (model status and downloads), `settings`
 - `features`: `item-edit` (the item editor and its autosave), `item-delete` (delete with undo), `model-download`
 - `pages`: one folder per route; code only one page uses lives there
 - `main.tsx`, `router.tsx`, `App.tsx` (tabs, error banner, undo toast) at the root
@@ -55,6 +55,18 @@ Ports of the `../dsl-mobile` apps calendar, queue and zero, and of `../suggest`,
 - **Queue**: 3 random items (body, `media` attachment, `extra`), Next draws others. Types and tags hidden from it are set in its Hidden panel and stored under `queue` in the config file.
 - **Zero**: a card per item tagged `zero`, in a random order per page load and colored by file name; a click greys it out and moves it last until reload.
 - **Suggest**: a card per `#hashtag` in the notes' body or `extra`. A click shows a random note carrying it; hold "Hold for next" for another, or delete it (with undo).
+
+## Graph
+
+A port of `../dsl-graph`: notes as cards on a [React Flow](https://reactflow.dev) canvas, laid out by [ELK](https://eclipse.dev/elk/), their relationships as labeled edges (`graph.py` on the server, `frontend/src/pages/graph`). Only notes without errors are part of it; a relationship to anything else is left out until it's fixed.
+
+- **Pins**: a pinned note shows the notes up to its depth (the chevrons beside the pin) relationships away, in either direction. Picking a search result pins it at depth 2. The badge under a card counts its related notes not on the canvas; a click shows them. Pins are kept under `graph` in the config file.
+- **Sidebar**: Search (the query syntax is behind the `?`: words match as prefixes, `"exact phrase"`, `/regex/ims`, `-exclude`, `OR`, parentheses, `file:`, `body:`, `extra:`), optionally only orphans or connected notes, and Recent (by modification time).
+- **Canvas**: right-click opens a quick search at the cursor; each pick pins a note, and it stays open for several picks. Double-click adds a note. Drag from a card's edge dot onto another card to relate them, or onto empty canvas for a new related note. Drag a card by its grip to move it; it keeps its spot while it's on the canvas.
+- **Cards**: edit the full text (Mod-Enter saves, Escape cancels; text with errors isn't saved), attach an image (downscaled to WebP) or a short video by paste or upload, delete with undo. A click on an edge label edits or deletes its relationships (with undo).
+- The toolbar: add note, unpin all, pin a random orphan, open a random note or search result, pin all search results (the first 100, without neighbors), zoom and fit.
+
+Attachments go into `images/` in the data folder as `<note>-<ms>.<ext>`; one the graph wrote is deleted when it's replaced or removed and no other note names it.
 
 ## Spec
 

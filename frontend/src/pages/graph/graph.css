@@ -1,0 +1,37 @@
+@import '@xyflow/react/dist/style.css';
+
+/* Ties the rendered card width to the ELK layout width estimate (NODE_WIDTH
+   in graph-layout.ts) - a functional constraint, not a styling choice. */
+.note-card {
+  width: 370px;
+}
+
+/* Lets the draft textarea grow with its content instead of scrolling internally. */
+.note-textarea {
+  field-sizing: content;
+}
+
+/* React Flow sets `user-select: none` (and a pointer cursor) on every node.
+   Chromium doesn't let a contenteditable under that be focused or edited, so
+   CodeMirror's content element needs selection back explicitly. */
+.raw-note-editor .cm-editor {
+  max-height: 32rem;
+}
+.raw-note-editor .cm-editor,
+.raw-note-editor .cm-content {
+  -webkit-user-select: text;
+  user-select: text;
+  cursor: text;
+}
+
+/* Links on a card open in a new tab; marked with lucide's external-link icon. */
+.note-markdown a[target='_blank']::after {
+  content: '';
+  display: inline-block;
+  width: 0.75rem;
+  height: 0.75rem;
+  margin-left: 0.25rem;
+  vertical-align: -0.05em;
+  background-color: currentColor;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M15 3h6v6'/%3E%3Cpath d='M10 14 21 3'/%3E%3Cpath d='M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6'/%3E%3C/svg%3E") center / contain no-repeat;
+}

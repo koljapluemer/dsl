@@ -5,6 +5,7 @@ from pathlib import Path
 
 from flask import Flask, abort, jsonify, request, send_file, send_from_directory
 
+import graph
 import llm
 import questions
 import semantic
@@ -179,6 +180,98 @@ def suggest_random():
 @app.get("/api/calendar")
 def calendar_items():
     return jsonify(store.calendar_items())
+
+
+def _json() -> dict:
+    body = request.get_json(silent=True)
+    return body if isinstance(body, dict) else {}
+
+
+@app.get("/api/graph/pins")
+def graph_pins():
+    return jsonify(graph.pins())
+
+
+@app.post("/api/graph")
+def graph_open():
+    return jsonify(graph.open_graph(_json().get("pins")))
+
+
+@app.get("/api/graph/search")
+def graph_search():
+    args = request.args
+    return jsonify(graph.search(args.get("q", ""), args.get("orphan", "any"), args.get("page", 0, type=int)))
+
+
+@app.get("/api/graph/search/filenames")
+def graph_search_filenames():
+    args = request.args
+    return jsonify(graph.search_filenames(args.get("q", ""), args.get("orphan", "any"), args.get("cap", graph.PIN_ALL_CAP, type=int)))
+
+
+@app.get("/api/graph/recent")
+def graph_recent():
+    return jsonify(graph.recent(request.args.get("page", 0, type=int)))
+
+
+@app.get("/api/graph/random")
+def graph_random():
+    return jsonify(filename=graph.random_note(_excluded(), request.args.get("orphan") == "1"))
+
+
+@app.post("/api/graph/notes")
+def graph_create():
+    return jsonify(graph.create(_json())), 201
+
+
+@app.put("/api/graph/notes/<name>")
+def graph_update(name):
+    graph.update(name, _json())
+    return "", 204
+
+
+@app.delete("/api/graph/notes/<name>")
+def graph_delete(name):
+    graph.delete(name)
+    return "", 204
+
+
+@app.post("/api/graph/undo")
+def graph_undo():
+    return jsonify(graph.undo())
+
+
+@app.put("/api/graph/notes/<name>/media")
+def graph_attach(name):
+    return jsonify(graph.attach(name, request.get_data(), request.content_type))
+
+
+@app.delete("/api/graph/notes/<name>/media")
+def graph_clear_media(name):
+    graph.clear_media(name)
+    return "", 204
+
+
+@app.post("/api/graph/relations")
+def graph_connect():
+    return jsonify(graph.connect(_json()))
+
+
+@app.patch("/api/graph/relations")
+def graph_relabel():
+    graph.relabel(_json())
+    return "", 204
+
+
+@app.delete("/api/graph/relations")
+def graph_delete_relation():
+    graph.delete_relation(_json())
+    return "", 204
+
+
+@app.get("/api/graph/media-path")
+def graph_media_path():
+    return jsonify(path=graph.media_path(request.args.get("p", "")))
 
 
 @app.get("/api/media/<path:rel>")

@@ -7,6 +7,7 @@ const TABS = [
   { to: '/', label: 'Notes' },
   { to: '/new', label: 'New' },
   { to: '/broken', label: 'Broken' },
+  { to: '/graph', label: 'Graph' },
   { to: '/tasks', label: 'Tasks' },
   { to: '/questions', label: 'Questions' },
   { to: '/calendar', label: 'Calendar' },
@@ -24,8 +25,11 @@ export function App() {
   const error = errorBanner.use();
   useEffect(() => errorBanner.set(''), [path]);
 
+  // the graph's canvas takes the whole window; the other pages a readable column
+  const full = path === '/graph';
+
   return (
-    <>
+    <div className={full ? 'flex h-screen flex-col px-4 pt-4' : 'max-w-5xl mx-auto p-4'}>
       <UndoDeleteToast />
       {error && <div role="alert" className="alert alert-error mb-4"><span>{error}</span></div>}
       <div role="tablist" className="tabs tabs-border mb-4 flex-nowrap overflow-x-auto">
@@ -34,10 +38,10 @@ export function App() {
         ))}
       </div>
       <Outlet />
-    </>
+    </div>
   );
 }
 
 export function RootError({ error }: ErrorComponentProps) {
-  return <div role="alert" className="alert alert-error mb-4"><span>{error instanceof Error ? error.message : String(error)}</span></div>;
+  return <div className="max-w-5xl mx-auto p-4"><div role="alert" className="alert alert-error mb-4"><span>{error instanceof Error ? error.message : String(error)}</span></div></div>;
 }

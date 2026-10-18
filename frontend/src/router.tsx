@@ -6,6 +6,7 @@ import { settingsQuery } from './entities/settings/queries';
 import { CalendarPage } from './pages/calendar/CalendarPage';
 import { validateCalendarSearch } from './pages/calendar/search';
 import { EditPage } from './pages/edit/EditPage';
+import { GraphPage } from './pages/graph/GraphPage';
 import { NotesPage } from './pages/notes/NotesPage';
 import { validateNotesSearch } from './pages/notes/search';
 import { QuestionsPage } from './pages/questions/QuestionsPage';
@@ -36,6 +37,7 @@ const tree = root.addChildren([
     createRoute({ getParentRoute: () => editor, path: '/new' }),
     createRoute({ getParentRoute: () => editor, path: '/edit/$file' }),
   ]),
+  createRoute({ getParentRoute: () => root, path: '/graph', component: GraphPage }),
   createRoute({ getParentRoute: () => root, path: '/tasks', component: TasksPage }),
   createRoute({ getParentRoute: () => root, path: '/questions', component: QuestionsPage }),
   createRoute({ getParentRoute: () => root, path: '/calendar', validateSearch: validateCalendarSearch, component: CalendarPage }),

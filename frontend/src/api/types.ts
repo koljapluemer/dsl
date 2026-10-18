@@ -37,3 +37,27 @@ export type SuggestPick = { item: ItemView | null };
 /** when an item falls: on one ISO date, or every weekday (1 = Mon .. 7 = Sun) up to `until` inclusive */
 export type When = { appointment: string } | { recurring: number; until: string | null };
 export type CalendarEntry = { file: string; heading: string; details: string[]; when: When };
+
+/** a pinned note, rendered with the notes up to `depth` relationships away */
+export type PinSpec = { filename: string; depth: number };
+export type GraphNodePayload = {
+  filename: string; body: string; image: string | null; extraContent: string; sectionLines: string[]; dataText: string | null;
+  /** hops from the nearest pin that discovered this node */
+  depth: number;
+  degree: number;
+  /** related notes not on the canvas: what pinning it at depth 1 would bring in */
+  hiddenNeighbors: number;
+};
+export type GraphEdgePayload = { id: string; source: string; target: string; label: string; depth: number; direction: 'incoming' | 'outgoing' };
+export type NoteGraph = { nodes: GraphNodePayload[]; edges: GraphEdgePayload[]; truncated: boolean; warnings: string[] };
+/** a span of text, as UTF-16 offsets into the string it refers to */
+export type MatchRange = { start: number; length: number };
+export type SearchExcerpt = { text: string; match: MatchRange };
+/** `previewMatch` is where the match sits in `preview`; `excerpt` is set exactly when it isn't visible there */
+export type SearchResult = { filename: string; preview: string; previewMatch: MatchRange | null; excerpt: SearchExcerpt | null };
+export type RecentNote = { filename: string; preview: string };
+/** narrows search results by whether a note has any relationship, incoming or outgoing */
+export type OrphanFilter = 'any' | 'orphan' | 'connected';
+export type SearchCriteria = { query: string; orphan: OrphanFilter };
+export type NoteSearchPage = { results: SearchResult[]; total: number };
+export type RecentPage = { results: RecentNote[]; total: number };

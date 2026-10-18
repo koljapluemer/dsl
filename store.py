@@ -11,6 +11,7 @@ import threading
 import time
 import unicodedata
 import zlib
+from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -117,7 +118,7 @@ _HEADING_WEIGHT = 2.0
 _MAX_EXPANSION = 500
 
 
-def _words(s: str) -> list[str]:
+def words(s: str) -> list[str]:
     """Lowercase words without accents, in order."""
     folded = "".join(c for c in unicodedata.normalize("NFKD", s.lower()) if not unicodedata.combining(c))
     return _WORD_RE.findall(folded)
@@ -138,6 +139,67 @@ class _Entry:
     tags: frozenset[str]
     hashtags: frozenset[str]
     when: dict | None
+    # what the graph reads (see graph.py)
+    valid: bool
+    rels: tuple[tuple[str, str], ...]
+    media: str | None
+    extra: str
+    section_lines: tuple[str, ...]
+    data_text: str | None
+    body_compact: str
+    extra_compact: str
+    body_words: frozenset[str]
+    extra_words: frozenset[str]
+
+
+UNLABELED_RELATION = "related"
+# keyword lines that would only repeat a card or don't matter on it
+_UNSHOWN_KEYWORDS = {views.MEDIA_KEYWORD, views.TAGS_KEYWORD}
+_SPACE_RE = re.compile(r"\s+")
+
+
+def _section_lines(doc: dsl.Document, lines: list[str]) -> tuple[str, ...]:
+    """Keyword lines, verbatim, but not those holding only `media` and `tags`;
+    unknown keyword lines are kept."""
+    by_line: dict[int, list[str]] = {}
+    for c in doc.clauses:
+        by_line.setdefault(c.line, []).append(c.keyword)
+    for d in doc.diagnostics:
+        if d.code == "unknown_keyword" and not lines[d.line - 1].lstrip().startswith("("):
+            by_line.setdefault(d.line, []).append("")
+    return tuple(lines[n - 1].strip() for n, kws in sorted(by_line.items()) if not set(kws) <= _UNSHOWN_KEYWORDS)
+
+
+def _entry(mtime_ns: int, item: dict) -> "_Entry":
+    text = item["text"]
+    doc = dsl.parse(SCHEMA, text)
+    extra = "\n".join(doc.extra or [])
+    body = "\n".join(doc.body)
+    return _Entry(
+        mtime_ns,
+        text.lower(),
+        bool(item["errors"] or item["warnings"]),
+        any(c.keyword == TASKS_KEYWORD for c in doc.clauses),
+        questions.is_candidate(doc),
+        doc.heading,
+        body,
+        frozenset(words(doc.heading)),
+        frozenset(words(text)),
+        views.primary(SCHEMA, doc),
+        frozenset(views.tags(doc)),
+        frozenset(views.hashtags(doc)),
+        views.when(doc),
+        not item["errors"],
+        tuple((r.label or UNLABELED_RELATION, f"{r.target}.txt") for r in doc.relations),
+        views.media(doc),
+        extra,
+        _section_lines(doc, [l.replace("\r", "") for l in text.split("\n")]),
+        "\n".join(doc.blocks["data"]) if "data" in doc.blocks else None,
+        _SPACE_RE.sub(" ", body).strip(),
+        _SPACE_RE.sub(" ", extra).strip(),
+        frozenset(words(body)),
+        frozenset(words(extra)),
+    )
 
 
 class _Index:
@@ -150,6 +212,9 @@ class _Index:
         self._dir: Path | None = None
         self._entries: dict[str, _Entry] = {}
         self._postings: dict[str, set[str]] = {}
+        # relationship target -> its (source, label)s; tuples, replaced rather
+        # than mutated, so a shallow copy of the map is a consistent snapshot
+        self._incoming: dict[str, tuple[tuple[str, str], ...]] = {}
         self._vocab: list[str] = []
         self._vocab_dirty = False
         self._scanned = -math.inf
@@ -159,12 +224,18 @@ class _Index:
         self._scanned = -math.inf
 
     def _remove(self, name: str) -> None:
-        for w in self._entries.pop(name).words:
+        entry = self._entries.pop(name)
+        for w in entry.words:
             names = self._postings[w]
             names.discard(name)
             if not names:
                 del self._postings[w]
                 self._vocab_dirty = True
+        for target in {t for _, t in entry.rels}:
+            if kept := tuple(r for r in self._incoming[target] if r[0] != name):
+                self._incoming[target] = kept
+            else:
+                del self._incoming[target]
 
     def _add(self, name: str, entry: _Entry) -> None:
         self._entries[name] = entry
@@ -173,6 +244,26 @@ class _Index:
                 self._postings[w] = set()
                 self._vocab_dirty = True
             self._postings[w].add(name)
+        for label, target in entry.rels:
+            self._incoming[target] = self._incoming.get(target, ()) + ((name, label),)
+
+    @contextmanager
+    def locked(self, max_age: float = 0):
+        """The index, refreshed (see `refresh`) and held still while in use."""
+        with self._lock:
+            self._refresh(max_age)
+            yield self
+
+    @property
+    def entries(self) -> dict[str, _Entry]:
+        return self._entries
+
+    @property
+    def incoming(self) -> dict[str, tuple[tuple[str, str], ...]]:
+        return self._incoming
+
+    def names_with(self, word: str) -> set[str]:
+        return self._postings.get(word, set())
 
     def refresh(self, max_age: float = 0) -> dict[str, _Entry]:
         """Rescans the folder unless that was done less than `max_age` seconds ago."""
@@ -183,7 +274,7 @@ class _Index:
     def _refresh(self, max_age: float) -> None:
         d = _dir()
         if d != self._dir:
-            self._dir, self._entries, self._postings, self._vocab = d, {}, {}, []
+            self._dir, self._entries, self._postings, self._incoming, self._vocab = d, {}, {}, {}, []
         elif time.monotonic() - self._scanned < max_age:
             return
         seen = {}
@@ -197,26 +288,10 @@ class _Index:
             if (cur := self._entries.get(name)) is None or cur.mtime_ns != mtime:
                 if cur is not None:
                     self._remove(name)
-                item = _read(d / name)
-                doc = dsl.parse(SCHEMA, item["text"])
-                self._add(name, _Entry(
-                    mtime,
-                    item["text"].lower(),
-                    bool(item["errors"] or item["warnings"]),
-                    any(c.keyword == TASKS_KEYWORD for c in doc.clauses),
-                    questions.is_candidate(doc),
-                    doc.heading,
-                    "\n".join(doc.body),
-                    frozenset(_words(doc.heading)),
-                    frozenset(_words(item["text"])),
-                    views.primary(SCHEMA, doc),
-                    frozenset(views.tags(doc)),
-                    frozenset(views.hashtags(doc)),
-                    views.when(doc),
-                ))
+                self._add(name, _entry(mtime, _read(d / name)))
         self._scanned = time.monotonic()
 
-    def _expand(self, token: str) -> list[str]:
+    def expand(self, token: str) -> list[str]:
         """Indexed words starting with `token`."""
         if self._vocab_dirty:
             self._vocab = sorted(self._postings)
@@ -232,7 +307,7 @@ class _Index:
         """Items matching the words of `q`, each word also as a prefix: those
         matching all words first, then those matching the most; within that by
         idf-weighted score, exact over prefix matches, heading over body."""
-        tokens = list(dict.fromkeys(_words(q)))
+        tokens = list(dict.fromkeys(words(q)))
         if not tokens:
             return []
         with self._lock:
@@ -242,7 +317,7 @@ class _Index:
             score: dict[str, float] = {}
             for token in tokens:
                 best: dict[str, float] = {}
-                for w in self._expand(token):
+                for w in self.expand(token):
                     names = self._postings[w]
                     base = math.log(1 + n / len(names)) * (1.0 if w == token else _PREFIX_WEIGHT)
                     for name in names:
@@ -260,6 +335,11 @@ class _Index:
 
 
 _INDEX = _Index()
+
+
+def index(max_age: float = 0):
+    """The index, locked: `with store.index() as ix: ...`."""
+    return _INDEX.locked(max_age)
 
 
 def list_page(

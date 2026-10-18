@@ -1,0 +1,267 @@
+import { Background, Panel, ReactFlow, ReactFlowProvider, type XYPosition } from '@xyflow/react';
+import { useCallback, useRef, useState } from 'react';
+import { FloatingEdge } from './FloatingEdge';
+import { HiddenRelationsNode } from './HiddenRelationsNode';
+import { NoteNode } from './NoteNode';
+import { PaneSearchMenu } from './PaneSearchMenu';
+import { PendingConnectionEdge } from './PendingConnectionEdge';
+import { FOLLOWERS_STOP_GLIDING_CLASS_NAME } from './graph-node-style';
+import { GraphToolbar } from '../toolbar/GraphToolbar';
+import { IDLE_INTERACTION, type Interaction } from './graph-interaction';
+import { useGraphToolbarGroups } from '../toolbar/useGraphToolbarGroups';
+import { useElkLayout } from '../layout/useElkLayout';
+import { useGraphInteraction } from './useGraphInteraction';
+import { useGraphNodes } from '../layout/useGraphNodes';
+import { useFitViewOnReframe } from '../layout/useFitViewOnReframe';
+import type { NoteGraph } from '@/api/types';
+
+const edgeTypes = { floating: FloatingEdge, pendingConnection: PendingConnectionEdge };
+const nodeTypes = { note: NoteNode, hiddenRelations: HiddenRelationsNode };
+
+const CONNECTION_RADIUS = 200;
+
+interface GraphCanvasProps {
+  graph: NoteGraph | null;
+  loading: boolean;
+  pins: ReadonlyMap<string, number>;
+  onPinNote: (filename: string, depth: number) => void;
+  onUnpinNote: (filename: string) => void;
+  onSetPinDepth: (filename: string, depth: number) => void;
+  onPinAtLeast: (filename: string, depth: number) => void;
+  onClearPins: () => void;
+  onPinRandomOrphan: () => void;
+  pinRandomOrphanBusy: boolean;
+  onOpenRandomNote: () => void;
+  openRandomNoteBusy: boolean;
+  onOpenRandomSearchResult: () => void;
+  openRandomSearchResultDisabled: boolean;
+  onPinAllSearchResults: () => void;
+  pinAllSearchResultsDisabled: boolean;
+}
+
+interface FlowSceneProps {
+  graph: NoteGraph;
+  pins: ReadonlyMap<string, number>;
+  onPinNote: (filename: string, depth: number) => void;
+  onUnpinNote: (filename: string) => void;
+  onSetPinDepth: (filename: string, depth: number) => void;
+  onPinAtLeast: (filename: string, depth: number) => void;
+  onClearPins: () => void;
+  onPinRandomOrphan: () => void;
+  pinRandomOrphanBusy: boolean;
+  onOpenRandomNote: () => void;
+  openRandomNoteBusy: boolean;
+  onOpenRandomSearchResult: () => void;
+  openRandomSearchResultDisabled: boolean;
+  onPinAllSearchResults: () => void;
+  pinAllSearchResultsDisabled: boolean;
+}
+
+/**
+ * Wires the graph together: `useElkLayout` computes positions, `useGraphInteraction`
+ * owns the draft/connect/edit/search gestures, and `useGraphNodes` bridges the
+ * derived view into React Flow's own node state (so dragging is React Flow's job,
+ * not a re-render of the whole graph). This component just renders the result.
+ */
+function FlowScene({
+  graph,
+  pins,
+  onPinNote,
+  onUnpinNote,
+  onSetPinDepth,
+  onPinAtLeast,
+  onClearPins,
+  onPinRandomOrphan,
+  pinRandomOrphanBusy,
+  onOpenRandomNote,
+  openRandomNoteBusy,
+  onOpenRandomSearchResult,
+  openRandomSearchResultDisabled,
+  onPinAllSearchResults,
+  pinAllSearchResultsDisabled,
+}: FlowSceneProps) {
+  const [interaction, setInteraction] = useState<Interaction>(IDLE_INTERACTION);
+
+  // Drag lifecycle, owned here so the layout and node hooks stay in step.
+  // `dragging` pauses the node-view sync and the layout. On drop, useGraphNodes
+  // patches the layout via `applyManualDrop` - no ELK re-run.
+  const manualPositionsRef = useRef<Map<string, XYPosition>>(new Map());
+  const [dragging, setDragging] = useState(false);
+
+  const beginDrag = useCallback(() => setDragging(true), []);
+  const endDrag = useCallback(() => setDragging(false), []);
+
+  const { committed, anchorFilename, markInteraction, applyManualDrop } = useElkLayout({
+    graph,
+    pins,
+    frozenFilename: interaction.type === 'edit' ? interaction.filename : null,
+    manualPositionsRef,
+    dragging,
+  });
+  useFitViewOnReframe(committed);
+
+  const {
+    callbacks,
+    undoAction,
+    onConnectStart,
+    onConnectEnd,
+    onPaneDoubleClick,
+    onPaneContextMenu,
+    cancelInteraction,
+    addNoteAtCenter,
+    selectSearchNote,
+    performUndo,
+  } = useGraphInteraction({
+    setInteraction,
+    onPinNote,
+    onUnpinNote,
+    onSetPinDepth,
+    onPinAtLeast,
+    markInteraction,
+  });
+
+  const { nodes, edges, onNodesChange, onNodeDragStart, onNodeDragStop } = useGraphNodes({
+    graph,
+    layout: committed.layout,
+    pins,
+    interaction,
+    anchorFilename,
+    callbacks,
+    manualPositionsRef,
+    dragging,
+    onDragStart: beginDrag,
+    onDragStop: endDrag,
+    onManualDrop: applyManualDrop,
+  });
+
+  const toolbarGroups = useGraphToolbarGroups({
+    onAddNote: addNoteAtCenter,
+    onUnpinAll: onClearPins,
+    onPinOrphan: onPinRandomOrphan,
+    onOpenRandomNote,
+    onOpenRandomSearchResult,
+    onPinAllSearchResults,
+    unpinAllDisabled: pins.size === 0,
+    pinOrphanDisabled: pinRandomOrphanBusy,
+    openRandomNoteDisabled: openRandomNoteBusy,
+    openRandomSearchResultDisabled,
+    pinAllSearchResultsDisabled,
+  });
+
+  return (
+    <ReactFlow
+      colorMode="system"
+      className={`${dragging ? FOLLOWERS_STOP_GLIDING_CLASS_NAME : ''} [&_.react-flow__renderer]:cursor-grab [&_.react-flow__renderer:active]:cursor-grabbing [&_.react-flow__viewport]:cursor-grab [&_.react-flow__viewport:active]:cursor-grabbing`}
+      nodeOrigin={[0.5, 0.5]}
+      nodes={nodes}
+      edges={edges}
+      nodeTypes={nodeTypes}
+      edgeTypes={edgeTypes}
+      nodesConnectable
+      nodesDraggable
+      // Selection stays enabled on purpose: React Flow gives a node wrapper
+      // `pointer-events: none` unless it is selectable or draggable, which would
+      // make the (non-draggable) draft/edit cards unclickable. Nothing renders
+      // selection, so the only visible effect to switch off is the z-raise.
+      nodesFocusable={false}
+      elevateNodesOnSelect={false}
+      onNodesChange={onNodesChange}
+      onNodeDragStart={onNodeDragStart}
+      onNodeDragStop={onNodeDragStop}
+      deleteKeyCode={null}
+      connectionRadius={CONNECTION_RADIUS}
+      onConnectStart={onConnectStart}
+      onConnectEnd={onConnectEnd}
+      onDoubleClick={onPaneDoubleClick}
+      onPaneContextMenu={onPaneContextMenu}
+      zoomOnDoubleClick={false}
+      connectionLineStyle={{ strokeWidth: 1.6, strokeDasharray: '4 4' }}
+      minZoom={0.02}
+      maxZoom={1.5}
+      panOnScroll
+      panOnDrag={[1]}
+      proOptions={{ hideAttribution: true }}
+      defaultEdgeOptions={{
+        type: 'floating',
+        zIndex: 0,
+      }}
+    >
+      <Background gap={28} />
+      <Panel position="top-left">
+        <GraphToolbar groups={toolbarGroups} />
+      </Panel>
+      {graph.nodes.length === 0 && interaction.type === 'idle' ? (
+        <Panel position="top-center">
+          <div className="pointer-events-none rounded-full border border-base-300 bg-base-100/90 px-4 py-2 text-sm text-base-content/70 shadow-lg">
+            Search for a note to pin it.
+          </div>
+        </Panel>
+      ) : null}
+      {undoAction ? (
+        <Panel position="bottom-center">
+          <div className="flex items-center gap-3 rounded-full border border-base-300 bg-base-100 px-4 py-2 text-sm shadow-lg">
+            <span>{undoAction.message}</span>
+            <button type="button" className="btn btn-ghost btn-xs rounded-full text-accent" onClick={performUndo}>
+              Undo
+            </button>
+          </div>
+        </Panel>
+      ) : null}
+      {interaction.type === 'search' ? (
+        <PaneSearchMenu screenPosition={interaction.screenPosition} pins={pins} onSelectNote={selectSearchNote} onClose={cancelInteraction} />
+      ) : null}
+    </ReactFlow>
+  );
+}
+
+export function GraphCanvas({
+  graph,
+  loading,
+  pins,
+  onPinNote,
+  onUnpinNote,
+  onSetPinDepth,
+  onPinAtLeast,
+  onClearPins,
+  onPinRandomOrphan,
+  pinRandomOrphanBusy,
+  onOpenRandomNote,
+  openRandomNoteBusy,
+  onOpenRandomSearchResult,
+  openRandomSearchResultDisabled,
+  onPinAllSearchResults,
+  pinAllSearchResultsDisabled,
+}: GraphCanvasProps) {
+  if (!graph) {
+    return (
+      <div className="flex h-full items-center justify-center  border border-dashed border-base-300 bg-base-100/70 text-sm text-base-content/70">
+        Search for a note to pin it.
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative h-full min-h-0 overflow-hidden  border border-base-300 bg-base-100 shadow-xl">
+      {loading ? <div className="pointer-events-none absolute inset-0 z-20 bg-base-100/60 backdrop-blur-sm" /> : null}
+      <ReactFlowProvider>
+        <FlowScene
+          graph={graph}
+          pins={pins}
+          onPinNote={onPinNote}
+          onUnpinNote={onUnpinNote}
+          onSetPinDepth={onSetPinDepth}
+          onPinAtLeast={onPinAtLeast}
+          onClearPins={onClearPins}
+          onPinRandomOrphan={onPinRandomOrphan}
+          pinRandomOrphanBusy={pinRandomOrphanBusy}
+          onOpenRandomNote={onOpenRandomNote}
+          openRandomNoteBusy={openRandomNoteBusy}
+          onOpenRandomSearchResult={onOpenRandomSearchResult}
+          openRandomSearchResultDisabled={openRandomSearchResultDisabled}
+          onPinAllSearchResults={onPinAllSearchResults}
+          pinAllSearchResultsDisabled={pinAllSearchResultsDisabled}
+        />
+      </ReactFlowProvider>
+    </div>
+  );
+}
