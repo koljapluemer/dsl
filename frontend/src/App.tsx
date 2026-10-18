@@ -10,6 +10,7 @@ const TABS = [
   { to: '/graph', label: 'Graph' },
   { to: '/tasks', label: 'Tasks' },
   { to: '/projects', label: 'Projects' },
+  { to: '/sources', label: 'Sources' },
   { to: '/questions', label: 'Questions' },
   { to: '/calendar', label: 'Calendar' },
   { to: '/queue', label: 'Queue' },
@@ -18,8 +19,8 @@ const TABS = [
   { to: '/settings', label: 'Settings' },
 ] as const;
 
-/** the tab a path belongs to: the editor is part of Notes */
-const tabOf = (path: string) => (path.startsWith('/edit/') ? '/' : path);
+/** the tab a path belongs to: the editor is part of Notes, the source form of Sources */
+const tabOf = (path: string) => (path.startsWith('/edit/') ? '/' : path.startsWith('/sources/') ? '/sources' : path);
 
 export function App() {
   const path = useLocation({ select: (l) => l.pathname });

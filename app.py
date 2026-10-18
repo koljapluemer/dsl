@@ -5,10 +5,14 @@ from pathlib import Path
 
 from flask import Flask, abort, jsonify, request, send_file, send_from_directory
 
+import bibtex_export
+import bibtex_import
+import fields
 import graph
 import llm
 import questions
 import semantic
+import sources
 import store
 
 PORT = 8766
@@ -20,6 +24,11 @@ app = Flask(__name__, static_folder=None)
 
 @app.errorhandler(store.ValidationError)
 def _invalid(e):
+    return jsonify(error=str(e)), 400
+
+
+@app.errorhandler(fields.ValidationError)
+def _invalid_source(e):
     return jsonify(error=str(e)), 400
 
 
@@ -40,7 +49,8 @@ def get_schema():
 
 def _settings():
     p = store.get_path()
-    return jsonify(path=str(p) if p else None, suggested=store.calendar_path())
+    bib = [{"path": b, "error": bibtex_export.status.get(b)} for b in store.get_bib_paths()]
+    return jsonify(path=str(p) if p else None, suggested=store.calendar_path(), bibtex=bib)
 
 
 @app.get("/api/settings")
@@ -50,18 +60,30 @@ def get_settings():
 
 @app.put("/api/settings")
 def put_settings():
-    """`path` and/or `llm` (`{url}`)."""
+    """Any of `path`, `llm` (`{url}`) and `bibtex` (the .bib export paths)."""
     body = request.get_json(silent=True) or {}
     if "llm" in body:
         if not isinstance(body["llm"], dict):
             raise store.ValidationError("llm must be an object")
         store.set_llm(body["llm"])
-    if "path" in body or "llm" not in body:
+    if "bibtex" in body:
+        store.set_bib_paths(body["bibtex"])
+    if "path" in body or not body.keys() & {"llm", "bibtex"}:
         path = (body.get("path") or "").strip()
         if not path:
             raise store.ValidationError("path required")
         store.set_path(path)
+    if body.keys() & {"path", "bibtex"}:
+        bibtex_export.sync()
     return _settings()
+
+
+@app.after_request
+def _export_after_change(response):
+    """Any write may change a source."""
+    if request.method in ("POST", "PUT", "PATCH", "DELETE") and request.path.startswith("/api/") and response.status_code < 400:
+        bibtex_export.schedule()
+    return response
 
 
 @app.get("/api/llm")
@@ -185,6 +207,35 @@ def calendar_items():
 @app.get("/api/projects")
 def projects():
     return jsonify(store.projects())
+
+
+@app.get("/api/sources")
+def list_sources():
+    return jsonify(sources.listing())
+
+
+@app.get("/api/sources/schema")
+def source_schema():
+    return jsonify(fields.schema())
+
+
+@app.post("/api/sources")
+def create_source():
+    return jsonify(sources.create(request.get_json(silent=True))), 201
+
+
+@app.put("/api/sources/<name>")
+def update_source(name):
+    return jsonify(sources.update(name, request.get_json(silent=True)))
+
+
+@app.post("/api/sources/import")
+def import_bibtex():
+    try:
+        parsed = bibtex_import.parse((request.get_json(silent=True) or {}).get("text", ""))
+    except ValueError as e:
+        raise fields.ValidationError(str(e)) from None
+    return jsonify(sources.import_bibtex(parsed)), 201
 
 
 def _json() -> dict:
@@ -341,4 +392,5 @@ if __name__ == "__main__":
         webbrowser.open(url)
     else:
         threading.Timer(0.8, webbrowser.open, args=(url,)).start()
+        bibtex_export.start()
         app.run(port=PORT)

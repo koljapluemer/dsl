@@ -13,6 +13,9 @@ import { ProjectsPage } from './pages/projects/ProjectsPage';
 import { QuestionsPage } from './pages/questions/QuestionsPage';
 import { QueuePage } from './pages/queue/QueuePage';
 import { SettingsPage } from './pages/settings/SettingsPage';
+import { SourceEditPage } from './pages/sources/SourceEditPage';
+import { SourcesPage } from './pages/sources/SourcesPage';
+import { validateSourcesSearch } from './pages/sources/sources';
 import { SuggestPage } from './pages/suggest/SuggestPage';
 import { TasksPage } from './pages/tasks/TasksPage';
 import { ZeroPage } from './pages/zero/ZeroPage';
@@ -31,6 +34,9 @@ const root = createRootRouteWithContext<{ queryClient: QueryClient }>()({
 /** /new and /edit/$file share one editor, so a new item keeps it when it moves to its URL */
 const editor = createRoute({ getParentRoute: () => root, id: 'editor', component: EditPage });
 
+/** like `editor`, for the sources' form */
+const sourceEditor = createRoute({ getParentRoute: () => root, id: 'source-editor', component: SourceEditPage });
+
 const tree = root.addChildren([
   createRoute({ getParentRoute: () => root, path: '/', validateSearch: validateNotesSearch, component: () => <NotesPage /> }),
   createRoute({ getParentRoute: () => root, path: '/broken', validateSearch: validateNotesSearch, component: () => <NotesPage attention /> }),
@@ -41,6 +47,11 @@ const tree = root.addChildren([
   createRoute({ getParentRoute: () => root, path: '/graph', component: GraphPage }),
   createRoute({ getParentRoute: () => root, path: '/tasks', component: TasksPage }),
   createRoute({ getParentRoute: () => root, path: '/projects', component: ProjectsPage }),
+  createRoute({ getParentRoute: () => root, path: '/sources', validateSearch: validateSourcesSearch, component: SourcesPage }),
+  sourceEditor.addChildren([
+    createRoute({ getParentRoute: () => sourceEditor, path: '/sources/new' }),
+    createRoute({ getParentRoute: () => sourceEditor, path: '/sources/edit/$file' }),
+  ]),
   createRoute({ getParentRoute: () => root, path: '/questions', component: QuestionsPage }),
   createRoute({ getParentRoute: () => root, path: '/calendar', validateSearch: validateCalendarSearch, component: CalendarPage }),
   createRoute({ getParentRoute: () => root, path: '/queue', component: QueuePage }),

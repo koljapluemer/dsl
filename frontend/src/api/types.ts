@@ -26,7 +26,8 @@ export type QuestionPick = { questions: Question[]; missing_model?: string | nul
 export type NextNote = { item: Item | null; total: number };
 export type Answered = Item & { target: Suggestion };
 
-export type Settings = { path: string | null; suggested: string | null };
+/** `bibtex`: the .bib export targets, each with its last export's error */
+export type Settings = { path: string | null; suggested: string | null; bibtex: { path: string; error: string | null }[] };
 export type LlmInfo = { available: boolean; reason: string | null; url: string; default_url: string };
 
 /** an item with what the queue, zero and suggest views show of it; `media` is a path in the data folder */
@@ -40,6 +41,14 @@ export type ProjectIssue = { file: string; heading: string };
 export type Project = { file: string; heading: string; issues: ProjectIssue[] };
 /** `orphans`: issues without a `project` relationship to a project */
 export type Projects = { projects: Project[]; orphans: ProjectIssue[] };
+/** names are `family, given`, `family, suffix, given` or, without a comma, one unsplit name */
+export type FieldType = 'literal' | 'integer' | 'range' | 'name' | 'list' | 'date' | 'uri' | 'verbatim';
+/** `entryTypes`: the fields each entry type shows by default */
+export type SourceSchema = { fields: Record<string, { type: FieldType }>; entryTypes: Record<string, string[]> };
+/** a `source` item: `file` is the item's, the rest its fields (names and lists as string[], integers as numbers) */
+export type Source = { file: string; key: string; entrytype: string; title: string; extra?: string; [field: string]: string | number | string[] | undefined };
+/** `recent`: the files of the most recently modified sources, newest first */
+export type SourceList = { sources: Source[]; recent: string[] };
 export type CalendarEntry = { file: string; heading: string; details: string[]; when: When };
 
 /** a pinned note, rendered with the notes up to `depth` relationships away */

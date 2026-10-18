@@ -78,6 +78,30 @@ def set_llm(llm: dict) -> None:
     _save_config(_config() | {"llm": {"url": url.strip()} if url and url.strip() else {}})
 
 
+def get_bib_paths() -> list[str]:
+    return list(_config().get("bibtex") or [])
+
+
+def set_bib_paths(paths) -> list[str]:
+    """Stores the .bib export targets (see bibtex_export). `~` is expanded, a
+    directory gets `sources.bib` appended."""
+    if not isinstance(paths, list) or not all(isinstance(p, str) for p in paths):
+        raise ValidationError("bibtex: expected list of paths")
+    out: list[str] = []
+    for raw in paths:
+        if not raw.strip():
+            continue
+        p = Path(raw.strip()).expanduser()
+        if p.is_absolute():
+            p = p.resolve()
+            if p.is_dir():
+                p = p / "sources.bib"
+        if str(p) not in out:
+            out.append(str(p))
+    _save_config(_config() | {"bibtex": out})
+    return out
+
+
 def calendar_path() -> str | None:
     try:
         return json.loads(CALENDAR_PREFS.read_text()).get("flutter.data_folder")

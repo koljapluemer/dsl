@@ -5,8 +5,10 @@ description = "Edit dsl item files (as read by ../calendar) in a folder on disk"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
+    "bibtexparser>=2.0.1",
     "flask>=3.1.3",
     "numpy>=2.5.4",
+    "pylatexenc>=2.11",
     "pyyaml>=6.0.3",
     "regex>=2026.9.29",
 ]

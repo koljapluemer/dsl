@@ -3,6 +3,7 @@ import { useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import { showError } from '@/dumb/errorBanner';
 import { saveSettings, settingsQuery } from '@/entities/settings/queries';
+import { BibtexSettings } from './BibtexSettings';
 import { LlmSettings } from './LlmSettings';
 
 export function SettingsPage() {
@@ -32,6 +33,7 @@ export function SettingsPage() {
         )}
       </fieldset>
       <LlmSettings />
+      {path && <BibtexSettings />}
     </div>
   );
 }

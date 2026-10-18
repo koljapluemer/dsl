@@ -63,6 +63,11 @@ def load_schema(path: Path = SPEC_PATH) -> dict:
     return {"version": raw["version"], "keywords": keywords}
 
 
+def load_yaml(text: str):
+    """YAML in the core schema; raises yaml.YAMLError."""
+    return yaml.load(text, Loader=_CoreLoader)
+
+
 def _types(keyword: str, raw) -> list[str]:
     types = raw if isinstance(raw, list) else [raw]
     for t in types:
@@ -125,7 +130,8 @@ def _starts_line_of(schema: dict, line: str, roles: tuple[str, ...]) -> bool:
     return False
 
 
-def _block_keyword(schema: dict, line: str) -> str | None:
+def block_keyword(schema: dict, line: str) -> str | None:
+    """The keyword a line opens a block of, if it does."""
     name = line.rstrip()
     return name if schema["keywords"].get(name, {}).get("block") else None
 
@@ -205,7 +211,7 @@ def parse(schema: dict, text: str) -> Document:
     p = _SectionParser(schema["keywords"])
     i = boundary
     while i < len(lines):
-        keyword = _block_keyword(schema, lines[i])
+        keyword = block_keyword(schema, lines[i])
         if keyword is None:
             p.line(lines[i], i + 1)
             i += 1
@@ -297,7 +303,7 @@ class _SectionParser:
 
     def _yaml(self, keyword: str, text: str, no: int) -> None:
         try:
-            value = yaml.load(text, Loader=_CoreLoader)
+            value = load_yaml(text)
         except yaml.YAMLError as e:
             return self._error("invalid_yaml", no, str(e).splitlines()[0])
         if not isinstance(value, dict):
