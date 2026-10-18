@@ -6,6 +6,8 @@ dir=$(dirname "$(readlink -f "$0")")
 venv=$HOME/.venvs/dsl-crud
 
 if [ ! -x "$venv/bin/python" ]; then
+    # Termux doesn't support partial upgrades: new packages can need newer libs
+    pkg upgrade -y
     pkg install -y python python-numpy
     python -c 'import sys; sys.exit(sys.version_info < (3, 13))' || { echo "needs Python 3.13+"; exit 1; }
     # numpy from Termux's package: there's no PyPI wheel for Termux
