@@ -18,7 +18,7 @@ export function UndoDeleteToast() {
   }
 
   return (
-    <div className="toast toast-top toast-end z-50">
+    <div className="toast toast-top toast-end z-[1000]">
       <div className="alert shadow-lg">
         <span>{deleted.file} deleted</span>
         <button className="btn btn-sm" onClick={undo}>Undo</button>

@@ -9,6 +9,10 @@ const TABS = [
   { to: '/broken', label: 'Broken' },
   { to: '/tasks', label: 'Tasks' },
   { to: '/questions', label: 'Questions' },
+  { to: '/calendar', label: 'Calendar' },
+  { to: '/queue', label: 'Queue' },
+  { to: '/zero', label: 'Zero' },
+  { to: '/suggest', label: 'Suggest' },
   { to: '/settings', label: 'Settings' },
 ] as const;
 
@@ -24,7 +28,7 @@ export function App() {
     <>
       <UndoDeleteToast />
       {error && <div role="alert" className="alert alert-error mb-4"><span>{error}</span></div>}
-      <div role="tablist" className="tabs tabs-border mb-4">
+      <div role="tablist" className="tabs tabs-border mb-4 flex-nowrap overflow-x-auto">
         {TABS.map((t) => (
           <Link key={t.to} to={t.to} role="tab" className={`tab ${tabOf(path) === t.to ? 'tab-active' : ''}`}>{t.label}</Link>
         ))}

@@ -204,3 +204,53 @@ def test_set_llm(data_dir):
     store.set_llm({"url": ""})
     assert store._config()["llm"] == {}
     assert store.get_path() == data_dir
+
+
+def test_queue_filter_hides_types_and_tags(data_dir):
+    store.create({"file": "a.txt", "text": "a\nappointment 26-08-29"})
+    store.create({"file": "b.txt", "text": "b\ntags hide"})
+    store.create({"file": "c.txt", "text": "c"})
+    f = store.set_queue_filter({"types": ["appointment"], "tags": ["hide"]})
+    assert f["known_types"] == ["appointment"] and f["known_tags"] == ["hide"]
+    for _ in range(5):
+        res = store.queue_draw()
+        assert [i["file"] for i in res["items"]] == ["c.txt"] and res["total"] == 1
+    with pytest.raises(store.ValidationError):
+        store.set_queue_filter({"tags": ["Bad tag"]})
+
+
+def test_zero_items(data_dir):
+    store.create({"file": "a.txt", "text": "a\ntags zero"})
+    store.create({"file": "b.txt", "text": "b\ntags zeros"})
+    assert [i["file"] for i in store.zero_items()] == ["a.txt"]
+
+
+def test_suggest_random_excludes_unless_only_one(data_dir):
+    store.create({"file": "a.txt", "text": "a #idea"})
+    store.create({"file": "b.txt", "text": "b #Idea"})
+    store.create({"file": "c.txt", "text": "c #other"})
+    assert store.suggest_tags() == ["#idea", "#other"]
+    assert store.suggest_random("#idea", ["a.txt"])["file"] == "b.txt"
+    assert store.suggest_random("#other", ["c.txt"])["file"] == "c.txt"
+    assert store.suggest_random("#none") is None
+
+
+def test_calendar_items(data_dir):
+    store.create({"file": "a.txt", "text": "Lecture\n(bring laptop)\nrecurring mo until 26-03"})
+    store.create({"file": "b.txt", "text": "plain"})
+    store.create({"file": "c.txt", "text": "bad\nappointment 26-02-30"})
+    assert store.calendar_items() == [{
+        "file": "a.txt", "heading": "Lecture", "details": ["(bring laptop)"],
+        "when": {"recurring": 1, "until": "2026-03-31"},
+    }]
+
+
+def test_media_path(data_dir):
+    (data_dir / "img").mkdir()
+    (data_dir / "img" / "a.png").write_bytes(b"x")
+    assert store.media_path("img/a.png") == data_dir / "img" / "a.png"
+    for bad in ["../x.png", "/etc/x.png", "img/a.txt"]:
+        with pytest.raises(store.ValidationError):
+            store.media_path(bad)
+    with pytest.raises(store.NotFound):
+        store.media_path("img/b.png")

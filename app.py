@@ -3,7 +3,7 @@ import threading
 import webbrowser
 from pathlib import Path
 
-from flask import Flask, abort, jsonify, request, send_from_directory
+from flask import Flask, abort, jsonify, request, send_file, send_from_directory
 
 import llm
 import questions
@@ -144,6 +144,46 @@ def semantic_status():
 def pull_semantic_model():
     llm.pull(semantic.MODEL)
     return semantic_status()
+
+
+@app.get("/api/queue")
+def queue_draw():
+    return jsonify(store.queue_draw())
+
+
+@app.get("/api/queue/filter")
+def get_queue_filter():
+    return jsonify(store.queue_filter())
+
+
+@app.put("/api/queue/filter")
+def put_queue_filter():
+    return jsonify(store.set_queue_filter(request.get_json(silent=True)))
+
+
+@app.get("/api/zero")
+def zero_items():
+    return jsonify(store.zero_items())
+
+
+@app.get("/api/suggest/tags")
+def suggest_tags():
+    return jsonify(store.suggest_tags())
+
+
+@app.get("/api/suggest/random")
+def suggest_random():
+    return jsonify(item=store.suggest_random(request.args.get("tag", ""), _excluded()))
+
+
+@app.get("/api/calendar")
+def calendar_items():
+    return jsonify(store.calendar_items())
+
+
+@app.get("/api/media/<path:rel>")
+def media(rel):
+    return send_file(store.media_path(rel), conditional=True)
 
 
 @app.get("/api/items")

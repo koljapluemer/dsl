@@ -17,8 +17,8 @@ Flask serves the frontend's build from `frontend/dist`: `just run` builds it whe
 Vite + React + TypeScript in `frontend/`, with TanStack Router (the list's filter, semantic toggle and page are in the URL) and TanStack Query (requests, polling, cache), styled with Tailwind + daisyUI. `frontend/src` is feature-sliced; each layer imports only from those below it, and slices of one layer don't import each other (enforced by `eslint-plugin-boundaries`, see `frontend/eslint.config.js`):
 
 - `api`: the fetch wrapper and the API's types
-- `dumb`: generic pieces without app logic (pager, CodeMirror host, markdown, a tiny store)
-- `entities`: `item` (queries, the item language's client-side mirror in `dsl/`, the read-only `ItemOverview`), `ollama` (model status and downloads), `settings`
+- `dumb`: generic pieces without app logic (pager, modal, media, CodeMirror host, markdown, a tiny store)
+- `entities`: `item` (queries, the item language's client-side mirror in `dsl/`, the read-only `ItemOverview` and `ItemView`), `ollama` (model status and downloads), `settings`
 - `features`: `item-edit` (the item editor and its autosave), `item-delete` (delete with undo), `model-download`
 - `pages`: one folder per route; code only one page uses lives there
 - `main.tsx`, `router.tsx`, `App.tsx` (tabs, error banner, undo toast) at the root
@@ -46,6 +46,15 @@ When `questions.py` lists more than 3 questions, a local LLM chooses the 3 that 
 - `url`: defaults to `OLLAMA_HOST`, then `http://127.0.0.1:11434`
 - `model`: chosen from the server's installed models. There is no default, so without one the questions aren't chosen
 - `think` (default `false`), `keep_alive` (default `"30m"`), `options`: passed on to Ollama's `/api/chat`
+
+## Calendar, Queue, Zero, Suggest
+
+Ports of the `../dsl-mobile` apps calendar, queue and zero, and of `../suggest`, one route each; what an item means to them is in `views.py`.
+
+- **Calendar**: `appointment` and `recurring` items by day or over a From..To range (this week, Sunday to Saturday, by default), toggled at the top; view, day and range are in the URL. A click on an item opens it in the editor in a modal (with delete); `+` adds one, prefilled with `appointment <that day>`.
+- **Queue**: 3 random items (body, `media` attachment, `extra`), Next draws others. Types and tags hidden from it are set in its Hidden panel and stored under `queue` in the config file.
+- **Zero**: a card per item tagged `zero`, in a random order per page load and colored by file name; a click greys it out and moves it last until reload.
+- **Suggest**: a card per `#hashtag` in the notes' body or `extra`. A click shows a random note carrying it; hold "Hold for next" for another, or delete it (with undo).
 
 ## Spec
 

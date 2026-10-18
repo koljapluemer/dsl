@@ -1,0 +1,80 @@
+"""What the queue, zero, suggest and calendar views read from an item."""
+
+import calendar as _calendar
+import re
+from pathlib import PurePosixPath
+
+import dsl
+
+APPOINTMENT_KEYWORD = "appointment"
+RECURRING_KEYWORD = "recurring"
+TAGS_KEYWORD = "tags"
+MEDIA_KEYWORD = "media"
+ZERO_TAG = "zero"
+
+IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp"}
+VIDEO_EXTENSIONS = {".mp4", ".webm", ".mov"}
+MEDIA_EXTENSIONS = IMAGE_EXTENSIONS | VIDEO_EXTENSIONS
+
+# `#` and letters, digits and dashes, not glued onto a preceding word character
+_HASHTAG = re.compile(r"(?<![A-Za-z0-9_])#[A-Za-z0-9-]+")
+
+
+def _clause(doc: dsl.Document, keyword: str) -> dsl.Clause | None:
+    return next((c for c in doc.clauses if c.keyword == keyword), None)
+
+
+def primary(schema: dict, doc: dsl.Document) -> str | None:
+    """The item's type: its first primary keyword, or None for a plain note."""
+    return next((c.keyword for c in doc.clauses if schema["keywords"][c.keyword]["role"] == "primary"), None)
+
+
+def tags(doc: dsl.Document) -> list[str]:
+    c = _clause(doc, TAGS_KEYWORD)
+    return list(c.args) if c else []
+
+
+def hashtags(doc: dsl.Document) -> set[str]:
+    """Every `#tag` in the body and extra content, lowercased."""
+    text = "\n".join(doc.body + (doc.extra or []))
+    return {m.lower() for m in _HASHTAG.findall(text)}
+
+
+def media(doc: dsl.Document) -> str | None:
+    """The attachment's path in the data folder, when it's an image or video."""
+    c = _clause(doc, MEDIA_KEYWORD)
+    if not c or not c.args or PurePosixPath(c.args[0]).suffix.lower() not in MEDIA_EXTENSIONS:
+        return None
+    return c.args[0]
+
+
+def _iso_date(value: str) -> str:
+    """`yy-mm-dd` as `YYYY-MM-DD`; a month `yy-mm` as its last day."""
+    parts = [int(p) for p in value.split("-")]
+    if len(parts) == 2:
+        parts.append(_calendar.monthrange(2000 + parts[0], parts[1])[1])
+    return f"{2000 + parts[0]:04d}-{parts[1]:02d}-{parts[2]:02d}"
+
+
+def when(doc: dsl.Document) -> dict | None:
+    """When a valid item falls in the calendar: `{appointment: date}`, or
+    `{recurring: weekday (1 = Mon .. 7 = Sun), until: date | None}`; None
+    for an invalid item or one without either keyword."""
+    if not doc.valid:
+        return None
+    if (c := _clause(doc, APPOINTMENT_KEYWORD)) and c.args:
+        return {"appointment": _iso_date(c.args[0])}
+    if (c := _clause(doc, RECURRING_KEYWORD)) and c.args and c.args[0] in dsl.WEEKDAYS:
+        until = c.options.get("until")
+        return {"recurring": dsl.WEEKDAYS.index(c.args[0]) + 1, "until": _iso_date(until) if until else None}
+    return None
+
+
+def view(item: dict, doc: dsl.Document) -> dict:
+    """The item with what the views show of it: heading, body, extra and media."""
+    return item | {
+        "heading": doc.heading,
+        "body": "\n".join(doc.body),
+        "extra": "\n".join(doc.extra) if doc.extra else None,
+        "media": media(doc),
+    }

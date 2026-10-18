@@ -24,7 +24,7 @@ build:
 # lint (incl. the layer rules), typecheck and test frontend and backend
 check:
     npm --prefix {{dir}}/frontend run lint
-    npm --prefix {{dir}}/frontend exec -- tsc --noEmit
+    npm --prefix {{dir}}/frontend exec -- tsc --noEmit -p {{dir}}/frontend
     npm --prefix {{dir}}/frontend test
     uv run --project {{dir}} pytest {{dir}}/tests
 

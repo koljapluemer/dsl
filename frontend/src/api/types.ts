@@ -28,3 +28,12 @@ export type Answered = Item & { target: Suggestion };
 
 export type Settings = { path: string | null; suggested: string | null };
 export type LlmInfo = { available: boolean; reason: string | null; url: string; default_url: string };
+
+/** an item with what the queue, zero and suggest views show of it; `media` is a path in the data folder */
+export type ItemView = Item & { heading: string; body: string; extra: string | null; media: string | null };
+export type QueueDraw = { items: ItemView[]; total: number };
+export type QueueFilter = { types: string[]; tags: string[]; known_types: string[]; known_tags: string[] };
+export type SuggestPick = { item: ItemView | null };
+/** when an item falls: on one ISO date, or every weekday (1 = Mon .. 7 = Sun) up to `until` inclusive */
+export type When = { appointment: string } | { recurring: number; until: string | null };
+export type CalendarEntry = { file: string; heading: string; details: string[]; when: When };

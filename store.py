@@ -18,6 +18,7 @@ import dsl
 import llm
 import questions
 import semantic
+import views
 
 CONFIG_PATH = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config")) / "dsl-crud" / "config.json"
 # The calendar app's folder setting, offered as the default on first start.
@@ -133,6 +134,10 @@ class _Entry:
     body: str
     head_words: frozenset[str]
     words: frozenset[str]
+    primary: str | None
+    tags: frozenset[str]
+    hashtags: frozenset[str]
+    when: dict | None
 
 
 class _Index:
@@ -204,6 +209,10 @@ class _Index:
                     "\n".join(doc.body),
                     frozenset(_words(doc.heading)),
                     frozenset(_words(item["text"])),
+                    views.primary(SCHEMA, doc),
+                    frozenset(views.tags(doc)),
+                    frozenset(views.hashtags(doc)),
+                    views.when(doc),
                 ))
         self._scanned = time.monotonic()
 
@@ -426,3 +435,82 @@ def disable(name: str) -> None:
     """Tags the note so the questions view skips it."""
     note = get(name)
     update(name, {"text": questions.add_tag(SCHEMA, note["text"], questions.NO_QUESTIONS_TAG)})
+
+
+def _view(name: str) -> dict:
+    item = _read(_dir() / name)
+    return views.view(item, dsl.parse(SCHEMA, item["text"]))
+
+
+QUEUE_SIZE = 3
+
+
+def _filter_lists(raw) -> dict:
+    raw = raw if isinstance(raw, dict) else {}
+    return {k: sorted({v for v in raw.get(k) or [] if isinstance(v, str)}) for k in ("types", "tags")}
+
+
+def queue_filter() -> dict:
+    """The types and tags the queue hides, and every type and tag in the
+    folder (hidden items included) to pick from."""
+    entries = _INDEX.refresh()
+    return _filter_lists(_config().get("queue")) | {
+        "known_types": sorted({e.primary for e in entries.values() if e.primary}),
+        "known_tags": sorted({t for e in entries.values() for t in e.tags}),
+    }
+
+
+def set_queue_filter(body) -> dict:
+    hidden = _filter_lists(body)
+    if bad := [t for t in hidden["tags"] if not dsl.is_tag(t)]:
+        raise ValidationError(f"invalid tag '{bad[0]}': tags are a-z, 0-9 and -")
+    _save_config(_config() | {"queue": hidden})
+    return queue_filter()
+
+
+def queue_draw() -> dict:
+    """Up to QUEUE_SIZE random items the queue's filter doesn't hide; `total`
+    counts those it doesn't hide."""
+    hidden = _filter_lists(_config().get("queue"))
+    types, tags = set(hidden["types"]), set(hidden["tags"])
+    names = sorted(n for n, e in _INDEX.refresh().items() if e.primary not in types and not e.tags & tags)
+    return {"items": [_view(n) for n in random.sample(names, min(QUEUE_SIZE, len(names)))], "total": len(names)}
+
+
+def zero_items() -> list[dict]:
+    """Every item tagged `zero`."""
+    return [_view(n) for n, e in sorted(_INDEX.refresh().items()) if views.ZERO_TAG in e.tags]
+
+
+def suggest_tags() -> list[str]:
+    return sorted({t for e in _INDEX.refresh().values() for t in e.hashtags})
+
+
+def suggest_random(tag: str, exclude: list[str] = ()) -> dict | None:
+    """A random item carrying the hashtag `tag`, other than those in `exclude`
+    - or, when that leaves none, any; None when none carries it."""
+    tag = tag.lower()
+    names = sorted(n for n, e in _INDEX.refresh().items() if tag in e.hashtags)
+    pool = [n for n in names if n not in set(exclude)] or names
+    return _view(random.choice(pool)) if pool else None
+
+
+def calendar_items() -> list[dict]:
+    """Every item that falls on some day (see views.when), with its heading
+    and the rest of its body as `details`."""
+    out = []
+    for name, e in sorted(_INDEX.refresh().items()):
+        if e.when:
+            body = e.body.split("\n")
+            out.append({"file": name, "heading": e.heading, "details": body[1:], "when": e.when})
+    return out
+
+
+def media_path(rel: str) -> Path:
+    """An attachment's file in the data folder; only images and videos, never outside it."""
+    if not dsl.value_type(rel, ["path"]) or Path(rel).suffix.lower() not in views.MEDIA_EXTENSIONS:
+        raise ValidationError(f"invalid media path '{rel}'")
+    path = _dir() / rel
+    if not path.is_file():
+        raise NotFound(rel)
+    return path
