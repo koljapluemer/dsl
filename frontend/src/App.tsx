@@ -9,6 +9,7 @@ const TABS = [
   { to: '/broken', label: 'Broken' },
   { to: '/graph', label: 'Graph' },
   { to: '/tasks', label: 'Tasks' },
+  { to: '/projects', label: 'Projects' },
   { to: '/questions', label: 'Questions' },
   { to: '/calendar', label: 'Calendar' },
   { to: '/queue', label: 'Queue' },

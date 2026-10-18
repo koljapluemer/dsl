@@ -1,0 +1,9 @@
+{
+  "clauses": [
+    { "keyword": "project", "line": 2, "args": [], "options": {} },
+    { "keyword": "issue", "line": 2, "args": [], "options": {} }
+  ],
+  "errors": [
+    { "code": "conflicting_keywords", "line": 2 }
+  ]
+}

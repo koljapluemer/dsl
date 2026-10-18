@@ -56,6 +56,10 @@ Ports of the `../dsl-mobile` apps calendar, queue and zero, and of `../suggest`,
 - **Zero**: a card per item tagged `zero`, in a random order per page load and colored by file name; a click greys it out and moves it last until reload.
 - **Suggest**: a card per `#hashtag` in the notes' body or `extra`. A click shows a random note carrying it; hold "Hold for next" for another, or delete it (with undo).
 
+## Projects
+
+`project` and `issue` items (`store.projects`). An issue belongs to the projects its `-> project @<name>` relationships point to; issues belonging to none are listed below the projects. Each project is collapsible, with its issues by heading; a click on one opens it in the editor in a modal (with delete). `+ Project` adds a project; a project's `+ Issue` adds an issue, prefilled with `issue` and its relationship to the project.
+
 ## Graph
 
 A port of `../dsl-graph`: notes as cards on a [React Flow](https://reactflow.dev) canvas, laid out by [ELK](https://eclipse.dev/elk/), their relationships as labeled edges (`graph.py` on the server, `frontend/src/pages/graph`). Only notes without errors are part of it; a relationship to anything else is left out until it's fixed.

@@ -245,6 +245,25 @@ def test_calendar_items(data_dir):
     }]
 
 
+def test_projects(data_dir):
+    store.create({"file": "p.txt", "text": "Website\nproject"})
+    store.create({"file": "q.txt", "text": "Archive\nproject"})
+    store.create({"file": "i.txt", "text": "Login\nissue\n-> project @p"})
+    store.create({"file": "j.txt", "text": "Both\nissue\n-> project @p\n-> project @q"})
+    store.create({"file": "k.txt", "text": "Wrong label\nissue\n-> blocks @p"})
+    store.create({"file": "l.txt", "text": "Not a project\nissue\n-> project @n"})
+    store.create({"file": "n.txt", "text": "plain"})
+    assert store.projects() == {
+        "projects": [
+            {"file": "q.txt", "heading": "Archive", "issues": [{"file": "j.txt", "heading": "Both"}]},
+            {"file": "p.txt", "heading": "Website", "issues": [
+                {"file": "j.txt", "heading": "Both"}, {"file": "i.txt", "heading": "Login"},
+            ]},
+        ],
+        "orphans": [{"file": "l.txt", "heading": "Not a project"}, {"file": "k.txt", "heading": "Wrong label"}],
+    }
+
+
 def test_media_path(data_dir):
     (data_dir / "img").mkdir()
     (data_dir / "img" / "a.png").write_bytes(b"x")

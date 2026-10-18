@@ -586,6 +586,29 @@ def calendar_items() -> list[dict]:
     return out
 
 
+def projects() -> dict:
+    """Every project with the issues belonging to it, by heading, and the
+    issues belonging to none (see views.PROJECT_RELATION)."""
+    entries = _INDEX.refresh()
+    ref = lambda name: {"file": name, "heading": entries[name].heading}
+    by_heading = lambda r: (r["heading"].lower(), r["file"])
+    owned: dict[str, list[dict]] = {n: [] for n, e in entries.items() if e.primary == views.PROJECT_KEYWORD}
+    orphans = []
+    for name, e in entries.items():
+        if e.primary != views.ISSUE_KEYWORD:
+            continue
+        targets = {t for label, t in e.rels if label == views.PROJECT_RELATION and t in owned}
+        for t in targets:
+            owned[t].append(ref(name))
+        if not targets:
+            orphans.append(ref(name))
+    return {
+        "projects": sorted(
+            (ref(n) | {"issues": sorted(issues, key=by_heading)} for n, issues in owned.items()), key=by_heading),
+        "orphans": sorted(orphans, key=by_heading),
+    }
+
+
 def media_path(rel: str) -> Path:
     """An attachment's file in the data folder; only images and videos, never outside it."""
     if not dsl.value_type(rel, ["path"]) or Path(rel).suffix.lower() not in views.MEDIA_EXTENSIONS:

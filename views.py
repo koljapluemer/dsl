@@ -1,4 +1,4 @@
-"""What the queue, zero, suggest and calendar views read from an item."""
+"""What the queue, zero, suggest, calendar and projects views read from an item."""
 
 import calendar as _calendar
 import re
@@ -10,6 +10,10 @@ APPOINTMENT_KEYWORD = "appointment"
 RECURRING_KEYWORD = "recurring"
 TAGS_KEYWORD = "tags"
 MEDIA_KEYWORD = "media"
+PROJECT_KEYWORD = "project"
+ISSUE_KEYWORD = "issue"
+# an issue belongs to the projects its relationships with this label point to
+PROJECT_RELATION = "project"
 ZERO_TAG = "zero"
 
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp"}

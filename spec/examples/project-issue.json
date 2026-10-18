@@ -1,0 +1,11 @@
+{
+  "body": "Fix the login timeout",
+  "clauses": [
+    { "keyword": "issue", "line": 2, "args": [], "options": {} }
+  ],
+  "relations": [
+    { "label": "project", "target": "website-a1b2c3", "line": 3 }
+  ],
+  "errors": [],
+  "warnings": []
+}

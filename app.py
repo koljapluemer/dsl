@@ -182,6 +182,11 @@ def calendar_items():
     return jsonify(store.calendar_items())
 
 
+@app.get("/api/projects")
+def projects():
+    return jsonify(store.projects())
+
+
 def _json() -> dict:
     body = request.get_json(silent=True)
     return body if isinstance(body, dict) else {}

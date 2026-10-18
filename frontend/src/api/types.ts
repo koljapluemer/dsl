@@ -36,6 +36,10 @@ export type QueueFilter = { types: string[]; tags: string[]; known_types: string
 export type SuggestPick = { item: ItemView | null };
 /** when an item falls: on one ISO date, or every weekday (1 = Mon .. 7 = Sun) up to `until` inclusive */
 export type When = { appointment: string } | { recurring: number; until: string | null };
+export type ProjectIssue = { file: string; heading: string };
+export type Project = { file: string; heading: string; issues: ProjectIssue[] };
+/** `orphans`: issues without a `project` relationship to a project */
+export type Projects = { projects: Project[]; orphans: ProjectIssue[] };
 export type CalendarEntry = { file: string; heading: string; details: string[]; when: When };
 
 /** a pinned note, rendered with the notes up to `depth` relationships away */

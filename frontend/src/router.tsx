@@ -9,6 +9,7 @@ import { EditPage } from './pages/edit/EditPage';
 import { GraphPage } from './pages/graph/GraphPage';
 import { NotesPage } from './pages/notes/NotesPage';
 import { validateNotesSearch } from './pages/notes/search';
+import { ProjectsPage } from './pages/projects/ProjectsPage';
 import { QuestionsPage } from './pages/questions/QuestionsPage';
 import { QueuePage } from './pages/queue/QueuePage';
 import { SettingsPage } from './pages/settings/SettingsPage';
@@ -39,6 +40,7 @@ const tree = root.addChildren([
   ]),
   createRoute({ getParentRoute: () => root, path: '/graph', component: GraphPage }),
   createRoute({ getParentRoute: () => root, path: '/tasks', component: TasksPage }),
+  createRoute({ getParentRoute: () => root, path: '/projects', component: ProjectsPage }),
   createRoute({ getParentRoute: () => root, path: '/questions', component: QuestionsPage }),
   createRoute({ getParentRoute: () => root, path: '/calendar', validateSearch: validateCalendarSearch, component: CalendarPage }),
   createRoute({ getParentRoute: () => root, path: '/queue', component: QueuePage }),
