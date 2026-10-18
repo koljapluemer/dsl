@@ -52,6 +52,16 @@ just reinstall
 
 Installs icon and `.desktop` entry ("dsl" in application search, pinnable to the dock). Rerun after code changes: it refreshes the entry and restarts the server if it's running (the server otherwise keeps running in the background; relaunching only reopens the browser).
 
+## Android (Termux)
+
+Clone the repo into Termux's home (not shared storage: it can't hold executables or the venv), run `termux-setup-storage` once, then:
+
+```
+./termux.sh
+```
+
+The first run installs Python, numpy (Termux's package) and a venv in `~/.venvs/dsl-crud`. Every run starts the server and opens the browser. Set the data folder to the notes under `/storage/emulated/0/...`. One-tap start with Termux:Widget: `mkdir -p ~/.shortcuts && ln -s ~/dsl-crud/termux.sh ~/.shortcuts/dsl`.
+
 ## Test
 
 ```
