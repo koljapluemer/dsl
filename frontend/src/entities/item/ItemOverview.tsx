@@ -57,8 +57,8 @@ function Ref({ label, target, heading, onRef }: { label: string; target: string;
     <div>
       <span className="ov-muted">{label ? label + ' ' : ''}→</span>{' '}
       {heading === null
-        ? <span className="ov-missing" title={`no item ${file}`}>{target}</span>
-        : <a className="link link-hover" title={file} onClick={(e) => { e.stopPropagation(); onRef(file); }}>{heading || target}</a>}
+        ? <span className="ov-missing" title="no such note">{target}</span>
+        : <a className="link link-hover" onClick={(e) => { e.stopPropagation(); onRef(file); }}>{heading || target}</a>}
     </div>
   );
 }

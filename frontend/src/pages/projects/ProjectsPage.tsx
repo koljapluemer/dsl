@@ -81,7 +81,7 @@ function Lists({ projects: data, onOpen: open, onAdd: add, onDelete: del }: { pr
         <details key={p.file} className="collapse collapse-arrow border border-base-300 mb-2"
                  open={openFiles.has(p.file)} onToggle={(e) => toggle(p.file, e.currentTarget.open)}>
           <summary className="collapse-title font-semibold">
-            {p.heading || p.file} <span className="text-base-content/50 font-normal">({p.issues.length})</span>
+            {p.heading || 'untitled'} <span className="text-base-content/50 font-normal">({p.issues.length})</span>
           </summary>
           <div className="collapse-content">
             <div className="flex gap-1 mb-2">
@@ -118,7 +118,7 @@ function IssueList({ issues, onOpen, onDelete }: { issues: ProjectIssue[] } & Om
     <ul className="list">
       {issues.map((i) => (
         <li key={i.file} className={`list-row py-1 items-center cursor-pointer hover:bg-base-200 ${i.think ? 'bg-info/10' : ''}`} onClick={() => onOpen(i.file)}>
-          <span className="list-col-grow">{i.heading || i.file}</span>
+          <span className="list-col-grow">{i.heading || 'untitled'}</span>
           <button className={`btn btn-ghost btn-xs btn-square ${i.think ? 'text-info' : 'text-base-content/40'}`}
                   title={i.think ? 'think about this' : 'build this'}
                   onClick={(e) => { e.stopPropagation(); void flip(i); }}>{i.think ? <Lightbulb size={14} /> : <Hammer size={14} />}</button>

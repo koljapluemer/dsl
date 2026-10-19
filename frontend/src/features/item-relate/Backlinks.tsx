@@ -47,7 +47,7 @@ export function Backlinks({ file, deleteItem, compact }: Props) {
   const unlink = (b: Backlink) => run(() => detachItem(b.file, { label: b.label, target: file.replace(/\.txt$/, '') }));
 
   const remove = (b: Backlink) => run(async () => {
-    if (!await deleteItem(await qc.fetchQuery({ ...itemQuery(b.file), staleTime: 0 }))) throw new Error(`${b.file} not deleted`);
+    if (!await deleteItem(await qc.fetchQuery({ ...itemQuery(b.file), staleTime: 0 }))) throw new Error('note not deleted');
   });
 
   return (
