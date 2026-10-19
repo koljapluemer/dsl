@@ -11,7 +11,7 @@ export function useDeleteItem() {
   return useCallback(async (item: Item) => {
     try {
       await deleteItem(item.file);
-      offerUndo(`${item.file} deleted`, async () => {
+      offerUndo('note deleted', async () => {
         await restoreItem(item);
         await itemsChanged(qc);
       });

@@ -55,7 +55,7 @@ export function FloatPage() {
     await hideFromFloat(item.file);
     drop(item.file);
     pending.current = pending.current.filter((i) => i.file !== item.file);
-    offerUndo(`${item.file} hidden from float`, async () => {
+    offerUndo('note hidden from float', async () => {
       await saveItem(item.file, item.text);
       await itemsChanged(qc);
     });

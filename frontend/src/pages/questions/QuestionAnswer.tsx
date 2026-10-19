@@ -33,7 +33,7 @@ export function QuestionAnswer({ file, question, onAnswered }: Props) {
     <div>
       <p className="font-medium mb-1">{question.question}</p>
       {linked.map((l) => (
-        <div key={l.file} className="text-sm"><span className="ov-muted">{question.label} →</span> {l.heading || l.file}</div>
+        <div key={l.file} className="text-sm"><span className="ov-muted">{question.label} →</span> {l.heading || 'untitled'}</div>
       ))}
       <div className="mt-1">
         <NotePicker exclude={[file, ...linked.map((l) => l.file)]} busy={busy} onPick={submit} />

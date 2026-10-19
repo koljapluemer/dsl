@@ -21,7 +21,7 @@ export function QueuePage() {
   async function hide(item: View, index: number) {
     await hideFromQueue(item.file);
     without(item.file);
-    offerUndo(`${item.file} hidden from queue`, async () => {
+    offerUndo('note hidden from queue', async () => {
       await saveItem(item.file, item.text);
       update((d) => ({ items: d.items.toSpliced(index, 0, item), total: d.total + 1 }));
       await itemsChanged(qc);
@@ -35,7 +35,7 @@ export function QueuePage() {
       {data?.items.map((i, k) => (
         <Fragment key={i.file}>
           {k > 0 && <div className="divider" />}
-          <NotePanel file={i.file} item={i} showFile={false} hide={{ title: 'Hide from queue', run: () => hide(i, k) }}
+          <NotePanel file={i.file} item={i} hide={{ title: 'Hide from queue', run: () => hide(i, k) }}
                      onDeleted={() => without(i.file)} />
         </Fragment>
       ))}

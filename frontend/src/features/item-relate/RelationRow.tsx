@@ -26,12 +26,12 @@ export function RelationRow({ direction, label, file, heading, busy, onDetach, o
     <div className={`flex items-center gap-1 ${compact ? 'text-xs' : 'text-sm'}`}>
       <span className="ov-muted shrink-0">{direction === 'out' ? `${label ? label + ' ' : ''}→` : `←${label ? ' ' + label : ''}`}</span>
       {heading === null
-        ? <span className="ov-missing" title={`no item ${file}`}>{name}</span>
-        : <a className="link link-hover truncate" title={file} onClick={() => (onOpen ? onOpen(file) : void navigate({ to: '/edit/$file', params: { file } }))}>{heading || name}</a>}
+        ? <span className="ov-missing" title="no such note">{name}</span>
+        : <a className="link link-hover truncate" onClick={() => (onOpen ? onOpen(file) : void navigate({ to: '/edit/$file', params: { file } }))}>{heading || name}</a>}
       <button className="btn btn-ghost btn-xs btn-square ml-auto" disabled={busy} title="detach (remove the relationship)" onClick={onDetach}>
         <Unlink size={icon} />
       </button>
-      <button className="btn btn-ghost btn-xs btn-square" disabled={busy || heading === null} title={`delete ${file}`} onClick={onDelete}>
+      <button className="btn btn-ghost btn-xs btn-square" disabled={busy || heading === null} title="delete" onClick={onDelete}>
         <Trash2 size={icon} />
       </button>
     </div>

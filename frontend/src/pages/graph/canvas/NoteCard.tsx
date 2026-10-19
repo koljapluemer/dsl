@@ -111,7 +111,6 @@ function NoteCardInner({
     >
       <NotePanel
         file={note.filename}
-        showFile={false}
         view={view}
         toolbar={toolbar}
         editing={editing}

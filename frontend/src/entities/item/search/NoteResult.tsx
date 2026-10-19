@@ -23,7 +23,6 @@ export function NoteResult({ result, marked, active, compact = false, onSelect }
         marked ? 'border-primary/50 bg-primary/10' : 'border-transparent bg-base-200/70 hover:border-base-300 hover:bg-base-100',
         active ? 'outline-2 -outline-offset-2 outline-primary' : '',
       ].join(' ')}
-      title={result.filename}
       // keeps the focus in the search field, so the keys keep working there
       onMouseDown={(event) => event.preventDefault()}
       onClick={onSelect}

@@ -32,7 +32,7 @@ export function SuggestNote({ tag }: { tag: string }) {
   return (
     <div>
       {note === null && <p className="text-base-content/50">No more notes tagged {tag}</p>}
-      {note && <NotePanel key={note.file} file={note.file} item={note} showFile={false} onDeleted={() => void draw([note.file])} />}
+      {note && <NotePanel key={note.file} file={note.file} item={note} onDeleted={() => void draw([note.file])} />}
       <div className="flex gap-3 mt-4">
         <button className="btn btn-primary flex-1 select-none" disabled={!note}
                 onPointerDown={startHold} onPointerUp={cancelHold} onPointerCancel={cancelHold} onPointerLeave={cancelHold}

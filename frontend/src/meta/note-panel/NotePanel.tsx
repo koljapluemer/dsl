@@ -24,8 +24,6 @@ type Props = {
   view?: ReactNode;
   /** more controls at the start of the header */
   toolbar?: ReactNode;
-  /** the file name in the header */
-  showFile?: boolean;
   /** whether the editor is open, when the caller keeps that */
   editing?: boolean;
   onEditingChange?: (editing: boolean) => void;
@@ -56,7 +54,7 @@ type Props = {
  * kept on Accept or dropped on Discard. Hide, delete and close as asked for.
  */
 export function NotePanel({
-  file, initial = '', item: given, view, toolbar, showFile = true, editing: shownEditing, onEditingChange, onAccept, onSaved,
+  file, initial = '', item: given, view, toolbar, editing: shownEditing, onEditingChange, onAccept, onSaved,
   onClose, hide, deletable = true, onDelete, onDeleted, relationships = false, onRef, fill = false, id, className = '',
 }: Props) {
   const qc = useQueryClient();
@@ -117,7 +115,6 @@ export function NotePanel({
   const header = (actions: ReactNode) => (
     <div className="mb-2 flex min-h-6 items-center gap-1">
       {toolbar}
-      {showFile && item && <span className="min-w-0 truncate font-mono text-xs text-base-content/50" title={item.file}>{item.file}</span>}
       <div className="ml-auto flex shrink-0 items-center gap-0.5">
         {actions}
         {onClose && <button type="button" className="btn btn-ghost btn-xs btn-square" title="close" onClick={onClose}><X size={14} /></button>}
