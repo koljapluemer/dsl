@@ -74,14 +74,14 @@ export function SourcesPage() {
                 </td>
                 <td>{authors(s)}</td><td>{year(s)}</td><td>{s.entrytype}</td>
                 <td className="whitespace-nowrap text-right">
-                  <button className="btn btn-ghost btn-xs btn-square" title="backlinks" onClick={() => toggle(s.file)}>
-                    {open.has(s.file) ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                  <button className="btn btn-ghost btn-xs gap-0.5 px-1" title="backlinks" disabled={!s.backlinks} onClick={() => toggle(s.file)}>
+                    {s.backlinks}{open.has(s.file) ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
                   </button>
                   <button className="btn btn-ghost btn-xs btn-square" title="edit" onClick={() => edit(s.file)}><Pencil size={14} /></button>
                   <button className="btn btn-ghost btn-xs btn-square text-error" title="delete" onClick={() => del(s)}><Trash2 size={14} /></button>
                 </td>
               </tr>
-              {open.has(s.file) && <tr><td colSpan={7}><Backlinks file={s.file} deleteItem={remove} compact /></td></tr>}
+              {open.has(s.file) && s.backlinks > 0 && <tr><td colSpan={7}><Backlinks file={s.file} deleteItem={remove} compact /></td></tr>}
             </Fragment>
           ))}
         </tbody>

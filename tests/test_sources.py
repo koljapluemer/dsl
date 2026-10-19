@@ -106,6 +106,14 @@ def test_import_renames_taken_keys(data_dir):
     assert [s["key"] for s in created] == ["x-2", "x-3"]
 
 
+def test_backlink_counts(data_dir):
+    a = sources.create({"key": "a"})["file"]
+    b = sources.create({"key": "b"})["file"]
+    store.create({"text": f"N\n-> cites @{a[:-4]}\n-> @{a[:-4]}\n"})
+    counts = {s["file"]: s["backlinks"] for s in sources.listing()["sources"]}
+    assert counts == {a: 2, b: 0}
+
+
 def test_recent(data_dir):
     files = []
     for i, k in enumerate("abcd"):
