@@ -51,7 +51,7 @@ def get_schema():
 def _settings():
     p = store.get_path()
     bib = [{"path": b, "error": bibtex_export.status.get(b)} for b in store.get_bib_paths()]
-    return jsonify(path=str(p) if p else None, suggested=store.calendar_path(), bibtex=bib)
+    return jsonify(path=str(p) if p else None, bibtex=bib)
 
 
 @app.get("/api/settings")

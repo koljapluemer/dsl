@@ -8,7 +8,7 @@ Create, edit and delete the plain-text items read by [`../calendar`](../calendar
 just run
 ```
 
-Opens http://127.0.0.1:8766. On first start, set the data folder (stored in `~/.config/dsl-crud/config.json`); the calendar's folder is offered if it has one.
+Opens http://127.0.0.1:8766. On first start, set the data folder (stored in `~/.config/dsl-crud/config.json`).
 
 Flask serves the frontend's build from `frontend/dist`: `just run` builds it when it's missing, `just build` rebuilds it, `just reinstall` does both. `just dev` runs Flask and Vite's dev server (http://127.0.0.1:5173, hot reload, `/api` proxied to Flask) together. `just check` lints, typechecks and tests both sides.
 

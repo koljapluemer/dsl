@@ -22,8 +22,6 @@ import semantic
 import views
 
 CONFIG_PATH = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config")) / "dsl-crud" / "config.json"
-# The calendar app's folder setting, offered as the default on first start.
-CALENDAR_PREFS = Path.home() / ".local/share/com.example.calendar/shared_preferences.json"
 
 SCHEMA = dsl.load_schema()
 
@@ -100,13 +98,6 @@ def set_bib_paths(paths) -> list[str]:
             out.append(str(p))
     _save_config(_config() | {"bibtex": out})
     return out
-
-
-def calendar_path() -> str | None:
-    try:
-        return json.loads(CALENDAR_PREFS.read_text()).get("flutter.data_folder")
-    except (OSError, ValueError, AttributeError):
-        return None
 
 
 def _dir() -> Path:

@@ -9,8 +9,8 @@ import { LlmSettings } from './LlmSettings';
 export function SettingsPage() {
   const qc = useQueryClient();
   const navigate = useNavigate();
-  const { path, suggested } = useSuspenseQuery(settingsQuery).data;
-  const [value, setValue] = useState(path || suggested || '');
+  const { path } = useSuspenseQuery(settingsQuery).data;
+  const [value, setValue] = useState(path ?? '');
 
   async function save() {
     if (!value.trim() || value === path) return;
@@ -28,9 +28,6 @@ export function SettingsPage() {
                  onKeyDown={(e) => e.key === 'Enter' && save()} autoFocus />
           <button className="btn join-item" onClick={save}>Save</button>
         </div>
-        {suggested && suggested !== value && (
-          <p className="label">calendar: <a className="link font-mono" onClick={() => setValue(suggested)}>{suggested}</a></p>
-        )}
       </fieldset>
       <LlmSettings />
       {path && <BibtexSettings />}
