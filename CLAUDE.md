@@ -7,3 +7,5 @@
 - the built frontend is commited to source; this is an urthodox convenice to make it easy to run this app on mobile termux. This leads to fake merge conflicts, 'resolve' them by simply rebuilding.
 - make sure .md-based documentation in the repo is kept up to date.
 - this repo should stand on its own, not having explicit or implicit dependencies to other projects or repos or local settings.
+
+- make sure that UIs, especially forms, work on mobile. usually following daisy standards w/ little customization gets us there.
