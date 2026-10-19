@@ -10,18 +10,22 @@ it hides is fixed in code, not set by the user.
 - `tag` — the view's own tag; the view's hide button adds it to a note
 - `types` — primary keywords whose notes the view leaves out
 - `tags` — further tags that hide a note (none used yet)
+- `tag_prefixes` — a tag starting with one of these hides a note
 
 `hiding.hides(primary, tags)` says whether a note is out. The per-view
 instances sit right below the class; **edit them there**:
 
-| View  | Instance        | Tag        | Hidden types                          |
-|-------|-----------------|------------|---------------------------------------|
-| Queue | `QUEUE_HIDING`  | `no-q`     | `appointment`, `recurring`, `source`  |
-| Float | `FLOAT_HIDING`  | `no-float` | `appointment`, `recurring`, `source`  |
-| Graph | `GRAPH_HIDING`  | `no-graph` | `appointment`, `recurring`            |
+| View  | Instance        | Tag        | Hidden types                          | Hidden tag prefixes |
+|-------|-----------------|------------|---------------------------------------|---------------------|
+| Queue | `QUEUE_HIDING`  | `no-q`     | `appointment`, `recurring`, `source`  | `suggest-`          |
+| Float | `FLOAT_HIDING`  | `no-float` | `appointment`, `recurring`, `source`  | `suggest-`          |
+| Graph | `GRAPH_HIDING`  | `no-graph` | `appointment`, `recurring`            | `suggest-`          |
+
+The `suggest-` prefix (`views.SUGGEST_PREFIX`) leaves out every note the
+Suggest view offers.
 
 `tests/test_views.py` checks that every listed type is a primary keyword and
-every tag is a valid tag.
+every tag (and prefix) is a valid tag.
 
 ## Where it applies
 
