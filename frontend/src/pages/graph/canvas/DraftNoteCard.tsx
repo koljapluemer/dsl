@@ -1,26 +1,15 @@
-import { ImageOff, Upload, X } from 'lucide-react';
+import { X } from 'lucide-react';
 import {
   useEffect,
   useRef,
   useState,
-  type ChangeEvent as ReactChangeEvent,
   type ClipboardEvent as ReactClipboardEvent,
   type KeyboardEvent as ReactKeyboardEvent,
 } from 'react';
-import { MediaPreview } from '@/dumb/MediaPreview';
+import { pastedMedia } from '@/entities/item/media';
+import { MediaAttachmentPreview, MediaPicker } from '@/features/item-media/MediaAttachmentField';
 import { useMediaAttachment, type MediaAttachment } from '@/features/item-media/useMediaAttachment';
 import { NoteTextEditor } from './NoteTextEditor';
-import { isVideoFilename, mediaUrl } from '@/entities/item/media';
-
-/**
- * One attached image or video, one per note, alternative not additive. `existing`
- * carries the filename already on disk (unchanged); `new` carries freshly
- * pasted bytes not yet written (compressed, for an image; verbatim, for a
- * video) and an object URL previewing them; `null` means "no attachment" (a removal, in
- * edit mode). Persisting it is the save handler's job - this card only tracks
- * the intent.
- */
-export type ImageState = MediaAttachment;
 
 export interface DraftNoteCardProps {
   /**
@@ -35,7 +24,7 @@ export interface DraftNoteCardProps {
   /** Whether to show the relation-label/reverse fields - false for a freestanding note with no related note. */
   showRelation: boolean;
   /** `body` is the new note's body, or in 'edit' mode the file's full text. */
-  onSave: (body: string, label: string, reverse: boolean, image: ImageState) => Promise<void>;
+  onSave: (body: string, label: string, reverse: boolean, image: MediaAttachment) => Promise<void>;
   onCancel: () => void;
 }
 
@@ -54,7 +43,6 @@ export function DraftNoteCard({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     // The edit-mode editor focuses itself.
@@ -79,22 +67,13 @@ export function DraftNoteCard({
   };
 
   const handlePaste = async (event: ReactClipboardEvent<HTMLTextAreaElement>): Promise<void> => {
-    const file = Array.from(event.clipboardData.files).find((item) => item.type.startsWith('image/') || item.type.startsWith('video/'));
+    const file = pastedMedia(event.clipboardData);
     if (!file) {
       return;
     }
 
     event.preventDefault();
     await attachFile(file);
-  };
-
-  const handleFileInputChange = async (event: ReactChangeEvent<HTMLInputElement>): Promise<void> => {
-    const file = event.target.files?.[0] ?? null;
-    // Reset immediately so picking the same file again still fires a change event.
-    event.target.value = '';
-    if (file) {
-      await attachFile(file);
-    }
   };
 
   const handleSave = async (): Promise<void> => {
@@ -113,51 +92,21 @@ export function DraftNoteCard({
     }
   };
 
-  const imagePreviewSrc = image?.status === 'existing' ? mediaUrl(image.filename) : (image?.url ?? null);
-  const imagePreviewKind: 'image' | 'video' | null =
-    image?.status === 'existing' ? (isVideoFilename(image.filename) ? 'video' : 'image') : (image?.kind ?? null);
-
   return (
     <article className="note-card group-focus:ring-2 group-focus:ring-primary/40  border border-dashed border-primary/50 bg-base-100 px-5 py-4 text-left shadow-xl">
       <div className="mb-3 flex items-center justify-between">
         <span className="text-xs font-semibold uppercase tracking-wide text-base-content/60">{mode === 'edit' ? 'Edit note' : 'New note'}</span>
         <div className="flex items-center gap-1">
-          {!imagePreviewSrc ? (
-            <>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*,video/*"
-                className="hidden"
-                onChange={(event) => void handleFileInputChange(event)}
-              />
-              <button
-                type="button"
-                className="btn btn-ghost btn-xs rounded-full"
-                onClick={() => fileInputRef.current?.click()}
-                title="Attach an image or video"
-              >
-                <Upload className="size-3.5" />
-              </button>
-            </>
-          ) : null}
+          {!image ? <MediaPicker compact onAttach={(file) => void attachFile(file)} /> : null}
           <button type="button" className="btn btn-ghost btn-xs rounded-full" onClick={onCancel} title="Discard">
             <X className="size-3.5" />
           </button>
         </div>
       </div>
 
-      {imagePreviewSrc && imagePreviewKind ? (
-        <div className="nodrag relative mb-3">
-          <MediaPreview src={imagePreviewSrc} kind={imagePreviewKind} className="h-auto w-full" />
-          <button
-            type="button"
-            className="btn btn-ghost btn-xs absolute right-1.5 top-1.5 rounded-full bg-base-100/90 hover:bg-error/10 hover:text-error"
-            onClick={() => setImage(null)}
-            title="Remove"
-          >
-            <ImageOff className="size-3.5" />
-          </button>
+      {image ? (
+        <div className="nodrag mb-3">
+          <MediaAttachmentPreview compact attachment={image} onRemove={() => setImage(null)} />
         </div>
       ) : null}
 

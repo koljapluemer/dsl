@@ -1,6 +1,13 @@
 import { useCallback, useEffect, useState } from 'react';
 import { compressImage, MAX_VIDEO_ATTACHMENT_BYTES } from '@/entities/item/media';
 
+/**
+ * One attached image or video, one per note, alternative not additive. `existing`
+ * carries the filename already on disk (unchanged); `new` carries freshly
+ * pasted bytes not yet written (compressed, for an image; verbatim, for a
+ * video) and an object URL previewing them; `null` means "no attachment" (a removal, in
+ * edit mode). Persisting it is the save handler's job.
+ */
 export type MediaAttachment =
   | { status: 'existing'; filename: string }
   | { status: 'new'; kind: 'image' | 'video'; blob: Blob; url: string }
