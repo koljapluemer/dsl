@@ -1,6 +1,6 @@
 import type { QueryClient } from '@tanstack/react-query';
 import { api, enc } from '@/api/client';
-import type { Answered, Item } from '@/api/types';
+import type { Answered, Backlink, Item } from '@/api/types';
 
 /** Updates `file`, or creates an item named after its text when `file` is null. */
 export const saveItem = (file: string | null, text: string) =>
@@ -29,6 +29,10 @@ export const relateItem = (file: string, body: { label: string } & ({ target: st
 /** Removes the item's first relationship with `label` ('' for none) to `target` (a name without .txt). */
 export const detachItem = (file: string, rel: { label: string; target: string }) =>
   api<Item>('POST', `/api/items/${enc(file)}/detach`, { label: rel.label, target: rel.target });
+
+/** Links the note `source` (a file), or a new note with `text`, to `file` under any `label` ('' for none). */
+export const addBacklink = (file: string, body: { label: string } & ({ source: string } | { text: string })) =>
+  api<Backlink[]>('POST', `/api/items/${enc(file)}/backlinks`, body);
 
 /**
  * Lists and searches show stale items after a write; with `refetch` false the

@@ -224,6 +224,36 @@ def test_detach_removes_first_match(data_dir):
         store.detach("a.txt", {"label": "other", "target": "x"})
 
 
+def test_backlinks(data_dir):
+    store.create({"file": "x.txt", "text": "X person"})
+    store.create({"file": "a.txt", "text": "A note\n-> knows @x\n-> @x\n"})
+    store.create({"file": "b.txt", "text": "B note\n-> cites @x\n-> @other\n"})
+    assert store.backlinks("x.txt") == [
+        {"file": "a.txt", "label": "", "heading": "A note"},
+        {"file": "b.txt", "label": "cites", "heading": "B note"},
+        {"file": "a.txt", "label": "knows", "heading": "A note"},
+    ]
+    with pytest.raises(store.NotFound):
+        store.backlinks("missing.txt")
+
+
+def test_backlink(data_dir):
+    store.create({"file": "x.txt", "text": "X person"})
+    store.create({"file": "a.txt", "text": "A note"})
+    res = store.backlink("x.txt", {"label": " cites ", "source": "a.txt"})
+    assert res == [{"file": "a.txt", "label": "cites", "heading": "A note"}]
+    assert (data_dir / "a.txt").read_text() == "A note\n-> cites @x\n"
+    res = store.backlink("x.txt", {"label": "", "text": "New one"})
+    new = next(b["file"] for b in res if b["heading"] == "New one")
+    assert (data_dir / new).read_text() == "New one\n-> @x\n"
+    with pytest.raises(store.ValidationError):
+        store.backlink("x.txt", {"label": "a\nb", "source": "a.txt"})
+    with pytest.raises(store.ValidationError):
+        store.backlink("x.txt", {"label": "", "text": " "})
+    with pytest.raises(store.NotFound):
+        store.backlink("x.txt", {"label": "", "source": "missing.txt"})
+
+
 def test_disable(data_dir):
     store.create({"file": "a.txt", "text": "a > b"})
     store.disable("a.txt")

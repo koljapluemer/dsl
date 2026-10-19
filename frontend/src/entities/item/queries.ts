@@ -1,6 +1,6 @@
 import { queryOptions } from '@tanstack/react-query';
 import { api, enc } from '@/api/client';
-import type { Item, ItemPage, Suggestion } from '@/api/types';
+import type { Backlink, Item, ItemPage, Suggestion } from '@/api/types';
 
 /** Shuffles the list's order; kept until the page reloads, so the order stays put while working. */
 export const SEED = Math.floor(Math.random() * 2 ** 32);
@@ -27,4 +27,10 @@ export const itemQuery = (file: string) => queryOptions({
 export const searchQuery = (q: string, exclude: string[]) => queryOptions({
   queryKey: ['search', q, exclude],
   queryFn: () => api<Suggestion[]>('GET', `/api/search?${new URLSearchParams({ q, exclude: exclude.join(',') })}`),
+});
+
+/** The relationships in other notes pointing to `file`; under `items`, so writes refetch it. */
+export const backlinksQuery = (file: string) => queryOptions({
+  queryKey: ['items', 'backlinks', file],
+  queryFn: () => api<Backlink[]>('GET', `/api/items/${enc(file)}/backlinks`),
 });

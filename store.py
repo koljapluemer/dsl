@@ -558,6 +558,42 @@ def detach(name: str, body: dict) -> dict:
     return _with_refs(update(name, {"text": "\n".join(lines)}), _INDEX.refresh())
 
 
+def backlinks(name: str) -> list[dict]:
+    """`{file, label, heading}` for each relationship line in another note that
+    points to the note, by label then heading. The label is as written ("" for
+    none), unlike the index's, so it can be passed to `detach`."""
+    get(name)
+    target = name.removesuffix(".txt")
+    with _INDEX.locked() as ix:
+        linkers = {s for s, _ in ix.incoming.get(name, ())}
+    out = []
+    for source in linkers:
+        try:
+            doc = dsl.parse(SCHEMA, get(source)["text"])
+        except NotFound:
+            continue
+        out += [{"file": source, "label": r.label or "", "heading": doc.heading}
+                for r in doc.relations if r.target == target]
+    return sorted(out, key=lambda b: (b["label"].casefold(), b["heading"].casefold(), b["file"]))
+
+
+def backlink(name: str, body: dict) -> dict:
+    """Links the existing note `source` (a file name), or a new note with
+    `text`, to the note under `label`. Returns the note's `backlinks`."""
+    body = body if isinstance(body, dict) else {}
+    label = body.get("label")
+    if not isinstance(label, str) or "\n" in label:
+        raise ValidationError("invalid relationship label")
+    get(name)
+    target = name.removesuffix(".txt")
+    if body.get("source"):
+        source = get(body["source"])
+        update(source["file"], {"text": questions.add_relation(source["text"], label.strip(), target)})
+    else:
+        create({"text": questions.add_relation(_text(body), label.strip(), target)})
+    return backlinks(name)
+
+
 def disable(name: str) -> None:
     """Tags the note so the questions view skips it."""
     note = get(name)

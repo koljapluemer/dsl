@@ -45,6 +45,9 @@ export type Projects = { projects: Project[]; orphans: ProjectIssue[] };
 /** names are `family, given`, `family, suffix, given` or, without a comma, one unsplit name */
 export type FieldType = 'literal' | 'integer' | 'range' | 'name' | 'list' | 'date' | 'uri' | 'verbatim';
 /** `entryTypes`: the fields each entry type shows by default */
+/** a relationship line in note `file` pointing to some note; `label` as written, '' for none */
+export type Backlink = { file: string; label: string; heading: string };
+
 export type SourceSchema = { fields: Record<string, { type: FieldType }>; entryTypes: Record<string, string[]> };
 /** a `source` item: `file` is the item's, the rest its fields (names and lists as string[], integers as numbers) */
 export type Source = { file: string; key: string; entrytype: string; title: string; extra?: string; [field: string]: string | number | string[] | undefined };
