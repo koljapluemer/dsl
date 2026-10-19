@@ -10,7 +10,7 @@ just run
 
 Opens http://127.0.0.1:8766. On first start, set the data folder (stored in `~/.config/dsl-crud/config.json`).
 
-Flask serves the frontend's build from `frontend/dist`: `just run` builds it when it's missing, `just build` rebuilds it, `just reinstall` does both. `just dev` runs Flask and Vite's dev server (http://127.0.0.1:5173, hot reload, `/api` proxied to Flask) together. `just check` lints, typechecks and tests both sides.
+Flask serves the committed frontend build from `frontend/dist`. `just run` uses that build, while `just build` creates an ignored feature-branch build in `frontend/dist-dev` and `just run-build` serves it. `just dev` runs Flask and Vite's dev server (http://127.0.0.1:5173, hot reload, `/api` proxied to Flask) together. `just check` lints, typechecks, builds and tests both sides. After frontend source reaches `main`, GitHub Actions regenerates and commits `frontend/dist`; `just build-release` is the manual equivalent.
 
 ## Frontend
 
@@ -141,7 +141,7 @@ Clone the repo into Termux's home (not shared storage: it can't hold executables
 ./termux.sh
 ```
 
-The first run installs Python, numpy (Termux's package) and a venv in `~/.venvs/dsl-crud`; the other dependencies follow `pyproject.toml`. The phone doesn't build the frontend: `frontend/dist` is committed, so run `just build` before committing frontend changes. Every run starts the server and opens the browser. Set the data folder to the notes under `/storage/emulated/0/...`. One-tap start with Termux:Widget: `mkdir -p ~/.shortcuts && ln -s ~/dsl-crud/termux.sh ~/.shortcuts/dsl`.
+The first run installs Python, numpy (Termux's package) and a venv in `~/.venvs/dsl-crud`; the other dependencies follow `pyproject.toml`. The phone doesn't build the frontend: `frontend/dist` is committed and automatically refreshed after frontend changes reach `main`. Every run starts the server and opens the browser. Set the data folder to the notes under `/storage/emulated/0/...`. One-tap start with Termux:Widget: `mkdir -p ~/.shortcuts && ln -s ~/dsl-crud/termux.sh ~/.shortcuts/dsl`.
 
 ## Test
 

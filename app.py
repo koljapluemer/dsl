@@ -1,3 +1,4 @@
+import os
 import socket
 import threading
 import webbrowser
@@ -20,8 +21,10 @@ import store
 import views
 
 PORT = 8766
-# the frontend's build (`just build`)
-DIST = Path(__file__).parent / "frontend" / "dist"
+ROOT = Path(__file__).parent
+# The committed build is the default. `just run-build` overrides this with the
+# ignored feature-branch build without changing application behavior elsewhere.
+DIST = Path(os.environ.get("DSL_FRONTEND_DIST", ROOT / "frontend" / "dist")).resolve()
 
 app = Flask(__name__, static_folder=None)
 
