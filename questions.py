@@ -57,7 +57,7 @@ def _append_line(text: str, line: str) -> str:
 def add_relation(text: str, label: str, target: str) -> str:
     """A relationship line always ends a block and opens the keyword section,
     so appending it is safe after anything."""
-    return _append_line(text, f"-> {label} @{target}")
+    return _append_line(text, f"-> {label} @{target}" if label else f"-> @{target}")
 
 
 def add_tag(schema: dict, text: str, tag: str) -> str:

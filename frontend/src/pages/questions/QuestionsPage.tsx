@@ -9,6 +9,7 @@ import { ItemTextEditor } from '@/features/item-edit/ItemTextEditor';
 import { useAutosave } from '@/features/item-edit/useAutosave';
 import { ModelDownload } from '@/features/model-download/ModelDownload';
 import { QuestionAnswer } from './QuestionAnswer';
+import { Relationships } from './Relationships';
 import { disable, fetchNote, nextNote, pickQuery } from './questions';
 
 /** A random loosely-linked note and the questions picked for it. */
@@ -109,6 +110,7 @@ export function QuestionsPage() {
         {picked?.questions.map((q) => (
           <QuestionAnswer key={item.file + ':' + q.id} file={item.file} question={q} flush={save} onAnswered={(res) => show(res)} />
         ))}
+        <Relationships item={item} flush={save} onChanged={(i) => show(i)} />
       </div>
     </div>
   );
