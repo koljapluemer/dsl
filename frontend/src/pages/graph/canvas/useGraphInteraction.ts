@@ -23,6 +23,7 @@ import {
   createNote,
   deleteNote,
   deleteRelation,
+  hideNote,
   noteText,
   notesChanged,
   undoDelete,
@@ -198,6 +199,23 @@ export function useGraphInteraction({
     [qc, onUnpinNote, onPinNote, showUndo],
   );
 
+  // Tags the note so the graph leaves it out (see docs/hiding.md); undone like a delete.
+  const handleHideNote = useCallback(
+    async (filename: string, priorDepth: number | null): Promise<void> => {
+      await hideNote(filename);
+      onUnpinNote(filename);
+      await notesChanged(qc);
+      showUndo('Note hidden.', async () => {
+        await undoDelete();
+        await notesChanged(qc);
+        if (priorDepth !== null) {
+          onPinNote(filename, priorDepth);
+        }
+      });
+    },
+    [qc, onUnpinNote, onPinNote, showUndo],
+  );
+
   // Edit mode works on the file's full text, read fresh from disk.
   const handleStartEdit = useCallback(
     (filename: string) => {
@@ -299,6 +317,7 @@ export function useGraphInteraction({
   const callbacks = useMemo<ViewCallbacks>(
     () => ({
       onDeleteNote: handleDeleteNote,
+      onHideNote: handleHideNote,
       onStartEdit: handleStartEdit,
       onSaveEdit: handleSaveEdit,
       onSaveDraft: handleSaveDraft,
@@ -312,6 +331,7 @@ export function useGraphInteraction({
     }),
     [
       handleDeleteNote,
+      handleHideNote,
       handleStartEdit,
       handleSaveEdit,
       handleSaveDraft,

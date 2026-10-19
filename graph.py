@@ -37,11 +37,11 @@ UNLABELED_RELATION = store.UNLABELED_RELATION
 
 
 class _View:
-    """Error-free notes and the relationships between them, from one locked
-    look at the index."""
+    """Error-free notes views.GRAPH_HIDING doesn't hide, and the relationships
+    between them, from one locked look at the index."""
 
     def __init__(self, ix):
-        self.notes = {n: e for n, e in ix.entries.items() if e.valid}
+        self.notes = {n: e for n, e in ix.entries.items() if e.valid and not views.GRAPH_HIDING.hides(e.primary, e.tags)}
         self._incoming = dict(ix.incoming)
 
     def outgoing(self, name: str) -> list[tuple[str, str]]:
@@ -842,9 +842,10 @@ def media_path(rel: str) -> str:
     return str(store.media_path(rel))
 
 
-# --- delete and undo --------------------------------------------------------------
+# --- delete, hide and undo ---------------------------------------------------------
 
-# The last deletion, for the undo popup: a note (its text and media bytes) or a relationship.
+# The last deletion or hide, for the undo popup: a note (its text and media bytes),
+# a relationship, or a hidden note's text before it was tagged.
 _undo: dict | None = None
 
 
@@ -863,8 +864,17 @@ def delete(name: str) -> None:
     _undo = {"type": "note", "file": name, "text": text, "media": media}
 
 
+def hide(name: str) -> None:
+    """Tags the note with views.GRAPH_HIDING's tag, so it leaves the graph."""
+    global _undo
+    _require(name)
+    text = store.get(name)["text"]
+    store.hide(name, views.GRAPH_HIDING)
+    _undo = {"type": "hide", "file": name, "text": text}
+
+
 def undo() -> dict:
-    """Restores the last deletion; `restored` is false when there was none."""
+    """Restores the last deletion or hide; `restored` is false when there was none."""
     global _undo
     pending, _undo = _undo, None
     if pending is None:
@@ -875,6 +885,9 @@ def undo() -> dict:
             rel, data = pending["media"]
             _media_file(rel).parent.mkdir(parents=True, exist_ok=True)
             _media_file(rel).write_bytes(data)
+    elif pending["type"] == "hide":
+        # not through _mutate: the note is hidden, so not part of the graph
+        store.update(pending["file"], {"text": pending["text"]})
     else:
         _mutate(pending["source"], lambda lines, doc: _append(lines, pending["label"], pending["target"]))
     return {"restored": True}

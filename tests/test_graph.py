@@ -46,10 +46,10 @@ def test_unlabeled_relation_is_related():
 
 def test_invalid_and_missing_notes_are_left_out_until_fixed(data_dir):
     note("a", "A\n-> x @b\n-> y @gone")
-    note("b", "B\nappointment 26-02-30")
+    note("b", "B\ntags Bad")
     g = graph.build([{"filename": "a.txt", "depth": 1}, {"filename": "b.txt", "depth": 1}])
     assert names(g) == ["a.txt"] and g["edges"] == [] and g["nodes"][0]["degree"] == 0
-    store.update("b.txt", {"text": "B\nappointment 26-02-28"})
+    store.update("b.txt", {"text": "B\ntags bad"})
     assert names(graph.build([{"filename": "a.txt", "depth": 1}])) == ["a.txt", "b.txt"]
 
 
@@ -72,9 +72,9 @@ def test_pins_are_kept():
 
 
 def test_section_lines_and_data_on_nodes():
-    note("a", "A\nappointment 26-01-01\nmedia images/x.png\ntags t\nzap something\n(done)\ndata\nk: v\nextra\nmore")
+    note("a", "A\nproject\nmedia images/x.png\ntags t\nzap something\n(done)\ndata\nk: v\nextra\nmore")
     n = graph.build([{"filename": "a.txt", "depth": 0}])["nodes"][0]
-    assert n["sectionLines"] == ["appointment 26-01-01", "zap something"]
+    assert n["sectionLines"] == ["project", "zap something"]
     assert (n["dataText"], n["extraContent"], n["image"]) == ("k: v", "more", "images/x.png")
 
 
@@ -222,3 +222,18 @@ def test_delete_and_undo_with_media(data_dir):
     assert not (data_dir / "a.txt").exists() and not (data_dir / rel).exists()
     graph.undo()
     assert (data_dir / "a.txt").read_text() == text and (data_dir / rel).read_bytes() == b"bytes"
+
+
+def test_hidden_notes_leave_the_graph_and_hide_undoes(data_dir):
+    note("a", "A\n-> knows @b\n-> at @c")
+    note("b", "B")
+    note("c", "C\nappointment 26-08-29")
+    pins = [{"filename": "a.txt", "depth": 1}]
+    assert names(graph.build(pins)) == ["a.txt", "b.txt"]
+    text = (data_dir / "b.txt").read_text()
+    graph.hide("b.txt")
+    assert names(graph.build(pins)) == ["a.txt"]
+    assert graph.search("B")["results"] == []
+    graph.undo()
+    assert (data_dir / "b.txt").read_text() == text
+    assert names(graph.build(pins)) == ["a.txt", "b.txt"]

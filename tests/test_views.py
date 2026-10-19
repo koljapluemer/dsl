@@ -35,3 +35,9 @@ def test_hashtags_in_body_and_extra():
 def test_view_media_only_images_and_videos():
     assert views.view({}, parse("x\nmedia a/b.JPG"))["media"] == "a/b.JPG"
     assert views.view({}, parse("x\nmedia a.pdf"))["media"] is None
+
+
+def test_hidings_name_real_types_and_valid_tags():
+    for h in (views.QUEUE_HIDING, views.GRAPH_HIDING):
+        assert all(store.SCHEMA["keywords"][t]["role"] == "primary" for t in h.types)
+        assert all(dsl.is_tag(t) for t in {h.tag, *h.tags})

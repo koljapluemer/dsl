@@ -25,7 +25,10 @@ export const updateNote = (file: string, text: string) => api<null>('PUT', `/api
 
 export const deleteNote = (file: string) => api<null>('DELETE', `/api/graph/notes/${enc(file)}`);
 
-/** Restores whatever `deleteNote`/`deleteRelation` removed last. */
+/** Tags the note so the graph leaves it out (see docs/hiding.md). */
+export const hideNote = (file: string) => api<null>('POST', `/api/graph/notes/${enc(file)}/hide`);
+
+/** Restores whatever `deleteNote`/`deleteRelation` removed or `hideNote` hid last. */
 export const undoDelete = () => api<{ restored: boolean }>('POST', '/api/graph/undo');
 
 export async function attachMedia(file: string, media: Blob) {

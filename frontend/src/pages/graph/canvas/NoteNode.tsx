@@ -13,6 +13,7 @@ export type NoteNodeData =
       /** Whether this note is the current session's soft anchor for placing new notes. */
       isAnchor: boolean;
       onDelete: (filename: string, pinDepth: number | null) => Promise<void>;
+      onHide: (filename: string, pinDepth: number | null) => Promise<void>;
       onEdit: (filename: string) => void;
       onPin: (filename: string) => void;
       onUnpin: (filename: string) => void;
@@ -91,6 +92,7 @@ function NoteNodeInner({ data }: NodeProps<NoteFlowNode>) {
           pinDepth={data.pinDepth}
           isAnchor={data.isAnchor}
           onDelete={data.onDelete}
+          onHide={data.onHide}
           onEdit={data.onEdit}
           onPin={data.onPin}
           onUnpin={data.onUnpin}

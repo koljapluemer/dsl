@@ -1,6 +1,6 @@
 import { queryOptions } from '@tanstack/react-query';
-import { api } from '@/api/client';
-import type { QueueDraw, QueueFilter } from '@/api/types';
+import { api, enc } from '@/api/client';
+import type { QueueDraw } from '@/api/types';
 import { store } from '@/dumb/store';
 
 /** Bumped to draw another batch; kept outside the page, so the batch stays while on other tabs. */
@@ -13,6 +13,5 @@ export const drawQuery = (n: number) => queryOptions({
   gcTime: Infinity,
 });
 
-export const filterQuery = queryOptions({ queryKey: ['queue', 'filter'], queryFn: () => api<QueueFilter>('GET', '/api/queue/filter') });
-
-export const saveFilter = (hidden: { types: string[]; tags: string[] }) => api<QueueFilter>('PUT', '/api/queue/filter', hidden);
+/** Tags the item so the queue leaves it out (see docs/hiding.md). */
+export const hideFromQueue = (file: string) => api<null>('POST', `/api/queue/hide/${enc(file)}`);
