@@ -1,6 +1,6 @@
 import { useReactFlow, useStore, type OnConnectEnd, type OnConnectStart, type ReactFlowState } from '@xyflow/react';
 import { useCallback, useMemo, useRef, type Dispatch, type MouseEvent as ReactMouseEvent, type SetStateAction } from 'react';
-import type { ImageState } from './DraftNoteCard';
+import type { MediaAttachment } from '@/features/item-media/useMediaAttachment';
 import {
   DRAFT_ID_PREFIX,
   IDLE_INTERACTION,
@@ -159,7 +159,7 @@ export function useGraphInteraction({
   }, [setInteraction]);
 
   const handleSaveDraft = useCallback(
-    async (draft: DraftInteraction, body: string, label: string, reverse: boolean, image: ImageState): Promise<void> => {
+    async (draft: DraftInteraction, body: string, label: string, reverse: boolean, image: MediaAttachment): Promise<void> => {
       const response = await createNote({
         related: draft.sourceFilename ?? undefined,
         label,
@@ -224,7 +224,7 @@ export function useGraphInteraction({
   );
 
   const handleSaveEdit = useCallback(
-    async (filename: string, text: string, image: ImageState, previousImage: string | null): Promise<void> => {
+    async (filename: string, text: string, image: MediaAttachment, previousImage: string | null): Promise<void> => {
       await updateNote(filename, text);
 
       // Media has its own endpoints (they write the file and the note's `media`

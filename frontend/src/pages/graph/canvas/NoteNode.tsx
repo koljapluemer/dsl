@@ -1,6 +1,7 @@
 import { Handle, Position, type Node, type NodeProps } from '@xyflow/react';
 import { memo } from 'react';
-import { DraftNoteCard, type ImageState } from './DraftNoteCard';
+import { DraftNoteCard } from './DraftNoteCard';
+import type { MediaAttachment } from '@/features/item-media/useMediaAttachment';
 import { NoteCard } from './NoteCard';
 import type { GraphNodePayload } from '@/api/types';
 
@@ -23,7 +24,7 @@ export type NoteNodeData =
       kind: 'draft';
       /** Whether to show the relation-label/reverse fields - false for a freestanding note with no related note. */
       showRelation: boolean;
-      onSave: (body: string, label: string, reverse: boolean, image: ImageState) => Promise<void>;
+      onSave: (body: string, label: string, reverse: boolean, image: MediaAttachment) => Promise<void>;
       onCancel: () => void;
     }
   | {
@@ -31,7 +32,7 @@ export type NoteNodeData =
       /** The note file's full text. */
       initialText: string;
       initialImage: string | null;
-      onSave: (text: string, image: ImageState) => Promise<void>;
+      onSave: (text: string, image: MediaAttachment) => Promise<void>;
       onCancel: () => void;
     };
 

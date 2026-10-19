@@ -90,7 +90,7 @@ A port of `../dsl-graph`: notes as cards on a [React Flow](https://reactflow.dev
 - **Cards**: edit the full text (Mod-Enter saves, Escape cancels; text with errors isn't saved), attach media, hide (tags it `no-graph`) or delete, both with undo. A click on an edge label edits or deletes its relationships (with undo).
 - The toolbar: add note, unpin all, pin a random orphan, open a random note or search result, pin all search results (the first 100, without neighbors), zoom and fit.
 
-The New/Edit forms, shared modal form, and Graph cards accept one image (downscaled to WebP) or short video by paste or upload. Attachments go into `images/` in the data folder as `<note>-<ms>.<ext>`; an attachment the app wrote is deleted when it is replaced or removed and no other note names it.
+The New/Edit forms, shared modal form, and Graph cards accept one image (downscaled to WebP) or short video by paste or upload; on touch devices they also take a photo with the camera. Attachments go into `images/` in the data folder as `<note>-<ms>.<ext>`; an attachment the app wrote is deleted when it is replaced or removed and no other note names it.
 
 ## Maintenance
 

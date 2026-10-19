@@ -1,5 +1,5 @@
 import type { Edge } from '@xyflow/react';
-import type { ImageState } from './DraftNoteCard';
+import type { MediaAttachment } from '@/features/item-media/useMediaAttachment';
 import type { GraphFlowNode } from './graph-flow-node';
 import { mergeRelationsIntoEdges } from './graph-edges';
 import { buildHiddenRelations } from './graph-hidden-relations';
@@ -17,8 +17,8 @@ export interface ViewCallbacks {
   onDeleteNote: (filename: string, pinDepth: number | null) => Promise<void>;
   onHideNote: (filename: string, pinDepth: number | null) => Promise<void>;
   onStartEdit: (filename: string) => void;
-  onSaveEdit: (filename: string, text: string, image: ImageState, previousImage: string | null) => Promise<void>;
-  onSaveDraft: (draft: DraftInteraction, body: string, label: string, reverse: boolean, image: ImageState) => Promise<void>;
+  onSaveEdit: (filename: string, text: string, image: MediaAttachment, previousImage: string | null) => Promise<void>;
+  onSaveDraft: (draft: DraftInteraction, body: string, label: string, reverse: boolean, image: MediaAttachment) => Promise<void>;
   onCancelInteraction: () => void;
   onConfirmConnection: (connecting: ConnectingInteraction, label: string) => Promise<void>;
   onDeleteRelation: (relation: GraphEdgePayload) => Promise<void>;
@@ -80,7 +80,7 @@ export function buildView(
           kind: 'edit',
           initialText: interaction.text,
           initialImage: note.image,
-          onSave: (text: string, image: ImageState) => callbacks.onSaveEdit(note.filename, text, image, note.image),
+          onSave: (text: string, image: MediaAttachment) => callbacks.onSaveEdit(note.filename, text, image, note.image),
           onCancel: callbacks.onCancelInteraction,
         },
       };
