@@ -89,8 +89,8 @@ export function Relationships({ item, flush, onChanged, deleteItem }: Props) {
           </div>
         );
       })}
-      <div className="flex gap-1 mt-1 items-start">
-        <input className="input w-48 shrink-0" value={label} disabled={busy} placeholder="label"
+      <div className="flex flex-col sm:flex-row gap-1 mt-1 items-start">
+        <input className="input w-full sm:w-48 sm:shrink-0" value={label} disabled={busy} placeholder="label"
                onChange={(e) => setLabel(e.target.value)}
                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); picker.current?.focus(); } }} />
         <NotePicker exclude={[...(item ? [item.file] : []), ...relations.map((r) => r.target + '.txt')]} busy={busy} onPick={add} inputRef={picker} />

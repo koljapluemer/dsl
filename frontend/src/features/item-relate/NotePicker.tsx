@@ -58,16 +58,16 @@ export function NotePicker({ exclude, busy, onPick, inputRef }: Props) {
         <input ref={inputRef} className="input join-item w-full" value={text} disabled={busy} placeholder="Search a note to link, or write a new one"
                onChange={(e) => { setText(e.target.value); setDismissed(null); }} onKeyDown={keydown} />
         <button className="btn join-item" disabled={busy || !text.trim()} title="create as new note" onClick={createNew}>
-          <Plus size={20} />New note
+          <Plus size={20} /><span className="hidden sm:inline">New note</span>
         </button>
       </div>
       {suggestions.length > 0 && (
         <ul className="menu menu-sm bg-base-200 rounded-box w-full mt-1">
           {suggestions.map((s, i) => (
             <li key={s.file}>
-              <a className={i === at ? 'menu-active' : ''} onMouseDown={(e) => { e.preventDefault(); void link(s); }}>
-                <span className="truncate">{s.heading || s.file}</span>
-                <span className="ml-auto font-mono text-xs text-base-content/50">{s.file}</span>
+              <a className={'flex min-w-0' + (i === at ? ' menu-active' : '')} onMouseDown={(e) => { e.preventDefault(); void link(s); }}>
+                <span className="truncate min-w-0">{s.heading || s.file}</span>
+                <span className="ml-auto truncate min-w-0 shrink-[2] font-mono text-xs text-base-content/50">{s.file}</span>
               </a>
             </li>
           ))}
