@@ -5,7 +5,7 @@ import { useDeleteItem } from '@/features/item-delete/useDeleteItem';
 import { ItemTextEditor } from '@/features/item-edit/ItemTextEditor';
 import { useAutosave } from '@/features/item-edit/useAutosave';
 
-/** A task item's editor; its save errors show below it rather than at the top. */
+/** An item's editor; its save errors show below it rather than at the top. An unreadable item shows why instead. */
 export function TaskRow({ item }: { item: Item }) {
   const [problem, setProblem] = useState('');
   const [current, setCurrent] = useState(item);
@@ -21,6 +21,9 @@ export function TaskRow({ item }: { item: Item }) {
     await save();
     await remove(current);
   }
+
+  const unreadable = item.errors.find((e) => e.code === 'unreadable');
+  if (unreadable) return <p className="text-error text-sm mb-4">{item.file}: {unreadable.detail}</p>;
 
   return (
     <div className="mb-4">

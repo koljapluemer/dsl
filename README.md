@@ -22,7 +22,7 @@ One [CodeMirror 6](https://codemirror.net) editor per item. A single pass over t
 
 The list shows body and `extra` content as markdown (marked + DOMPurify), `data` blocks as highlighted code, relationships as links headed by the target's first line (a click scrolls to the target, paging and clearing the filter as needed), and only keyword lines in monospace with the editor's highlighting. Its order is shuffled per page load (a seed sent with each request), stable across paging and filtering.
 
-The list is filtered and paged on the server, so a folder of many items stays usable: `store.py` keeps each item's text and problem flags in memory and re-reads a file only when its mtime changes. The Broken tab shows items needing attention; the Tasks tab every item with `tasks`, each in its own editor.
+The list is filtered and paged on the server, so a folder of many items stays usable: `store.py` keeps each item's text and problem flags in memory and re-reads a file only when its mtime changes. The Tasks tab shows the items needing attention, then the other items with `tasks`, each in its own editor.
 
 New files are named `<slug of the first line>-<6 hex>.txt`; the name doesn't change when the text does. Other items refer to it by that name without `.txt` (`-> label @name`).
 

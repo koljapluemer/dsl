@@ -9,7 +9,7 @@ import { semanticStatusQuery } from '@/entities/ollama/queries';
 import type { NotesSearch } from './search';
 
 /** The list's page of items per the URL, following the background embedding while semantic search waits on it. */
-export function useItemList(attention: boolean) {
+export function useItemList() {
   const qc = useQueryClient();
   const navigate = useNavigate();
   const search = useSearch({ strict: false }) as NotesSearch;
@@ -21,7 +21,7 @@ export function useItemList(attention: boolean) {
   const [focused, setFocused] = useState<string | null>(null);
 
   const setSearch = (next: NotesSearch) => void navigate({ to: '.', search: next, replace: true });
-  const params = { q: debouncedQ, page, attention, semantic };
+  const params = { q: debouncedQ, page, semantic };
 
   const list = useQuery({
     ...itemsQuery(params),
