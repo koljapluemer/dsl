@@ -39,14 +39,14 @@ function Editor({ item, initial, refresh, onDelete, onClose }: Omit<Props, 'file
   }
 
   return (
-    <Modal wide onClose={() => close()}>
+    <Modal wide dirty={form.dirty} onClose={() => void close(false)}>
       <div className="flex items-center gap-1 mb-3">
         <button className="btn btn-square btn-primary" title="save and close" onClick={() => close()}><Check size={20} /></button>
         <button className="btn btn-square" title="discard changes and close" onClick={() => close(false)}><X size={20} /></button>
         {current && <button className="btn btn-square btn-error btn-outline" title="delete" onClick={del}><Trash2 size={20} /></button>}
         {current && <span className="ml-auto font-mono text-xs text-base-content/50">{current.file}</span>}
       </div>
-      <ItemForm controller={form} initial={current?.text ?? initial} saveOnBlur={false} />
+      <ItemForm controller={form} initial={current?.text ?? initial} saveOnBlur={false} onSubmit={() => void close()} />
     </Modal>
   );
 }

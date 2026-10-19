@@ -4,6 +4,7 @@ import { useNavigate } from '@tanstack/react-router';
 import { Ban, Pencil, SkipForward } from 'lucide-react';
 import type { Item } from '@/api/types';
 import { showError } from '@/dumb/errorBanner';
+import { useHotkeys } from '@/dumb/keys';
 import { ItemOverview } from '@/entities/item/ItemOverview';
 import { ItemTextEditor } from '@/features/item-edit/ItemTextEditor';
 import { useAutosave } from '@/features/item-edit/useAutosave';
@@ -81,18 +82,20 @@ export function QuestionsPage() {
     setEditing(!editing);
   }
 
+  useHotkeys({ s: skip, e: toggleEdit, d: () => void disableNote() }, !!item);
+
   if (!note) return null;
   if (!item) return <p className="text-base-content/50">No notes to ask about.</p>;
   return (
     <div>
       <div className="flex items-center gap-1 mb-4">
-        <button className="btn" title="next note" onClick={skip}><SkipForward size={20} />Skip</button>
-        <button className="btn" title="never ask about this note (tag no-questions)" onClick={disableNote}><Ban size={20} />Disable</button>
-        <button className={`btn btn-square ${editing ? 'btn-active' : ''}`} title="edit" onClick={toggleEdit}><Pencil size={20} /></button>
+        <button className="btn" title="next note (s)" onClick={skip}><SkipForward size={20} />Skip</button>
+        <button className="btn" title="never ask about this note, tag no-questions (d)" onClick={disableNote}><Ban size={20} />Disable</button>
+        <button className={`btn btn-square ${editing ? 'btn-active' : ''}`} title="edit (e)" onClick={toggleEdit}><Pencil size={20} /></button>
         <span className="ml-auto font-mono text-xs text-base-content/50">{item.file} · {note.total}</span>
       </div>
       {editing
-        ? <ItemTextEditor key={editorKey} initial={item.text} onChange={change} onSave={save} />
+        ? <ItemTextEditor key={editorKey} initial={item.text} onChange={change} onSave={save} onSubmit={toggleEdit} />
         : (
           <div className="overview rounded-box border border-base-300 p-4">
             <ItemOverview item={item} onRef={(file) => navigate({ to: '/edit/$file', params: { file } })} />

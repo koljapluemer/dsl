@@ -1,6 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Prec } from '@codemirror/state';
-import { EditorView, ViewPlugin, keymap } from '@codemirror/view';
+import { EditorView, ViewPlugin } from '@codemirror/view';
 import { CodeMirrorHost } from '@/dumb/CodeMirrorHost';
 import { analyze } from '@/entities/item/dsl/analyze';
 import { dslExtensions } from '@/entities/item/dslExtensions';
@@ -12,7 +11,7 @@ export interface NoteTextEditorProps {
   onChange: (text: string) => void;
   /** Mod-Enter (and Mod-s). */
   onSubmit: () => void;
-  /** Escape. */
+  /** Escape (the card decides whether that leaves). */
   onCancel: () => void;
   /** A pasted image or video, instead of inserting anything. */
   onPasteFile: (file: File) => void;
@@ -29,8 +28,6 @@ export function NoteTextEditor({ initialText, onChange, onSubmit, onCancel, onPa
   const extensions = useMemo(
     () => [
       ...dslExtensions(schema),
-      // Mod-Enter saves (see the wrapper's onKeyDown) instead of the default keymap's blank line.
-      Prec.high(keymap.of([{ key: 'Mod-Enter', run: () => true }])),
       // A pasted image or video is the wrapper's (see onPaste), not text to insert.
       EditorView.domEventHandlers({ paste: (event) => pastedMedia(event.clipboardData) !== undefined }),
       // Focus deferred a frame, like the draft card's textarea: React Flow may still be settling focus when this mounts.
@@ -53,7 +50,6 @@ export function NoteTextEditor({ initialText, onChange, onSubmit, onCancel, onPa
       onKeyDown={(event) => {
         event.stopPropagation();
         if (event.key === 'Escape') onCancel();
-        else if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) onSubmit();
       }}
       onPaste={(event) => {
         const file = pastedMedia(event.clipboardData);
@@ -73,6 +69,7 @@ export function NoteTextEditor({ initialText, onChange, onSubmit, onCancel, onPa
             onChange(next);
           }}
           onSave={onSubmit}
+          onSubmit={onSubmit}
         />
       </div>
       {problems.length > 0 ? (

@@ -1,5 +1,6 @@
 import { CircleHelp, LoaderCircle, Search } from 'lucide-react';
 import { useState } from 'react';
+import { useSlashFocus } from '@/dumb/keys';
 import { NoteListItem } from './NoteListItem';
 import { PagedNoteList } from './PagedNoteList';
 import { SearchOptions } from './SearchOptions';
@@ -25,6 +26,7 @@ export interface SearchTabProps {
 export function SearchTab({ state, dispatch, results, total, loading, history, pins, onSelectNote }: SearchTabProps) {
   const { criteria, page } = state;
   const [helpOpen, setHelpOpen] = useState(false);
+  const input = useSlashFocus();
 
   return (
     <>
@@ -33,6 +35,7 @@ export function SearchTab({ state, dispatch, results, total, loading, history, p
           <label className="input min-w-0 flex-1">
             <Search className="size-4.5 text-base-content/60" />
             <input
+              ref={input}
               value={criteria.query}
               list={HISTORY_LIST_ID}
               onChange={(event) => dispatch({ type: 'SET_QUERY', query: event.target.value })}

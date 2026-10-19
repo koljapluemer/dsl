@@ -1,3 +1,4 @@
+import { showError } from './errorBanner';
 import { store } from './store';
 
 /** The last undoable change, while it can still be undone. */
@@ -15,4 +16,14 @@ export function offerUndo(message: string, perform: () => Promise<unknown>) {
 export function dropUndo() {
   clearTimeout(timer);
   pendingUndo.set(null);
+}
+
+/** Undoes the pending change, if any. */
+export async function performUndo() {
+  const pending = pendingUndo.get();
+  if (!pending) return;
+  try {
+    await pending.perform();
+    dropUndo();
+  } catch (e) { showError(e); }
 }

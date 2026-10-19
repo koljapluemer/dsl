@@ -4,6 +4,7 @@ import { useNavigate, useParams, useRouter } from '@tanstack/react-router';
 import { ArrowLeft, Trash2 } from 'lucide-react';
 import type { Source, SourceSchema } from '@/api/types';
 import { showError } from '@/dumb/errorBanner';
+import { isSubmit } from '@/dumb/keys';
 import { itemsChanged } from '@/entities/item/mutations';
 import { itemQuery } from '@/entities/item/queries';
 import { useDeleteItem } from '@/features/item-delete/useDeleteItem';
@@ -36,7 +37,7 @@ function Loader({ file, onCreated }: { file: string | null; onCreated: (file: st
   return <Editor schema={schema} source={source ?? null} onCreated={onCreated} />;
 }
 
-/** Saved when a field loses focus. */
+/** Saved when a field loses focus; Mod-Enter saves and goes back. */
 function Editor({ schema, source, onCreated }: { schema: SourceSchema; source: Source | null; onCreated: (file: string) => void }) {
   const qc = useQueryClient();
   const router = useRouter();
@@ -87,7 +88,7 @@ function Editor({ schema, source, onCreated }: { schema: SourceSchema; source: S
   const hidden = Object.keys(schema.fields).filter((f) => !visible.includes(f));
 
   return (
-    <div onBlur={() => void save()}>
+    <div onBlur={() => void save()} onKeyDown={(e) => { if (isSubmit(e) && !e.defaultPrevented) void save().then(back); }}>
       <div className="flex items-center gap-1 mb-4">
         <button className="btn btn-square" title="back" onClick={back}><ArrowLeft size={20} /></button>
         {savedFile && <button className="btn btn-square btn-error btn-outline" title="delete" onClick={del}><Trash2 size={20} /></button>}

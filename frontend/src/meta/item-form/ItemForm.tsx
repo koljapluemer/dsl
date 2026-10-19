@@ -67,17 +67,19 @@ export function useItemForm({ item, onSaved, onError = showError }: Options) {
     setRevision((value) => value + 1);
   }, [media, text]);
 
-  return { change: text.change, save, reset, media, revision };
+  return { change: text.change, dirty: text.dirty, save, reset, media, revision };
 }
 
 export type ItemFormController = ReturnType<typeof useItemForm>;
 
-export function ItemForm({ controller, initial, editorKey, autofocus = true, saveOnBlur = true }: {
+export function ItemForm({ controller, initial, editorKey, autofocus = true, saveOnBlur = true, onSubmit }: {
   controller: ItemFormController;
   initial: string;
   editorKey?: number;
   autofocus?: boolean;
   saveOnBlur?: boolean;
+  /** Mod-Enter in the editor */
+  onSubmit?: () => void;
 }) {
   const { media } = controller;
   const attach = async (file: File) => {
@@ -93,7 +95,7 @@ export function ItemForm({ controller, initial, editorKey, autofocus = true, sav
       <MediaAttachmentField attachment={media.attachment} onAttach={(file) => void attach(file)} onRemove={remove} />
       {media.error && <p className="mb-2 text-sm text-error">{media.error}</p>}
       <ItemTextEditor key={`${editorKey ?? 0}:${controller.revision}`} initial={initial} autofocus={autofocus} saveOnBlur={saveOnBlur}
-                      onChange={controller.change} onSave={controller.save} onPasteFile={(file) => void attach(file)} />
+                      onChange={controller.change} onSave={controller.save} onSubmit={onSubmit} onPasteFile={(file) => void attach(file)} />
     </div>
   );
 }

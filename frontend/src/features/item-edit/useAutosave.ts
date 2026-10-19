@@ -26,6 +26,8 @@ export function useAutosave({ file, saved, onSaved, onError = showError }: Optio
   const callbacks = useRef({ onSaved, onError });
   useEffect(() => { callbacks.current = { onSaved, onError }; });
   const change = useCallback((text: string) => { state.current.text = text; }, []);
+  /** whether the text differs from what was last saved */
+  const dirty = useCallback(() => state.current.text !== state.current.saved, []);
 
   const save = useCallback(() => {
     const s = state.current;
@@ -57,5 +59,5 @@ export function useAutosave({ file, saved, onSaved, onError = showError }: Optio
     s.pending = s.pending.then(() => { Object.assign(s, { file, saved, text: saved }); });
   }, []);
 
-  return { change, save, reset };
+  return { change, dirty, save, reset };
 }

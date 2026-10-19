@@ -63,7 +63,7 @@ function LoadedEditor({ item, onCreated }: { item: Item | null; onCreated: (file
         {current && <button className="btn btn-square btn-error btn-outline" title="delete" onClick={del}><Trash2 size={20} /></button>}
         {current && <span className="ml-auto font-mono text-xs text-base-content/50">{current.file}</span>}
       </div>
-      <ItemForm controller={form} initial={current?.text ?? ''} />
+      <ItemForm controller={form} initial={current?.text ?? ''} onSubmit={() => void form.save().then(goBack)} />
       <div className="mt-6">
         <Relationships item={current} flush={form.save} onChanged={related} deleteItem={remove} />
       </div>

@@ -12,13 +12,15 @@ type Props = {
   onChange: (doc: string) => void;
   /** Mod-s */
   onSave: () => void;
+  /** Mod-Enter, instead of inserting a blank line */
+  onSubmit?: () => void;
 };
 
 /** A CodeMirror editor with history, line wrapping and the app's theme. */
-export function CodeMirrorHost({ initial, extensions, autofocus = true, onChange, onSave }: Props) {
+export function CodeMirrorHost({ initial, extensions, autofocus = true, onChange, onSave, onSubmit }: Props) {
   const host = useRef<HTMLDivElement>(null);
-  const handlers = useRef({ onChange, onSave });
-  useEffect(() => { handlers.current = { onChange, onSave }; });
+  const handlers = useRef({ onChange, onSave, onSubmit });
+  useEffect(() => { handlers.current = { onChange, onSave, onSubmit }; });
 
   useEffect(() => {
     const view = new EditorView({
@@ -29,7 +31,12 @@ export function CodeMirrorHost({ initial, extensions, autofocus = true, onChange
           history(),
           drawSelection(),
           EditorView.lineWrapping,
-          keymap.of([{ key: 'Mod-s', preventDefault: true, run: () => { handlers.current.onSave(); return true; } }, ...defaultKeymap, ...historyKeymap]),
+          keymap.of([
+            { key: 'Mod-s', preventDefault: true, run: () => { handlers.current.onSave(); return true; } },
+            { key: 'Mod-Enter', run: () => { handlers.current.onSubmit?.(); return !!handlers.current.onSubmit; } },
+            ...defaultKeymap,
+            ...historyKeymap,
+          ]),
           editorTheme,
           ...extensions,
           EditorView.updateListener.of((u) => { if (u.docChanged) handlers.current.onChange(u.state.doc.toString()); }),

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Shuffle, Trash2 } from 'lucide-react';
 import type { ItemView } from '@/api/types';
 import { showError } from '@/dumb/errorBanner';
+import { useHotkeys } from '@/dumb/keys';
 import { Markdown } from '@/dumb/Markdown';
 import { useDeleteItem } from '@/features/item-delete/useDeleteItem';
 import { pickNote } from './suggest';
@@ -30,6 +31,8 @@ export function SuggestNote({ tag }: { tag: string }) {
     hold.current = window.setTimeout(() => draw(note ? [note.file] : []), HOLD_MS);
   };
   const cancelHold = () => clearTimeout(hold.current);
+  // Shift+n, as deliberate as the hold
+  useHotkeys({ N: () => void draw([note!.file]) }, !!note);
 
   async function del() {
     if (note && (await remove(note))) void draw([note.file]);
@@ -46,7 +49,7 @@ export function SuggestNote({ tag }: { tag: string }) {
         </div>
       )}
       <div className="flex gap-3 mt-4">
-        <button className="btn btn-primary flex-1 select-none" disabled={!note}
+        <button className="btn btn-primary flex-1 select-none" title="Shift+N" disabled={!note}
                 onPointerDown={startHold} onPointerUp={cancelHold} onPointerCancel={cancelHold} onPointerLeave={cancelHold}
                 onContextMenu={(e) => e.preventDefault()}>
           <Shuffle size={20} />Hold for next

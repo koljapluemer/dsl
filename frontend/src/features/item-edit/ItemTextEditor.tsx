@@ -13,11 +13,13 @@ type Props = {
   /** on Mod-s, and on blur unless `saveOnBlur` is false */
   onSave: () => void;
   saveOnBlur?: boolean;
+  /** on Mod-Enter */
+  onSubmit?: () => void;
   onPasteFile?: (file: File) => void;
 };
 
 /** An editor for item text, highlighted and linted as the item language. */
-export function ItemTextEditor({ initial, autofocus, onChange, onSave, saveOnBlur = true, onPasteFile }: Props) {
+export function ItemTextEditor({ initial, autofocus, onChange, onSave, saveOnBlur = true, onSubmit, onPasteFile }: Props) {
   const schema = useSchema();
   const extensions = useMemo(() => [
     ...dslExtensions(schema),
@@ -31,7 +33,7 @@ export function ItemTextEditor({ initial, autofocus, onChange, onSave, saveOnBlu
         if (file) { event.preventDefault(); onPasteFile(file); }
       } : undefined}
     >
-      <CodeMirrorHost initial={initial} extensions={extensions} autofocus={autofocus} onChange={onChange} onSave={onSave} />
+      <CodeMirrorHost initial={initial} extensions={extensions} autofocus={autofocus} onChange={onChange} onSave={onSave} onSubmit={onSubmit} />
     </div>
   );
 }

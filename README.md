@@ -18,13 +18,23 @@ Vite + React + TypeScript in `frontend/`, with TanStack Router (the list's filte
 
 ## Editing
 
-One [CodeMirror 6](https://codemirror.net) editor per item. A single pass over the text (`analyze` in `frontend/src/entities/item/dsl/analyze.ts`, mirroring `dsl.py`; tested against `spec/examples`) provides the highlighting (keywords, options and values by type, relationships, `data` and `extra` blocks, unknown keyword lines muted; hover for meanings) and inline lint for the errors and warnings of `spec/language.md`. Saved on blur or Ctrl+S.
+One [CodeMirror 6](https://codemirror.net) editor per item. A single pass over the text (`analyze` in `frontend/src/entities/item/dsl/analyze.ts`, mirroring `dsl.py`; tested against `spec/examples`) provides the highlighting (keywords, options and values by type, relationships, `data` and `extra` blocks, unknown keyword lines muted; hover for meanings) and inline lint for the errors and warnings of `spec/language.md`. Saved on blur or Ctrl+S; Ctrl+Enter saves and closes (see Keyboard).
 
 The list shows body and `extra` content as markdown (marked + DOMPurify), `data` blocks as highlighted code, relationships as links headed by the target's first line (a click scrolls to the target, paging and clearing the filter as needed), and only keyword lines in monospace with the editor's highlighting. Its order is shuffled per page load (a seed sent with each request), stable across paging and filtering.
 
 The list is filtered and paged on the server, so a folder of many items stays usable: `store.py` keeps each item's text and problem flags in memory and re-reads a file only when its mtime changes. The Tasks tab shows the items needing attention, then the other items with `tasks`, each in its own editor.
 
 New files are named `<slug of the first line>-<6 hex>.txt`; the name doesn't change when the text does. Other items refer to it by that name without `.txt` (`-> label @name`).
+
+## Keyboard
+
+`?` lists the shortcuts (`App.tsx`; the hook is `frontend/src/dumb/keys.ts`).
+
+- **Ctrl/⌘+Enter** saves and closes what's being edited, from any of its fields: the edit modal, the editor page and the source form (then back), the Questions editor, graph cards and edge labels. In a note picker it creates a new note even when a suggestion is highlighted.
+- **Esc** never saves or discards. It closes a modal, card or label editor only when nothing was edited; otherwise it shows a notice and does nothing (a click outside a modal does the same). In a filter field it just leaves the field.
+- Single keys, ignored while typing in a field, holding Ctrl/Alt/Meta, or with a modal open:
+  - `g` then a tab's key (in its tooltip) switches tab, `c` opens a new note, `/` focuses the filter or search, `u` undoes the change the toast offers.
+  - Notes: ←/→ page. Calendar: ←/→ a day (or the range's length), `t` today/this week, `a` add, `d`/`r` day/range view. Queue: `n` next. Questions: `s` skip, `e` edit, `d` disable. Suggest: Shift+N next.
 
 ## Semantic search
 
@@ -87,7 +97,7 @@ A port of `../dsl-graph`: notes as cards on a [React Flow](https://reactflow.dev
 - **Pins**: a pinned note shows the notes up to its depth (the chevrons beside the pin) relationships away, in either direction. Picking a search result pins it at depth 2. The badge under a card counts its related notes not on the canvas; a click shows them. Pins are kept under `graph` in the config file.
 - **Sidebar**: Search (the query syntax is behind the `?`: words match as prefixes, `"exact phrase"`, `/regex/ims`, `-exclude`, `OR`, parentheses, `file:`, `body:`, `extra:`), optionally only orphans or connected notes, and Recent (by modification time).
 - **Canvas**: right-click opens a quick search at the cursor; each pick pins a note, and it stays open for several picks. Double-click adds a note. Drag from a card's edge dot onto another card to relate them, or onto empty canvas for a new related note. Drag a card by its grip to move it; it keeps its spot while it's on the canvas.
-- **Cards**: edit the full text (Mod-Enter saves, Escape cancels; text with errors isn't saved), attach media, hide (tags it `no-graph`) or delete, both with undo. A click on an edge label edits or deletes its relationships (with undo).
+- **Cards**: edit the full text (Mod-Enter saves, Escape leaves an unedited card, ✕ discards; text with errors isn't saved), attach media, hide (tags it `no-graph`) or delete, both with undo. A click on an edge label edits or deletes its relationships (with undo).
 - The toolbar: add note, unpin all, pin a random orphan, open a random note or search result, pin all search results (the first 100, without neighbors), zoom and fit.
 
 The New/Edit forms, shared modal form, and Graph cards accept one image (downscaled to WebP) or short video by paste or upload. Attachments go into `images/` in the data folder as `<note>-<ms>.<ext>`; an attachment the app wrote is deleted when it is replaced or removed and no other note names it.

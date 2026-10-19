@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Plus } from 'lucide-react';
 import type { Suggestion } from '@/api/types';
+import { isSubmit } from '@/dumb/keys';
 import { useDebounced } from '@/dumb/useDebounced';
 import { searchQuery } from '@/entities/item/queries';
 
@@ -47,7 +48,8 @@ export function NotePicker({ exclude, busy, onPick, inputRef, compact }: Props) 
       setActive({ q, i: at <= 0 ? n - 1 : at - 1 });
     } else if (e.key === 'Enter') {
       e.preventDefault();
-      if (at >= 0 && at < n) void link(suggestions[at]);
+      // Mod-Enter: a new note even when a suggestion is highlighted
+      if (at >= 0 && at < n && !isSubmit(e)) void link(suggestions[at]);
       else createNew();
     } else if (e.key === 'Escape') {
       setDismissed(q);

@@ -1,6 +1,8 @@
 import { BaseEdge, EdgeLabelRenderer, getBezierPath, useInternalNode, type EdgeProps } from '@xyflow/react';
 import { X } from 'lucide-react';
 import { useState } from 'react';
+import { isSubmit } from '@/dumb/keys';
+import { showNotice, UNSAVED } from '@/dumb/notice';
 import { EDGE_OVERLAY_Z_INDEX, getEdgeParams } from './graph-edge-geometry';
 
 export interface PendingConnectionEdgeData extends Record<string, unknown> {
@@ -75,7 +77,11 @@ export function PendingConnectionEdge({ source, target, data }: EdgeProps) {
                 onKeyDown={(event) => {
                   event.stopPropagation();
                   if (event.key === 'Escape') {
-                    onCancel?.();
+                    if (label) showNotice(UNSAVED);
+                    else onCancel?.();
+                  } else if (isSubmit(event)) {
+                    event.preventDefault();
+                    void handleConfirm();
                   }
                 }}
                 placeholder="relation label"

@@ -7,7 +7,9 @@ import {
   type ClipboardEvent as ReactClipboardEvent,
   type KeyboardEvent as ReactKeyboardEvent,
 } from 'react';
+import { isSubmit } from '@/dumb/keys';
 import { MediaPreview } from '@/dumb/MediaPreview';
+import { showNotice, UNSAVED } from '@/dumb/notice';
 import { useMediaAttachment, type MediaAttachment } from '@/features/item-media/useMediaAttachment';
 import { NoteTextEditor } from './NoteTextEditor';
 import { isVideoFilename, mediaUrl } from '@/entities/item/media';
@@ -71,10 +73,21 @@ export function DraftNoteCard({
     return () => cancelAnimationFrame(frame);
   }, [mode]);
 
-  const handleFieldEscape = (event: ReactKeyboardEvent<HTMLInputElement>): void => {
+  const dirty = body !== initialText || label !== '' || reverse || image?.status === 'new' || (image === null) !== (initialImage === null);
+
+  /** Escape only leaves an unedited card; discarding edits is the ✕ button's. */
+  const handleEscape = (): void => {
+    if (dirty) showNotice(UNSAVED);
+    else onCancel();
+  };
+
+  const handleFieldKey = (event: ReactKeyboardEvent<HTMLInputElement | HTMLTextAreaElement>): void => {
     event.stopPropagation();
     if (event.key === 'Escape') {
-      onCancel();
+      handleEscape();
+    } else if (isSubmit(event)) {
+      event.preventDefault();
+      void handleSave();
     }
   };
 
@@ -166,7 +179,7 @@ export function DraftNoteCard({
           initialText={initialText}
           onChange={setBody}
           onSubmit={() => void handleSave()}
-          onCancel={onCancel}
+          onCancel={handleEscape}
           onPasteFile={(file) => void attachFile(file)}
         />
       ) : (
@@ -177,14 +190,7 @@ export function DraftNoteCard({
           value={body}
           onChange={(event) => setBody(event.target.value)}
           onPaste={(event) => void handlePaste(event)}
-          onKeyDown={(event) => {
-            event.stopPropagation();
-            if (event.key === 'Escape') {
-              onCancel();
-            } else if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) {
-              void handleSave();
-            }
-          }}
+          onKeyDown={handleFieldKey}
         />
       )}
 
@@ -196,7 +202,7 @@ export function DraftNoteCard({
               className="input input-sm w-full focus:border-primary/60"
               value={label}
               onChange={(event) => setLabel(event.target.value)}
-              onKeyDown={handleFieldEscape}
+              onKeyDown={handleFieldKey}
               placeholder="related"
             />
           </label>
@@ -207,7 +213,7 @@ export function DraftNoteCard({
               className="checkbox checkbox-xs"
               checked={reverse}
               onChange={(event) => setReverse(event.target.checked)}
-              onKeyDown={handleFieldEscape}
+              onKeyDown={handleFieldKey}
             />
             Reverse direction
           </label>

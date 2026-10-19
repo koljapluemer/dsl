@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { EyeOff, SkipForward } from 'lucide-react';
 import type { ItemView as View, QueueDraw } from '@/api/types';
 import { showError } from '@/dumb/errorBanner';
+import { useHotkeys } from '@/dumb/keys';
 import { offerUndo } from '@/dumb/undo';
 import { ItemView } from '@/entities/item/ItemView';
 import { itemsChanged, saveItem } from '@/entities/item/mutations';
@@ -14,6 +15,7 @@ export function QueuePage() {
   const n = drawCount.use();
   const { data, isFetching } = useQuery(drawQuery(n));
   const next = () => drawCount.set(n + 1);
+  useHotkeys({ n: () => { if (!isFetching && data?.total) next(); } });
 
   // the batch on screen loses the item, and gets it back in its place on undo
   async function hide(item: View, index: number) {
@@ -44,7 +46,7 @@ export function QueuePage() {
           </div>
         </Fragment>
       ))}
-      <button className="btn btn-primary w-full mt-6" disabled={isFetching || !data?.total} onClick={next}>
+      <button className="btn btn-primary w-full mt-6" title="n" disabled={isFetching || !data?.total} onClick={next}>
         <SkipForward size={20} />Next
       </button>
     </div>

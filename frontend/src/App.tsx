@@ -1,31 +1,62 @@
-import { useEffect } from 'react';
-import { Link, Outlet, useLocation, type ErrorComponentProps } from '@tanstack/react-router';
+import { useEffect, useState } from 'react';
+import { Link, Outlet, useLocation, useNavigate, type ErrorComponentProps } from '@tanstack/react-router';
 import { errorBanner } from './dumb/errorBanner';
+import { useHotkeys, type Bindings } from './dumb/keys';
+import { Modal } from './dumb/Modal';
+import { performUndo } from './dumb/undo';
 import { UndoToast } from './dumb/UndoToast';
 
+/** `key`: `g <key>` opens the tab */
 const TABS = [
-  { to: '/', label: 'Notes' },
-  { to: '/new', label: 'New' },
-  { to: '/graph', label: 'Graph' },
-  { to: '/tasks', label: 'Tasks' },
-  { to: '/projects', label: 'Projects' },
-  { to: '/sources', label: 'Sources' },
-  { to: '/questions', label: 'Questions' },
-  { to: '/calendar', label: 'Calendar' },
-  { to: '/queue', label: 'Queue' },
-  { to: '/float', label: 'Float' },
-  { to: '/zero', label: 'Zero' },
-  { to: '/suggest', label: 'Suggest' },
-  { to: '/settings', label: 'Settings' },
+  { to: '/', label: 'Notes', key: 'n' },
+  { to: '/new', label: 'New', key: 'w' },
+  { to: '/graph', label: 'Graph', key: 'g' },
+  { to: '/tasks', label: 'Tasks', key: 't' },
+  { to: '/projects', label: 'Projects', key: 'p' },
+  { to: '/sources', label: 'Sources', key: 's' },
+  { to: '/questions', label: 'Questions', key: 'q' },
+  { to: '/calendar', label: 'Calendar', key: 'c' },
+  { to: '/queue', label: 'Queue', key: 'u' },
+  { to: '/float', label: 'Float', key: 'f' },
+  { to: '/zero', label: 'Zero', key: 'z' },
+  { to: '/suggest', label: 'Suggest', key: 'x' },
+  { to: '/settings', label: 'Settings', key: ',' },
 ] as const;
+
+/** the `?` list; keep in line with the README's Keyboard section */
+const SHORTCUTS: [string, string][] = [
+  ['Ctrl+Enter', 'save and close what you edit'],
+  ['Esc', 'close, only when nothing was edited; leave a filter'],
+  ['Ctrl+S', 'save in an editor'],
+  ['g n, g g, …', 'go to a tab (its key is in the tab\'s tooltip)'],
+  ['c', 'new note'],
+  ['/', 'focus the filter or search'],
+  ['u', 'undo the last change offered'],
+  ['← →', 'Notes: page · Calendar: day or range'],
+  ['t · a · d · r', 'Calendar: today or this week · add · day view · range view'],
+  ['n', 'Queue: next'],
+  ['s · e · d', 'Questions: skip · edit · disable'],
+  ['N', 'Suggest: next'],
+  ['?', 'this list'],
+];
 
 /** the tab a path belongs to: the editor is part of Notes, the source form of Sources */
 const tabOf = (path: string) => (path.startsWith('/edit/') ? '/' : path.startsWith('/sources/') ? '/sources' : path);
 
 export function App() {
   const path = useLocation({ select: (l) => l.pathname });
+  const navigate = useNavigate();
   const error = errorBanner.use();
+  const [help, setHelp] = useState(false);
   useEffect(() => errorBanner.set(''), [path]);
+
+  const keys: Bindings = {
+    c: () => void navigate({ to: '/new' }),
+    u: () => void performUndo(),
+    '?': () => setHelp(true),
+  };
+  for (const t of TABS) keys[`g ${t.key}`] = () => void navigate({ to: t.to });
+  useHotkeys(keys);
 
   // the graph's canvas and the float stage take the whole window; the other pages a readable column
   const full = path === '/graph' || path === '/float';
@@ -36,10 +67,19 @@ export function App() {
       {error && <div role="alert" className="alert alert-error mb-4"><span>{error}</span></div>}
       <div role="tablist" className="tabs tabs-border mb-4 flex-nowrap overflow-x-auto">
         {TABS.map((t) => (
-          <Link key={t.to} to={t.to} role="tab" className={`tab ${tabOf(path) === t.to ? 'tab-active' : ''}`}>{t.label}</Link>
+          <Link key={t.to} to={t.to} role="tab" title={`g ${t.key}`} className={`tab ${tabOf(path) === t.to ? 'tab-active' : ''}`}>{t.label}</Link>
         ))}
       </div>
       <Outlet />
+      {help && (
+        <Modal onClose={() => setHelp(false)}>
+          <table className="table table-sm">
+            <tbody>
+              {SHORTCUTS.map(([k, what]) => <tr key={k}><td className="font-mono whitespace-nowrap">{k}</td><td>{what}</td></tr>)}
+            </tbody>
+          </table>
+        </Modal>
+      )}
     </div>
   );
 }

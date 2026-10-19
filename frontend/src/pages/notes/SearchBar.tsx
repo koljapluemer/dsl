@@ -1,4 +1,5 @@
 import type { SemanticStatus } from '@/api/types';
+import { blurOnEscape, useSlashFocus } from '@/dumb/keys';
 import { ModelDownload } from '@/features/model-download/ModelDownload';
 
 type Props = {
@@ -18,11 +19,12 @@ export function SearchBar({ q, semantic, status, onQuery, onToggleSemantic, onMo
     : status.indexed < status.total ? `Ranking the ${status.indexed} of ${status.total} notes embedded so far.`
     : '';
   const missing = semantic ? status?.missing_model : null;
+  const input = useSlashFocus();
 
   return (
     <div className="mb-4">
       <div className="flex items-center gap-3">
-        <input className="input w-full" type="search" value={q} onChange={(e) => onQuery(e.target.value)}
+        <input ref={input} onKeyDown={blurOnEscape} className="input w-full" type="search" value={q} onChange={(e) => onQuery(e.target.value)}
                placeholder={semantic ? 'Semantic search' : 'Filter'} autoFocus />
         <label className="label shrink-0 text-sm">
           <input type="checkbox" className="toggle toggle-sm" checked={semantic} onChange={onToggleSemantic} />semantic
