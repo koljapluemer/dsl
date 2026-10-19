@@ -399,6 +399,16 @@ def detach_item(name):
     return jsonify(store.detach(name, request.get_json(silent=True)))
 
 
+@app.get("/api/items/<name>/backlinks")
+def item_backlinks(name):
+    return jsonify(store.backlinks(name))
+
+
+@app.post("/api/items/<name>/backlinks")
+def add_item_backlink(name):
+    return jsonify(store.backlink(name, request.get_json(silent=True)))
+
+
 @app.delete("/api/items/<name>")
 def delete_item(name):
     store.delete(name)

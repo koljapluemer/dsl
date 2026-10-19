@@ -7,6 +7,7 @@ import { showError } from '@/dumb/errorBanner';
 import { itemsChanged } from '@/entities/item/mutations';
 import { itemQuery } from '@/entities/item/queries';
 import { useDeleteItem } from '@/features/item-delete/useDeleteItem';
+import { Backlinks } from '@/features/item-relate/Backlinks';
 import { EMPTY_FORM, blankValue, hasValue, isList, saveSource, sourceSchemaQuery, sourcesQuery, toForm, type SourceForm } from './sources';
 
 const DATE_PATTERN = String.raw`-?\d{4}(-\d{2}(-\d{2})?)?(/(-?\d{4}(-\d{2}(-\d{2})?)?)?)?`;
@@ -43,7 +44,7 @@ function Editor({ schema, source, onCreated }: { schema: SourceSchema; source: S
   const remove = useDeleteItem();
   const [form, setForm] = useState(() => (source ? toForm(source, schema) : EMPTY_FORM));
   const [added, setAdded] = useState<string[]>([]);
-  const [exists, setExists] = useState(!!source);
+  const [savedFile, setSavedFile] = useState(source?.file ?? null);
   const current = useRef(form);
   const file = useRef(source?.file ?? null);
   const saved = useRef(JSON.stringify(form));
@@ -63,7 +64,7 @@ function Editor({ schema, source, onCreated }: { schema: SourceSchema; source: S
       saved.current = JSON.stringify(now);
       if (!file.current) {
         file.current = s.file;
-        setExists(true);
+        setSavedFile(s.file);
         onCreated(s.file);
         void navigate({ to: '/sources/edit/$file', params: { file: s.file }, replace: true });
       }
@@ -89,7 +90,7 @@ function Editor({ schema, source, onCreated }: { schema: SourceSchema; source: S
     <div onBlur={() => void save()}>
       <div className="flex items-center gap-1 mb-4">
         <button className="btn btn-square" title="back" onClick={back}><ArrowLeft size={20} /></button>
-        {exists && <button className="btn btn-square btn-error btn-outline" title="delete" onClick={del}><Trash2 size={20} /></button>}
+        {savedFile && <button className="btn btn-square btn-error btn-outline" title="delete" onClick={del}><Trash2 size={20} /></button>}
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-2">
         <Field label="key">
@@ -116,6 +117,7 @@ function Editor({ schema, source, onCreated }: { schema: SourceSchema; source: S
         <option value="">+ field</option>
         {hidden.map((f) => <option key={f}>{f}</option>)}
       </select>
+      {savedFile && <div className="mt-6"><Backlinks file={savedFile} deleteItem={remove} /></div>}
     </div>
   );
 }

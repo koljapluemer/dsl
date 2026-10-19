@@ -14,10 +14,12 @@ type Props = {
   /** resolves once the pick is done; the field is cleared when it succeeds */
   onPick: (how: Pick) => Promise<boolean>;
   inputRef?: React.Ref<HTMLInputElement>;
+  /** small controls, for tight spots like table rows */
+  compact?: boolean;
 };
 
 /** A field whose text either picks an existing note (from search suggestions) or becomes a new one. */
-export function NotePicker({ exclude, busy, onPick, inputRef }: Props) {
+export function NotePicker({ exclude, busy, onPick, inputRef, compact }: Props) {
   const [text, setText] = useState('');
   const q = useDebounced(text.trim(), 120);
   const { data } = useQuery({ ...searchQuery(q, exclude), enabled: q.length >= 2 && !busy });
@@ -55,10 +57,10 @@ export function NotePicker({ exclude, busy, onPick, inputRef }: Props) {
   return (
     <div className="w-full">
       <div className="join w-full">
-        <input ref={inputRef} className="input join-item w-full" value={text} disabled={busy} placeholder="Search a note to link, or write a new one"
+        <input ref={inputRef} className={`input join-item w-full ${compact ? 'input-sm' : ''}`} value={text} disabled={busy} placeholder="Search a note to link, or write a new one"
                onChange={(e) => { setText(e.target.value); setDismissed(null); }} onKeyDown={keydown} />
-        <button className="btn join-item" disabled={busy || !text.trim()} title="create as new note" onClick={createNew}>
-          <Plus size={20} />New note
+        <button className={`btn join-item ${compact ? 'btn-sm' : ''}`} disabled={busy || !text.trim()} title="create as new note" onClick={createNew}>
+          <Plus size={compact ? 16 : 20} />{!compact && 'New note'}
         </button>
       </div>
       {suggestions.length > 0 && (
