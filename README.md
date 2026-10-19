@@ -92,6 +92,13 @@ A port of `../dsl-graph`: notes as cards on a [React Flow](https://reactflow.dev
 
 The New/Edit forms, shared modal form, and Graph cards accept one image (downscaled to WebP) or short video by paste or upload. Attachments go into `images/` in the data folder as `<note>-<ms>.<ext>`; an attachment the app wrote is deleted when it is replaced or removed and no other note names it.
 
+## Maintenance
+
+Settings → "maintenance" lists, then on Delete removes (without undo):
+
+- **past appointments**: valid `appointment` items dated before today (a month-only date counts once the month is over), with their attachments unless another note names them (`maintenance.py`). Recurring and broken items are kept.
+- **orphaned media**: image and video files in `images/` that no note names, in its `media` clause or anywhere else in its text.
+
 ## Spec
 
 The item language lives in `spec/`: `language.md` defines its syntax, `keywords.yaml` defines the available keywords, and `examples/` contains conformance cases. The Python and TypeScript parsers both run those local examples in their test suites. The Python parser reads `keywords.yaml` at startup and names no keyword itself.

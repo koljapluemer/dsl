@@ -11,6 +11,7 @@ import bibtex_import
 import fields
 import graph
 import llm
+import maintenance
 import questions
 import semantic
 import sources
@@ -322,6 +323,21 @@ def graph_relabel():
 def graph_delete_relation():
     graph.delete_relation(_json())
     return "", 204
+
+
+@app.get("/api/maintenance")
+def get_maintenance():
+    return jsonify(pastAppointments=maintenance.past_appointments(), orphanedMedia=maintenance.orphaned_media())
+
+
+@app.post("/api/maintenance/past-appointments")
+def delete_past_appointments():
+    return jsonify(deleted=maintenance.delete_past_appointments())
+
+
+@app.post("/api/maintenance/orphaned-media")
+def delete_orphaned_media():
+    return jsonify(deleted=maintenance.delete_orphaned_media())
 
 
 @app.get("/api/media/<path:rel>")
