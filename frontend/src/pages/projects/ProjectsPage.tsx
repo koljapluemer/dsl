@@ -39,14 +39,41 @@ function useDelete() {
   };
 }
 
+const OPEN_KEY = 'projects-open';
+
+/** Files of the expanded projects; storage can be unavailable or hold garbage, then all start collapsed. */
+function readOpen(): Set<string> {
+  try {
+    const parsed: unknown = JSON.parse(localStorage.getItem(OPEN_KEY) ?? '[]');
+    return new Set(Array.isArray(parsed) ? parsed.filter((f) => typeof f === 'string') : []);
+  } catch {
+    return new Set();
+  }
+}
+
+/** Remembers which projects are expanded across reloads. */
+function useOpenProjects() {
+  const [openFiles, setOpenFiles] = useState(readOpen);
+  const toggle = (file: string, isOpen: boolean) => {
+    if (openFiles.has(file) === isOpen) return;
+    const next = new Set(openFiles);
+    if (isOpen) next.add(file); else next.delete(file);
+    setOpenFiles(next);
+    try { localStorage.setItem(OPEN_KEY, JSON.stringify([...next])); } catch { /* not worth surfacing */ }
+  };
+  return { openFiles, toggle };
+}
+
 type Handlers = { onOpen: (file: string) => void; onAdd: (initial: string) => void; onDelete: (file: string) => void };
 
 function Lists({ projects: data, onOpen: open, onAdd: add, onDelete: del }: { projects: Projects } & Handlers) {
+  const { openFiles, toggle } = useOpenProjects();
   return (
     <>
       {!data.projects.length && <p className="text-base-content/50">No projects.</p>}
       {data.projects.map((p) => (
-        <details key={p.file} className="collapse collapse-arrow border border-base-300 mb-2">
+        <details key={p.file} className="collapse collapse-arrow border border-base-300 mb-2"
+                 open={openFiles.has(p.file)} onToggle={(e) => toggle(p.file, e.currentTarget.open)}>
           <summary className="collapse-title font-semibold">
             {p.heading || p.file} <span className="text-base-content/50 font-normal">({p.issues.length})</span>
           </summary>
