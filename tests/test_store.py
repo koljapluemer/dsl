@@ -329,16 +329,30 @@ def test_projects(data_dir):
     store.create({"file": "j.txt", "text": "Both\nissue\n-> project @p\n-> project @q"})
     store.create({"file": "k.txt", "text": "Wrong label\nissue\n-> blocks @p"})
     store.create({"file": "l.txt", "text": "Not a project\nissue\n-> project @n"})
+    store.create({"file": "m.txt", "text": "Sketch it\nissue\n-> project @p\ntags suggest-think-and-sketch"})
     store.create({"file": "n.txt", "text": "plain"})
     assert store.projects() == {
         "projects": [
-            {"file": "q.txt", "heading": "Archive", "issues": [{"file": "j.txt", "heading": "Both"}]},
+            {"file": "q.txt", "heading": "Archive", "issues": [{"file": "j.txt", "heading": "Both", "think": False}]},
             {"file": "p.txt", "heading": "Website", "issues": [
-                {"file": "j.txt", "heading": "Both"}, {"file": "i.txt", "heading": "Login"},
+                {"file": "m.txt", "heading": "Sketch it", "think": True},
+                {"file": "j.txt", "heading": "Both", "think": False},
+                {"file": "i.txt", "heading": "Login", "think": False},
             ]},
         ],
-        "orphans": [{"file": "l.txt", "heading": "Not a project"}, {"file": "k.txt", "heading": "Wrong label"}],
+        "orphans": [
+            {"file": "l.txt", "heading": "Not a project", "think": False},
+            {"file": "k.txt", "heading": "Wrong label", "think": False},
+        ],
     }
+
+
+def test_set_think(data_dir):
+    store.create({"file": "i.txt", "text": "Login\nissue\ntags x"})
+    store.set_think("i.txt", True)
+    assert store.get("i.txt")["text"].rstrip("\n") == "Login\nissue\ntags x suggest-think-and-sketch"
+    store.set_think("i.txt", False)
+    assert store.get("i.txt")["text"].rstrip("\n") == "Login\nissue\ntags x"
 
 
 def test_media_path(data_dir):

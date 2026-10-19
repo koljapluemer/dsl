@@ -38,7 +38,8 @@ export type QueueDraw = { items: ItemView[]; total: number };
 export type SuggestPick = { item: ItemView | null };
 /** when an item falls: on one ISO date, or every weekday (1 = Mon .. 7 = Sun) up to `until` inclusive */
 export type When = { appointment: string } | { recurring: number; until: string | null };
-export type ProjectIssue = { file: string; heading: string };
+/** `think`: to think about (and sketch) rather than build, tagged `suggest-think-and-sketch` */
+export type ProjectIssue = { file: string; heading: string; think: boolean };
 export type Project = { file: string; heading: string; issues: ProjectIssue[] };
 /** `orphans`: issues without a `project` relationship to a project */
 export type Projects = { projects: Project[]; orphans: ProjectIssue[] };

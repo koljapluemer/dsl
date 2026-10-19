@@ -214,6 +214,12 @@ def projects():
     return jsonify(store.projects())
 
 
+@app.put("/api/projects/think/<name>")
+def projects_think(name):
+    store.set_think(name, bool((request.get_json(silent=True) or {}).get("think")))
+    return "", 204
+
+
 @app.get("/api/sources")
 def list_sources():
     return jsonify(sources.listing())

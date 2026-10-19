@@ -668,7 +668,9 @@ def projects() -> dict:
     issues belonging to none (see views.PROJECT_RELATION)."""
     entries = _INDEX.refresh()
     ref = lambda name: {"file": name, "heading": entries[name].heading}
+    issue = lambda name: ref(name) | {"think": views.THINK_TAG in entries[name].tags}
     by_heading = lambda r: (r["heading"].lower(), r["file"])
+    thinks_first = lambda r: (not r["think"], *by_heading(r))
     owned: dict[str, list[dict]] = {n: [] for n, e in entries.items() if e.primary == views.PROJECT_KEYWORD}
     orphans = []
     for name, e in entries.items():
@@ -676,14 +678,21 @@ def projects() -> dict:
             continue
         targets = {t for label, t in e.rels if label == views.PROJECT_RELATION and t in owned}
         for t in targets:
-            owned[t].append(ref(name))
+            owned[t].append(issue(name))
         if not targets:
-            orphans.append(ref(name))
+            orphans.append(issue(name))
     return {
         "projects": sorted(
-            (ref(n) | {"issues": sorted(issues, key=by_heading)} for n, issues in owned.items()), key=by_heading),
-        "orphans": sorted(orphans, key=by_heading),
+            (ref(n) | {"issues": sorted(issues, key=thinks_first)} for n, issues in owned.items()), key=by_heading),
+        "orphans": sorted(orphans, key=thinks_first),
     }
+
+
+def set_think(name: str, think: bool) -> None:
+    """Tags the issue views.THINK_TAG, or untags it."""
+    text = get(name)["text"]
+    change = questions.add_tag if think else questions.remove_tag
+    update(name, {"text": change(SCHEMA, text, views.THINK_TAG)})
 
 
 def media_path(rel: str) -> Path:

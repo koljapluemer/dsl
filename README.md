@@ -50,7 +50,7 @@ Ports of the `../dsl-mobile` apps calendar, queue and zero, of `../floating-note
 
 ## Projects
 
-`project` and `issue` items (`store.projects`). An issue belongs to the projects its `-> project @<name>` relationships point to; issues belonging to none are listed below the projects. Each project is collapsible, with its issues by heading; a click on one opens it in the editor in a modal (with delete). `+ Project` adds a project; a project's `+ Issue` adds an issue, prefilled with `issue` and its relationship to the project.
+`project` and `issue` items (`store.projects`). An issue belongs to the projects its `-> project @<name>` relationships point to; issues belonging to none are listed below the projects. Each project is collapsible, with its issues by heading; issues to think about (and sketch) rather than build come first, tinted. An issue's bulb/hammer button flips it between the two by adding or removing the tag `suggest-think-and-sketch` (`views.THINK_TAG`; as a `suggest-` tag it also shows up in Suggest and is hidden where those are). A click on one opens it in the editor in a modal (with delete). `+ Project` adds a project; a project's `+ Issue` adds an issue, prefilled with `issue` and its relationship to the project.
 
 ## Sources
 

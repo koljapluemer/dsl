@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Pencil, Plus, Trash2 } from 'lucide-react';
+import { Hammer, Lightbulb, Pencil, Plus, Trash2 } from 'lucide-react';
 import type { ProjectIssue, Projects } from '@/api/types';
 import { showError } from '@/dumb/errorBanner';
+import { itemsChanged } from '@/entities/item/mutations';
 import { itemQuery } from '@/entities/item/queries';
 import { useDeleteItem } from '@/features/item-delete/useDeleteItem';
 import { ItemModal } from '@/meta/item-form/ItemModal';
-import { NEW_PROJECT, newIssue, projectsQuery } from './projects';
+import { NEW_PROJECT, newIssue, projectsQuery, setThink } from './projects';
 
 /** The modal: an item to edit, or a new one starting as `initial`. */
 type Editing = { file: string | null; initial: string; key: number };
@@ -99,13 +100,24 @@ function Lists({ projects: data, onOpen: open, onAdd: add, onDelete: del }: { pr
   );
 }
 
+/** Issues to think about come first (the backend's order), tinted; the bulb/hammer flips an issue between think and build. */
 function IssueList({ issues, onOpen, onDelete }: { issues: ProjectIssue[] } & Omit<Handlers, 'onAdd'>) {
+  const qc = useQueryClient();
+  const flip = async (i: ProjectIssue) => {
+    try {
+      await setThink(i.file, !i.think);
+      await itemsChanged(qc);
+    } catch (e) { showError(e); }
+  };
   if (!issues.length) return <p className="text-sm text-base-content/50">No issues.</p>;
   return (
     <ul className="list">
       {issues.map((i) => (
-        <li key={i.file} className="list-row py-1 items-center cursor-pointer hover:bg-base-200" onClick={() => onOpen(i.file)}>
+        <li key={i.file} className={`list-row py-1 items-center cursor-pointer hover:bg-base-200 ${i.think ? 'bg-info/10' : ''}`} onClick={() => onOpen(i.file)}>
           <span className="list-col-grow">{i.heading || i.file}</span>
+          <button className={`btn btn-ghost btn-xs btn-square ${i.think ? 'text-info' : 'text-base-content/40'}`}
+                  title={i.think ? 'think about this' : 'build this'}
+                  onClick={(e) => { e.stopPropagation(); void flip(i); }}>{i.think ? <Lightbulb size={14} /> : <Hammer size={14} />}</button>
           <button className="btn btn-ghost btn-xs btn-square text-error" title="delete"
                   onClick={(e) => { e.stopPropagation(); onDelete(i.file); }}><Trash2 size={14} /></button>
         </li>

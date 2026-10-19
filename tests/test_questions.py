@@ -36,6 +36,16 @@ def test_add_tag_extends_existing_tags_line():
     assert questions.add_tag(SCHEMA, out, "no-questions") == out
 
 
+@pytest.mark.parametrize("text, out", [
+    ("a\ntags x t y\n", "a\ntags x y\n"),
+    ("a\ntags t\nrecurring mo\n", "a\nrecurring mo\n"),
+    ("a\ntags x\n", "a\ntags x\n"),
+    ("a\n", "a\n"),
+])
+def test_remove_tag(text, out):
+    assert questions.remove_tag(SCHEMA, text, "t") == out
+
+
 @pytest.mark.parametrize("text", ["a > b", "a > b\nextra\nlong\n", "a > b\n-> r @x"])
 def test_add_tag_appends_tags_line(text):
     doc = parse(questions.add_tag(SCHEMA, text, "no-questions"))
