@@ -5,6 +5,7 @@ import { showError } from '@/dumb/errorBanner';
 import { saveSettings, settingsQuery } from '@/entities/settings/queries';
 import { BibtexSettings } from './BibtexSettings';
 import { LlmSettings } from './LlmSettings';
+import { MaintenanceSettings } from './MaintenanceSettings';
 
 export function SettingsPage() {
   const qc = useQueryClient();
@@ -31,6 +32,7 @@ export function SettingsPage() {
       </fieldset>
       <LlmSettings />
       {path && <BibtexSettings />}
+      {path && <MaintenanceSettings />}
     </div>
   );
 }

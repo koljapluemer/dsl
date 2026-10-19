@@ -28,7 +28,9 @@ export type Answered = Item & { target: Suggestion };
 
 /** `bibtex`: the .bib export targets, each with its last export's error */
 export type Settings = { path: string | null; bibtex: { path: string; error: string | null }[] };
-export type LlmInfo = { available: boolean; reason: string | null; url: string; default_url: string };
+/** what Settings → maintenance would delete */
+export type Maintenance = { pastAppointments: { file: string; heading: string; date: string }[]; orphanedMedia: string[] };
+export type LlmInfo ={ available: boolean; reason: string | null; url: string; default_url: string };
 
 /** an item with what the queue, zero and suggest views show of it; `media` is a path in the data folder */
 export type ItemView = Item & { heading: string; body: string; extra: string | null; media: string | null };
