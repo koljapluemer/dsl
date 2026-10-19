@@ -7,15 +7,17 @@ import { showError } from '@/dumb/errorBanner';
 import { ItemOverview } from '@/entities/item/ItemOverview';
 import { ItemTextEditor } from '@/features/item-edit/ItemTextEditor';
 import { useAutosave } from '@/features/item-edit/useAutosave';
+import { useDeleteItem } from '@/features/item-delete/useDeleteItem';
+import { Relationships } from '@/features/item-relate/Relationships';
 import { ModelDownload } from '@/features/model-download/ModelDownload';
 import { QuestionAnswer } from './QuestionAnswer';
-import { Relationships } from './Relationships';
-import { disable, fetchNote, nextNote, pickQuery } from './questions';
+import { disable, nextNote, pickQuery } from './questions';
 
 /** A random loosely-linked note and the questions picked for it. */
 export function QuestionsPage() {
   const qc = useQueryClient();
   const navigate = useNavigate();
+  const deleteItem = useDeleteItem();
   const [note, setNote] = useState<{ item: Item | null; total: number } | null>(null);
   const item = note?.item ?? null;
   const [editing, setEditing] = useState(false);
@@ -28,9 +30,8 @@ export function QuestionsPage() {
   const { change, save, reset } = useAutosave({
     file: null,
     saved: '',
-    onSaved: async (saved) => {
-      const fresh = await fetchNote(saved.file);
-      if (shownFile.current === saved.file) setNote((n) => n && { ...n, item: fresh });
+    onSaved: (saved) => {
+      if (shownFile.current === saved.file) setNote((n) => n && { ...n, item: saved });
     },
   });
 
@@ -110,7 +111,7 @@ export function QuestionsPage() {
         {picked?.questions.map((q) => (
           <QuestionAnswer key={item.file + ':' + q.id} file={item.file} question={q} flush={save} onAnswered={(res) => show(res)} />
         ))}
-        <Relationships item={item} flush={save} onChanged={(i) => show(i)} />
+        <Relationships item={item} flush={save} onChanged={(i) => show(i)} deleteItem={deleteItem} />
       </div>
     </div>
   );

@@ -6,45 +6,47 @@ import type { Item } from '@/api/types';
 import { showError } from '@/dumb/errorBanner';
 import { outline } from '@/entities/item/dsl/outline';
 import { isRelationLine, relation } from '@/entities/item/dsl/relation';
-import { itemsChanged } from '@/entities/item/mutations';
+import { detachItem, itemsChanged, relateItem } from '@/entities/item/mutations';
+import { itemQuery } from '@/entities/item/queries';
 import { useSchema } from '@/entities/item/schema';
-import { useDeleteItem } from '@/features/item-delete/useDeleteItem';
 import { NotePicker, type Pick } from './NotePicker';
-import { detach, fetchNote, relate } from './questions';
 
 type Props = {
-  item: Item;
-  /** resolves once pending edits of the note are saved */
-  flush: () => Promise<void>;
+  /** null for a new note not saved yet */
+  item: Item | null;
+  /** resolves to the note's file once pending edits are saved, null when there's no note yet */
+  flush: () => Promise<string | null>;
   onChanged: (note: Item) => void;
+  /** deletes a target; resolves to whether it was deleted */
+  deleteItem: (item: Item) => Promise<boolean>;
 };
 
 /**
  * The note's relationships, each detachable and its target deletable, then
  * one empty group for another relationship with any label.
  */
-export function Relationships({ item, flush, onChanged }: Props) {
+export function Relationships({ item, flush, onChanged, deleteItem }: Props) {
   const qc = useQueryClient();
   const navigate = useNavigate();
   const schema = useSchema();
-  const deleteItem = useDeleteItem();
   const [busy, setBusy] = useState(false);
   const [label, setLabel] = useState('');
   const picker = useRef<HTMLInputElement>(null);
 
-  const { lines, parts } = outline(schema, item.text.trimEnd());
+  const { lines, parts } = outline(schema, (item?.text ?? '').trimEnd());
   const relations = parts.flatMap(({ line, keyword }) => {
     const trimmed = lines[line].trim();
     const rel = !keyword && isRelationLine(trimmed) && relation(trimmed);
     return rel ? [{ line, ...rel }] : [];
   });
 
-  /** Runs `write` on the saved note; resolves to whether it succeeded. */
-  async function run(write: () => Promise<Item>) {
+  /** Runs `write` on the saved note's file; resolves to whether it succeeded. */
+  async function run(write: (file: string) => Promise<Item>) {
     setBusy(true);
     try {
-      await flush();
-      onChanged(await write());
+      const file = await flush();
+      if (!file) throw new Error('Write the note first');
+      onChanged(await write(file));
       await itemsChanged(qc, false);
       return true;
     } catch (e) {
@@ -54,23 +56,23 @@ export function Relationships({ item, flush, onChanged }: Props) {
   }
 
   async function add(how: Pick) {
-    const done = await run(() => relate(item.file, { label, ...how }));
+    const done = await run((file) => relateItem(file, { label, ...how }));
     if (done) setLabel('');
     return done;
   }
 
-  const unlink = (rel: { label: string; target: string }) => run(() => detach(item.file, rel));
+  const unlink = (rel: { label: string; target: string }) => run((file) => detachItem(file, rel));
 
-  const remove = (rel: { label: string; target: string }) => run(async () => {
-    if (!await deleteItem(await fetchNote(rel.target + '.txt'))) throw new Error(`${rel.target} not deleted`);
-    return detach(item.file, rel);
+  const remove = (rel: { label: string; target: string }) => run(async (file) => {
+    if (!await deleteItem(await qc.fetchQuery(itemQuery(rel.target + '.txt')))) throw new Error(`${rel.target} not deleted`);
+    return detachItem(file, rel);
   });
 
   return (
     <div>
       <p className="font-medium mb-1">Relationships</p>
       {relations.map((rel) => {
-        const heading = item.refs?.[rel.target];
+        const heading = item?.refs?.[rel.target];
         const file = rel.target + '.txt';
         return (
           <div key={rel.line} className="flex items-center gap-1 text-sm">
@@ -91,7 +93,7 @@ export function Relationships({ item, flush, onChanged }: Props) {
         <input className="input w-48 shrink-0" value={label} disabled={busy} placeholder="label"
                onChange={(e) => setLabel(e.target.value)}
                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); picker.current?.focus(); } }} />
-        <NotePicker exclude={[item.file, ...relations.map((r) => r.target + '.txt')]} busy={busy} onPick={add} inputRef={picker} />
+        <NotePicker exclude={[...(item ? [item.file] : []), ...relations.map((r) => r.target + '.txt')]} busy={busy} onPick={add} inputRef={picker} />
       </div>
     </div>
   );

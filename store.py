@@ -511,8 +511,13 @@ def random_candidate(exclude: list[str] = ()) -> dict:
     return {"item": item, "total": len(names)}
 
 
+def with_refs(item: dict) -> dict:
+    """The item with `refs` (see _with_refs)."""
+    return _with_refs(item, _INDEX.refresh())
+
+
 def get_with_refs(name: str) -> dict:
-    return _with_refs(get(name), _INDEX.refresh())
+    return with_refs(get(name))
 
 
 def answer(name: str, body: dict) -> dict:
