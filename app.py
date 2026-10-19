@@ -151,6 +151,16 @@ def answer_question(name):
     return jsonify(store.answer(name, request.get_json(silent=True)))
 
 
+@app.post("/api/questions/relate/<name>")
+def relate_note(name):
+    return jsonify(store.relate(name, request.get_json(silent=True)))
+
+
+@app.post("/api/questions/detach/<name>")
+def detach_note(name):
+    return jsonify(store.detach(name, request.get_json(silent=True)))
+
+
 @app.post("/api/questions/disable/<name>")
 def disable_questions(name):
     store.disable(name)

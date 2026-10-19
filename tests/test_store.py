@@ -191,6 +191,30 @@ def test_answer_links_existing_and_new(data_dir):
         store.answer("a.txt", {"qid": "solves", "text": " "})
 
 
+def test_relate_with_any_label(data_dir):
+    store.create({"file": "a.txt", "text": "a > b"})
+    store.create({"file": "x.txt", "text": "X person"})
+    res = store.relate("a.txt", {"label": " knows ", "target": "x.txt"})
+    assert res["refs"] == {"x": "X person"}
+    res = store.relate("a.txt", {"label": "", "text": "Other"})
+    new = res["target"]["file"]
+    assert (data_dir / "a.txt").read_text() == f"a > b\n-> knows @x\n-> @{new[:-4]}\n"
+    with pytest.raises(store.ValidationError):
+        store.relate("a.txt", {"label": "a\nb", "target": "x.txt"})
+    with pytest.raises(store.ValidationError):
+        store.relate("a.txt", {"target": "x.txt"})
+
+
+def test_detach_removes_first_match(data_dir):
+    store.create({"file": "a.txt", "text": "a > b\n-> knows @x\n-> @x\n-> knows @x\n"})
+    res = store.detach("a.txt", {"label": "knows", "target": "x"})
+    assert res["text"] == "a > b\n-> @x\n-> knows @x\n"
+    res = store.detach("a.txt", {"label": "", "target": "x"})
+    assert res["text"] == "a > b\n-> knows @x\n"
+    with pytest.raises(store.NotFound):
+        store.detach("a.txt", {"label": "other", "target": "x"})
+
+
 def test_disable(data_dir):
     store.create({"file": "a.txt", "text": "a > b"})
     store.disable("a.txt")

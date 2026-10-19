@@ -516,23 +516,51 @@ def get_with_refs(name: str) -> dict:
 
 
 def answer(name: str, body: dict) -> dict:
-    """Links the note to the answer of question `qid`: to the existing note
-    `target` (a file name), or to a new note with `text`. Returns the updated
-    note with refs, and `target` as `{file, heading}`."""
+    """Links the note to the answer of question `qid` (see _relate)."""
     body = body if isinstance(body, dict) else {}
     q = questions.by_id(body.get("qid") or "")
     if q is None:
         raise ValidationError(f"unknown question '{body.get('qid')}'")
+    return _relate(name, q["label"], body)
+
+
+def relate(name: str, body: dict) -> dict:
+    """Links the note under any `label`, possibly empty (see _relate)."""
+    body = body if isinstance(body, dict) else {}
+    label = body.get("label")
+    if not isinstance(label, str) or "\n" in label:
+        raise ValidationError("invalid relationship label")
+    return _relate(name, label.strip(), body)
+
+
+def _relate(name: str, label: str, body: dict) -> dict:
+    """Links the note to the existing note `target` (a file name), or to a new
+    note with `text`. Returns the updated note with refs, and `target` as
+    `{file, heading}`."""
     note = get(name)
     if body.get("target"):
         target = get(body["target"])
     else:
         target = create({"text": body.get("text")})
-    updated = update(name, {"text": questions.add_relation(note["text"], q["label"], target["file"].removesuffix(".txt"))})
+    updated = update(name, {"text": questions.add_relation(note["text"], label, target["file"].removesuffix(".txt"))})
     return {
         **_with_refs(updated, _INDEX.refresh()),
         "target": {"file": target["file"], "heading": dsl.parse(SCHEMA, target["text"]).heading},
     }
+
+
+def detach(name: str, body: dict) -> dict:
+    """Removes the note's first relationship with `label` ("" for none) to
+    `target` (a name without .txt). Returns the updated note with refs."""
+    body = body if isinstance(body, dict) else {}
+    note = get(name)
+    rel = next((r for r in dsl.parse(SCHEMA, note["text"]).relations
+                if (r.label or "") == body.get("label") and r.target == body.get("target")), None)
+    if rel is None:
+        raise NotFound("relationship")
+    lines = note["text"].split("\n")
+    del lines[rel.line - 1]
+    return _with_refs(update(name, {"text": "\n".join(lines)}), _INDEX.refresh())
 
 
 def disable(name: str) -> None:

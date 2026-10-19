@@ -19,5 +19,13 @@ export const pickQuery = (file: string) => queryOptions({
 export const answer = (file: string, qid: string, how: { target: string } | { text: string }) =>
   api<Answered>('POST', `/api/questions/answer/${enc(file)}`, { qid, ...how });
 
+/** Links the note to `target` (a file) or to a new note with `text`, under any `label` ('' for none). */
+export const relate = (file: string, body: { label: string } & ({ target: string } | { text: string })) =>
+  api<Answered>('POST', `/api/questions/relate/${enc(file)}`, body);
+
+/** Removes the note's first relationship with `label` ('' for none) to `target` (a name without .txt). */
+export const detach = (file: string, rel: { label: string; target: string }) =>
+  api<Item>('POST', `/api/questions/detach/${enc(file)}`, { label: rel.label, target: rel.target });
+
 /** Tags the note so it's never asked about again. */
 export const disable = (file: string) => api<null>('POST', `/api/questions/disable/${enc(file)}`);
