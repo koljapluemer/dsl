@@ -248,6 +248,19 @@ def test_queue_skips_hidden_types_and_tags(data_dir):
         assert [i["file"] for i in res["items"]] == ["c.txt"] and res["total"] == 1
 
 
+def test_float_skips_hidden_and_filters(data_dir):
+    store.create({"file": "a.txt", "text": "a apple\nappointment 26-08-29"})
+    store.create({"file": "b.txt", "text": "b apple"})
+    store.create({"file": "c.txt", "text": "c Apple"})
+    store.create({"file": "d.txt", "text": "d pear"})
+    store.hide("b.txt", views.FLOAT_HIDING)
+    assert store.get("b.txt")["text"] == "b apple\ntags no-float\n"
+    res = store.float_draw(" apple")
+    assert [i["file"] for i in res["items"]] == ["c.txt"] and res["total"] == 1
+    assert sorted(i["file"] for i in store.float_draw()["items"]) == ["c.txt", "d.txt"]
+    assert store.queue_draw()["total"] == 3
+
+
 def test_zero_items(data_dir):
     store.create({"file": "a.txt", "text": "a\ntags zero"})
     store.create({"file": "b.txt", "text": "b\ntags zeros"})

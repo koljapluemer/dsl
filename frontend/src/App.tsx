@@ -14,6 +14,7 @@ const TABS = [
   { to: '/questions', label: 'Questions' },
   { to: '/calendar', label: 'Calendar' },
   { to: '/queue', label: 'Queue' },
+  { to: '/float', label: 'Float' },
   { to: '/zero', label: 'Zero' },
   { to: '/suggest', label: 'Suggest' },
   { to: '/settings', label: 'Settings' },
@@ -27,8 +28,8 @@ export function App() {
   const error = errorBanner.use();
   useEffect(() => errorBanner.set(''), [path]);
 
-  // the graph's canvas takes the whole window; the other pages a readable column
-  const full = path === '/graph';
+  // the graph's canvas and the float stage take the whole window; the other pages a readable column
+  const full = path === '/graph' || path === '/float';
 
   return (
     <div className={full ? 'flex h-screen flex-col px-4 pt-4' : 'max-w-5xl mx-auto p-4'}>

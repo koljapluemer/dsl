@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate, useSearch } from '@tanstack/react-router';
-import { AppointmentModal } from './AppointmentModal';
+import { useDeleteItem } from '@/features/item-delete/useDeleteItem';
+import { ItemModal } from '@/features/item-edit/ItemModal';
 import { calendarQuery } from './calendar';
 import { addDays, startOfWeek, toDsl, today, type Day } from './dates';
 import { DayView } from './DayView';
@@ -17,6 +18,7 @@ export function CalendarPage() {
   const search = useSearch({ strict: false }) as CalendarSearch;
   const { data } = useQuery(calendarQuery);
   const [editing, setEditing] = useState<Editing | null>(null);
+  const remove = useDeleteItem();
 
   const now = today();
   const day = search.day ?? now;
@@ -35,7 +37,7 @@ export function CalendarPage() {
       {data && (search.view === 'range'
         ? <RangeView entries={data} from={from} to={to} onRange={(f, t) => set({ from: f, to: t })} onOpen={open} onAdd={add} />
         : <DayView entries={data} day={day} onDay={(d) => set({ day: d === now ? undefined : d })} onOpen={open} onAdd={add} />)}
-      {editing && <AppointmentModal key={editing.key} file={editing.file} initial={editing.initial} onClose={() => setEditing(null)} />}
+      {editing && <ItemModal key={editing.key} file={editing.file} initial={editing.initial} refresh={calendarQuery.queryKey} onDelete={remove} onClose={() => setEditing(null)} />}
     </div>
   );
 }

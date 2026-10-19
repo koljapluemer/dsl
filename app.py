@@ -176,6 +176,17 @@ def queue_hide(name):
     return "", 204
 
 
+@app.get("/api/float")
+def float_draw():
+    return jsonify(store.float_draw(request.args.get("q", "")))
+
+
+@app.post("/api/float/hide/<name>")
+def float_hide(name):
+    store.hide(name, views.FLOAT_HIDING)
+    return "", 204
+
+
 @app.get("/api/zero")
 def zero_items():
     return jsonify(store.zero_items())

@@ -33,6 +33,6 @@ def test_view_media_only_images_and_videos():
 
 
 def test_hidings_name_real_types_and_valid_tags():
-    for h in (views.QUEUE_HIDING, views.GRAPH_HIDING):
+    for h in (views.QUEUE_HIDING, views.FLOAT_HIDING, views.GRAPH_HIDING):
         assert all(store.SCHEMA["keywords"][t]["role"] == "primary" for t in h.types)
         assert all(dsl.is_tag(t) for t in {h.tag, *h.tags})

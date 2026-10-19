@@ -1,0 +1,16 @@
+/* the stage is a container, so cards can travel its full width */
+.float-stage { container-type: inline-size; }
+.float-card {
+  position: absolute;
+  left: 0;
+  animation: float-across linear forwards;
+  will-change: transform;
+  backface-visibility: hidden;
+}
+.float-card:hover, .float-stage.paused .float-card { animation-play-state: paused; }
+@keyframes float-across {
+  from { transform: translateX(-16rem); opacity: 0; }
+  8% { opacity: 1; }
+  92% { opacity: 1; }
+  to { transform: translateX(100cqw); opacity: 0; }
+}

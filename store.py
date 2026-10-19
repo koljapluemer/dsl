@@ -569,6 +569,7 @@ def _view(name: str) -> dict:
 
 
 QUEUE_SIZE = 3
+FLOAT_BATCH = 20
 
 
 def hide(name: str, hiding: views.Hiding) -> None:
@@ -577,11 +578,23 @@ def hide(name: str, hiding: views.Hiding) -> None:
     update(name, {"text": questions.add_tag(SCHEMA, note["text"], hiding.tag)})
 
 
+def _draw(hiding: views.Hiding, size: int, q: str = "") -> dict:
+    """Up to `size` random items `hiding` doesn't hide whose text contains `q`;
+    `total` counts all of those."""
+    needle = q.strip().lower()
+    names = sorted(n for n, e in _INDEX.refresh().items()
+                   if not hiding.hides(e.primary, e.tags) and needle in e.lower)
+    return {"items": [_view(n) for n in random.sample(names, min(size, len(names)))], "total": len(names)}
+
+
 def queue_draw() -> dict:
-    """Up to QUEUE_SIZE random items views.QUEUE_HIDING doesn't hide; `total`
-    counts those it doesn't hide."""
-    names = sorted(n for n, e in _INDEX.refresh().items() if not views.QUEUE_HIDING.hides(e.primary, e.tags))
-    return {"items": [_view(n) for n in random.sample(names, min(QUEUE_SIZE, len(names)))], "total": len(names)}
+    """Up to QUEUE_SIZE random items views.QUEUE_HIDING doesn't hide."""
+    return _draw(views.QUEUE_HIDING, QUEUE_SIZE)
+
+
+def float_draw(q: str = "") -> dict:
+    """Up to FLOAT_BATCH random items views.FLOAT_HIDING doesn't hide, containing `q`."""
+    return _draw(views.FLOAT_HIDING, FLOAT_BATCH, q)
 
 
 def zero_items() -> list[dict]:

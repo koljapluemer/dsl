@@ -6,6 +6,7 @@ import { settingsQuery } from './entities/settings/queries';
 import { CalendarPage } from './pages/calendar/CalendarPage';
 import { validateCalendarSearch } from './pages/calendar/search';
 import { EditPage } from './pages/edit/EditPage';
+import { FloatPage } from './pages/float/FloatPage';
 import { GraphPage } from './pages/graph/GraphPage';
 import { NotesPage } from './pages/notes/NotesPage';
 import { validateNotesSearch } from './pages/notes/search';
@@ -55,6 +56,7 @@ const tree = root.addChildren([
   createRoute({ getParentRoute: () => root, path: '/questions', component: QuestionsPage }),
   createRoute({ getParentRoute: () => root, path: '/calendar', validateSearch: validateCalendarSearch, component: CalendarPage }),
   createRoute({ getParentRoute: () => root, path: '/queue', component: QueuePage }),
+  createRoute({ getParentRoute: () => root, path: '/float', component: FloatPage }),
   createRoute({ getParentRoute: () => root, path: '/zero', component: ZeroPage }),
   createRoute({ getParentRoute: () => root, path: '/suggest', component: SuggestPage }),
   createRoute({ getParentRoute: () => root, path: '/settings', component: SettingsPage }),

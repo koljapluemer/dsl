@@ -5,7 +5,7 @@ import type { ProjectIssue, Projects } from '@/api/types';
 import { showError } from '@/dumb/errorBanner';
 import { itemQuery } from '@/entities/item/queries';
 import { useDeleteItem } from '@/features/item-delete/useDeleteItem';
-import { ItemModal } from './ItemModal';
+import { ItemModal } from '@/features/item-edit/ItemModal';
 import { NEW_PROJECT, newIssue, projectsQuery } from './projects';
 
 /** The modal: an item to edit, or a new one starting as `initial`. */
@@ -18,12 +18,13 @@ export function ProjectsPage() {
   const open = (file: string) => setEditing({ file, initial: '', key: Date.now() });
   const add = (initial: string) => setEditing({ file: null, initial, key: Date.now() });
   const del = useDelete();
+  const remove = useDeleteItem();
 
   return (
     <div>
       <button className="btn btn-sm mb-4" onClick={() => add(NEW_PROJECT)}><Plus size={16} />Project</button>
       {data && <Lists projects={data} onOpen={open} onAdd={add} onDelete={del} />}
-      {editing && <ItemModal key={editing.key} file={editing.file} initial={editing.initial} onClose={() => setEditing(null)} />}
+      {editing && <ItemModal key={editing.key} file={editing.file} initial={editing.initial} refresh={projectsQuery.queryKey} onDelete={remove} onClose={() => setEditing(null)} />}
     </div>
   );
 }

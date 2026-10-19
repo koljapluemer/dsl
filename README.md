@@ -38,12 +38,13 @@ When `questions.py` lists more than 3 questions, a local LLM chooses the 3 that 
 
 The server's URL is the only LLM setting (Settings, stored under `llm` in the config file); it defaults to `OLLAMA_HOST`, then `http://127.0.0.1:11434`. Each feature names its own model, and models are kept loaded for 30 minutes between calls (`llm.py`).
 
-## Calendar, Queue, Zero, Suggest
+## Calendar, Queue, Float, Zero, Suggest
 
-Ports of the `../dsl-mobile` apps calendar, queue and zero, and of `../suggest`, one route each; what an item means to them is in `views.py`.
+Ports of the `../dsl-mobile` apps calendar, queue and zero, of `../floating-notes` and of `../suggest`, one route each; what an item means to them is in `views.py`.
 
 - **Calendar**: `appointment` and `recurring` items by day or over a From..To range (this week, Sunday to Saturday, by default), toggled at the top; view, day and range are in the URL. A click on an item opens it in the editor in a modal (with delete); `+` adds one, prefilled with `appointment <that day>`.
 - **Queue**: 3 random items (body, `media` attachment, `extra`), Next draws others. An item's hide button tags it `no-q`; what it hides is set in code, see [`docs/hiding.md`](docs/hiding.md).
+- **Float**: random items drifting across the window, a new one every few seconds, drawn in batches of 20 (`store.float_draw`); the filter below keeps those containing its text. A card stops under the pointer; a click opens it in the editor in a modal (with delete), which holds the stage still. The hide button tags it `no-float`, see [`docs/hiding.md`](docs/hiding.md).
 - **Zero**: a card per item tagged `zero`, in a random order per page load and colored by file name; a click greys it out and moves it last until reload.
 - **Suggest**: a dropdown of the `suggest-` tags (`tags suggest-book`), a random one selected on load, and a random note carrying the selected one; hold "Hold for next" for another, or delete it (with undo).
 

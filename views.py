@@ -1,4 +1,4 @@
-"""What the queue, zero, suggest, calendar and projects views read from an item."""
+"""What the queue, float, zero, suggest, calendar and projects views read from an item."""
 
 import calendar as _calendar
 from dataclasses import dataclass
@@ -34,6 +34,7 @@ class Hiding:
 
 # What each view hides - edit here.
 QUEUE_HIDING = Hiding("no-q", frozenset({APPOINTMENT_KEYWORD, RECURRING_KEYWORD, "source"}))
+FLOAT_HIDING = Hiding("no-float", frozenset({APPOINTMENT_KEYWORD, RECURRING_KEYWORD, "source"}))
 GRAPH_HIDING = Hiding("no-graph", frozenset({APPOINTMENT_KEYWORD, RECURRING_KEYWORD}))
 
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp"}

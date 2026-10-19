@@ -17,6 +17,7 @@ instances sit right below the class; **edit them there**:
 | View  | Instance        | Tag        | Hidden types                          |
 |-------|-----------------|------------|---------------------------------------|
 | Queue | `QUEUE_HIDING`  | `no-q`     | `appointment`, `recurring`, `source`  |
+| Float | `FLOAT_HIDING`  | `no-float` | `appointment`, `recurring`, `source`  |
 | Graph | `GRAPH_HIDING`  | `no-graph` | `appointment`, `recurring`            |
 
 `tests/test_views.py` checks that every listed type is a primary keyword and
@@ -28,6 +29,7 @@ Each view filters at the one place it reads the index, so nothing downstream
 needs to know:
 
 - Queue: `store.queue_draw`.
+- Float: `store.float_draw`.
 - Graph: `graph._View`, so hidden notes are gone from the canvas, search,
   recent and random alike, and relationships to them are left out like those to
   notes with errors.
@@ -40,6 +42,8 @@ appends one). Each view undoes it the way it undoes deletes:
 - Queue: `POST /api/queue/hide/<name>`. The page drops the item from the batch
   on screen and offers the app-wide undo toast (`dumb/undo.ts`), which writes
   back the note's previous text and puts the item back in its place.
+- Float: `POST /api/float/hide/<name>`. The page drops the card and offers the
+  same undo toast, which writes back the previous text (the card stays gone).
 - Graph: `POST /api/graph/notes/<name>/hide` → `graph.hide`, which keeps the
   previous text in the graph's single undo slot (shared with deletes);
   `POST /api/graph/undo` writes it back. The canvas unpins the note and re-pins
