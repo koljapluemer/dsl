@@ -2,6 +2,7 @@ import { Fragment } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { SkipForward } from 'lucide-react';
 import type { ItemView as View, QueueDraw } from '@/api/types';
+import { useHotkeys } from '@/dumb/keys';
 import { offerUndo } from '@/dumb/undo';
 import { itemsChanged, saveItem } from '@/entities/item/mutations';
 import { NotePanel } from '@/meta/note-panel/NotePanel';
@@ -13,6 +14,7 @@ export function QueuePage() {
   const n = drawCount.use();
   const { data, isFetching } = useQuery(drawQuery(n));
   const next = () => drawCount.set(n + 1);
+  useHotkeys({ n: () => { if (!isFetching && data?.total) next(); } });
 
   const update = (f: (d: QueueDraw) => QueueDraw) => qc.setQueryData(drawQuery(n).queryKey, (d) => d && f(d));
   const without = (file: string) => update((d) => ({ items: d.items.filter((i) => i.file !== file), total: d.total - 1 }));
@@ -39,7 +41,7 @@ export function QueuePage() {
                      onDeleted={() => without(i.file)} />
         </Fragment>
       ))}
-      <button className="btn btn-primary w-full mt-6" disabled={isFetching || !data?.total} onClick={next}>
+      <button className="btn btn-primary w-full mt-6" title="n" disabled={isFetching || !data?.total} onClick={next}>
         <SkipForward size={20} />Next
       </button>
     </div>

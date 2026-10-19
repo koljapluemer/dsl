@@ -2,6 +2,8 @@ import { BaseEdge, EdgeLabelRenderer, getBezierPath, useInternalNode, type EdgeP
 import { Trash2 } from 'lucide-react';
 import { memo, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import { isSubmit } from '@/dumb/keys';
+import { showNotice, UNSAVED } from '@/dumb/notice';
 import { notesChanged, updateRelationLabel } from '@/entities/graph/mutations';
 import { EDGE_OVERLAY_Z_INDEX, getEdgeParams } from './graph-edge-geometry';
 import type { GraphEdgePayload } from '@/api/types';
@@ -102,7 +104,13 @@ function FloatingEdgeInner({ id, source, target, style, markerStart, markerEnd, 
             }}
           >
             {editing ? (
-              <div className="w-56  border border-base-300 bg-base-100 p-2.5 shadow-lg">
+              <form
+                className="w-56  border border-base-300 bg-base-100 p-2.5 shadow-lg"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  void handleSave();
+                }}
+              >
                 {relations.map((relation, index) => (
                   <div key={relation.id} className="mb-1.5 flex items-center gap-1.5 last:mb-0">
                     <input
@@ -118,7 +126,11 @@ function FloatingEdgeInner({ id, source, target, style, markerStart, markerEnd, 
                       onKeyDown={(event) => {
                         event.stopPropagation();
                         if (event.key === 'Escape') {
-                          setEditing(false);
+                          if (labels.some((label, i) => label !== relations[i]?.label)) showNotice(UNSAVED);
+                          else setEditing(false);
+                        } else if (isSubmit(event)) {
+                          event.preventDefault();
+                          void handleSave();
                         }
                       }}
                       className="input input-xs w-full rounded-full focus:border-primary/60"
@@ -138,11 +150,11 @@ function FloatingEdgeInner({ id, source, target, style, markerStart, markerEnd, 
                   <button type="button" className="btn btn-ghost btn-xs rounded-full" onClick={() => setEditing(false)}>
                     Cancel
                   </button>
-                  <button type="button" className="btn btn-primary btn-xs rounded-full" disabled={busy} onClick={() => void handleSave()}>
+                  <button type="submit" className="btn btn-primary btn-xs rounded-full" disabled={busy}>
                     Save
                   </button>
                 </div>
-              </div>
+              </form>
             ) : (
               <button
                 type="button"

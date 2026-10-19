@@ -4,6 +4,7 @@ import { Link, useNavigate, useSearch } from '@tanstack/react-router';
 import { ChevronDown, ChevronRight, ClipboardPaste, CodeXml, Copy, Link as LinkIcon, Pencil, Plus, Trash2 } from 'lucide-react';
 import type { Source } from '@/api/types';
 import { showError } from '@/dumb/errorBanner';
+import { blurOnEscape, useSlashFocus } from '@/dumb/keys';
 import { itemsChanged } from '@/entities/item/mutations';
 import { itemQuery } from '@/entities/item/queries';
 import { useDeleteItem } from '@/features/item-delete/useDeleteItem';
@@ -28,6 +29,7 @@ export function SourcesPage() {
   const { q = '' } = useSearch({ from: '/sources' });
   const { data } = useQuery(sourcesQuery);
   const remove = useDeleteItem();
+  const filter = useSlashFocus();
   const [open, setOpen] = useState<ReadonlySet<string>>(new Set());
   const toggle = (file: string) => setOpen((o) => { const n = new Set(o); if (!n.delete(file)) n.add(file); return n; });
   const edit = (file: string) => navigate({ to: '/sources/edit/$file', params: { file } });
@@ -53,7 +55,7 @@ export function SourcesPage() {
         <Link to="/sources/new" className="btn"><Plus size={20} />New</Link>
         <button className="btn" title="add from BibTeX in the clipboard" onClick={fromClipboard}><ClipboardPaste size={20} />Import BibTeX</button>
       </div>
-      <input className="input w-full mb-4" type="search" value={q} placeholder="Filter" autoFocus
+      <input ref={filter} onKeyDown={blurOnEscape} className="input w-full mb-4" type="search" value={q} placeholder="Filter" autoFocus
              onChange={(e) => navigate({ to: '/sources', search: { q: e.target.value || undefined }, replace: true })} />
       <table className="table table-xs table-zebra">
         <thead><tr><th></th><th>key</th><th>title</th><th>author</th><th>year</th><th>type</th><th></th></tr></thead>

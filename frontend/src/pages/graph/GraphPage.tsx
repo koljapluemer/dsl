@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { errorBanner, showError } from '@/dumb/errorBanner';
+import { useSlashFocus } from '@/dumb/keys';
 import { randomNote } from '@/entities/graph/mutations';
 import { NoteSearch } from '@/entities/item/search/NoteSearch';
 import { EMPTY_SEARCH, searchFilenames } from '@/entities/item/search/search';
@@ -17,6 +18,7 @@ export function GraphPage() {
   const [randomNoteBusy, setRandomNoteBusy] = useState(false);
   const [pinAllBusy, setPinAllBusy] = useState(false);
   const found = useNoteSearch(search, { scope: 'graph' });
+  const searchInput = useSlashFocus();
   const { results } = found;
 
   const pinRandom = async (orphan: boolean, setBusy: (busy: boolean) => void, noneLeft: string) => {
@@ -78,7 +80,7 @@ export function GraphPage() {
       </section>
 
       <aside className="flex min-h-0 flex-col border border-base-300 bg-base-100/90 shadow-xl backdrop-blur">
-        <NoteSearch state={search} onState={setSearch} found={found} orphanFilter historyKey="graph-search-history" marked={pins}
+        <NoteSearch state={search} onState={setSearch} found={found} orphanFilter historyKey="graph-search-history" marked={pins} inputRef={searchInput}
                     onSelect={(filename) => pinNote(filename, SEARCH_RESULT_PIN_DEPTH)} />
       </aside>
     </div>

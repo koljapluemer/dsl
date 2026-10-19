@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, useSearch } from '@tanstack/react-router';
 import { PanelLeft } from 'lucide-react';
+import { useHotkeys, useSlashFocus } from '@/dumb/keys';
 import { NoteSearch } from '@/entities/item/search/NoteSearch';
 import type { SearchState } from '@/entities/item/search/search';
 import { useNoteSearch } from '@/entities/item/search/useNoteSearch';
@@ -20,12 +21,19 @@ export function NotesPage() {
   const found = useNoteSearch(state, { scope: 'all' });
   /** on a narrow screen the search takes the place of the notes */
   const [searching, setSearching] = useState(open.length === 0);
+  const searchInput = useSlashFocus();
 
   const setState = (next: SearchState) => void navigate({
     to: '.', replace: true,
     search: { ...search, q: next.query || undefined, s: next.semantic || undefined, page: next.page || undefined },
   });
   const setOpen = (files: string[]) => void navigate({ to: '.', search: { ...search, open: files.length ? files : undefined } });
+
+  const pages = Math.ceil(found.total / found.pageSize);
+  useHotkeys({
+    ArrowLeft: () => { if (state.page > 0) setState({ ...state, page: state.page - 1 }); },
+    ArrowRight: () => { if (state.page + 1 < pages) setState({ ...state, page: state.page + 1 }); },
+  });
 
   function show(file: string) {
     setSearching(false);
@@ -39,7 +47,7 @@ export function NotesPage() {
         <PanelLeft size={16} />{searching ? `Notes (${open.length})` : 'Search'}
       </button>
       <aside className={`flex min-h-0 flex-1 flex-col border border-base-300 md:flex-none ${searching ? '' : 'max-md:hidden'}`}>
-        <NoteSearch state={state} onState={setState} found={found} semanticToggle historyKey="notes-search-history" autoFocus
+        <NoteSearch state={state} onState={setState} found={found} semanticToggle historyKey="notes-search-history" autoFocus inputRef={searchInput}
                     marked={new Set(open)} onSelect={show}>
           <SemanticNote status={found.semantic} ranking={state.semantic && !!state.query.trim()} />
         </NoteSearch>

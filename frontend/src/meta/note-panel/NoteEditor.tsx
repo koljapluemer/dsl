@@ -2,6 +2,7 @@ import { useMemo, useState, type ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Check, Undo2 } from 'lucide-react';
 import type { Item } from '@/api/types';
+import { showNotice, UNSAVED } from '@/dumb/notice';
 import { analyze } from '@/entities/item/dsl/analyze';
 import { itemQuery } from '@/entities/item/queries';
 import { useSchema } from '@/entities/item/schema';
@@ -23,7 +24,8 @@ type Props = {
 
 /**
  * A note's full text and attachment, nothing written until Accept (Mod-Enter,
- * Mod-s); Discard (Escape) drops both. Starts from the file as it is now, not as cached.
+ * Mod-s); Discard drops both. Escape discards only while nothing was edited.
+ * Starts from the file as it is now, not as cached.
  */
 export function NoteEditor({ file, ...rest }: Props) {
   const { data, isFetchedAfterMount, error } = useQuery({ ...itemQuery(file ?? ''), enabled: !!file });
@@ -37,6 +39,7 @@ function LoadedEditor({ item, initial, onAccept, onDiscard, header }: Omit<Props
   const schema = useSchema();
   const [text, setText] = useState(item?.text ?? initial);
   const media = useMediaAttachment(item?.media ?? null);
+  const dirty = text !== (item?.text ?? initial) || media.attachment?.status === 'new' || (media.attachment === null) !== !item?.media;
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const problems = useMemo(
@@ -58,13 +61,14 @@ function LoadedEditor({ item, initial, onAccept, onDiscard, header }: Omit<Props
   }
 
   const attach = (file: File) => void media.attachFile(file);
+  const escape = () => (dirty ? showNotice(UNSAVED) : onDiscard());
 
   const actions = (
     <>
       <button type="button" className="btn btn-primary btn-xs btn-square" title="accept (Ctrl+Enter)" disabled={busy || !text.trim()} onClick={() => void accept()}>
         {busy ? <span className="loading loading-spinner loading-xs" /> : <Check size={14} />}
       </button>
-      <button type="button" className="btn btn-ghost btn-xs btn-square" title="discard changes (Escape)" onClick={onDiscard}><Undo2 size={14} /></button>
+      <button type="button" className="btn btn-ghost btn-xs btn-square" title="discard changes" onClick={onDiscard}><Undo2 size={14} /></button>
     </>
   );
 
@@ -72,10 +76,11 @@ function LoadedEditor({ item, initial, onAccept, onDiscard, header }: Omit<Props
     <>
       {header(actions)}
       {/* keys stay here: the graph's canvas and a modal would act on them too */}
-      <div className="nodrag nowheel nopan cursor-auto select-text" onKeyDown={(event) => event.stopPropagation()}>
+      {/* data-unsaved: a modal around it then won't close on Escape or a click outside */}
+      <div className="nodrag nowheel nopan cursor-auto select-text" data-unsaved={dirty || undefined} onKeyDown={(event) => event.stopPropagation()}>
         <MediaAttachmentField attachment={media.attachment} onAttach={attach} onRemove={() => media.setAttachment(null)} />
         {(error || media.error) && <p className="mb-2 text-sm text-error">{error ?? media.error}</p>}
-        <ItemTextEditor initial={text} autofocus saveOnBlur={false} onChange={setText} onSave={() => void accept()} onEscape={onDiscard} onPasteFile={attach} />
+        <ItemTextEditor initial={text} autofocus saveOnBlur={false} onChange={setText} onSave={() => void accept()} onEscape={escape} onPasteFile={attach} />
         {problems.length > 0 && (
           <ul className="mt-2 space-y-0.5 text-xs">
             {problems.map((problem, index) => (

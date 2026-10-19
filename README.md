@@ -26,7 +26,7 @@ A note shows rendered: body and `extra` content as markdown (marked + DOMPurify)
 
 ## Editing
 
-Everywhere a note is shown it's the same panel (`meta/note-panel/NotePanel.tsx`): rendered, with Edit, delete and as the page needs hide and close. Edit swaps in an editor for the full text and the attachment; nothing is written until Accept (✓, Ctrl+Enter or Ctrl+S), Discard (↶, Escape) drops it. New notes start in the editor. The Calendar, Projects and Float show it in a modal; `/edit/<file>` (and `/new`) on its own page, with the relationships below.
+Everywhere a note is shown it's the same panel (`meta/note-panel/NotePanel.tsx`): rendered, with Edit, delete and as the page needs hide and close. Edit swaps in an editor for the full text and the attachment; nothing is written until Accept (✓, Ctrl+Enter or Ctrl+S), Discard (↶) drops it; Escape does too while nothing was edited (see Keyboard). New notes start in the editor. The Calendar, Projects and Float show it in a modal; `/edit/<file>` (and `/new`) on its own page, with the relationships below.
 
 The editor is [CodeMirror 6](https://codemirror.net). A single pass over the text (`analyze` in `frontend/src/entities/item/dsl/analyze.ts`, mirroring `dsl.py`; tested against `spec/examples`) provides the highlighting (keywords, options and values by type, relationships, `data` and `extra` blocks, unknown keyword lines muted; hover for meanings) and inline lint for the errors and warnings of `spec/language.md`, also listed below it.
 
@@ -37,6 +37,16 @@ Every list of notes to pick from is one search (`search.py`, `GET /api/search`; 
 The query syntax is behind the `?`: words match as prefixes (case and accents folded), `"exact phrase"`, `/regex/ims`, `-exclude`, `OR`, parentheses, `file:`, `body:`, `extra:`. The relationship field takes words and phrases only (a slash is part of a word there). ↑/↓ choose a result, Enter opens it (the first one when none is chosen).
 
 New files are named `<slug of the first line>-<6 hex>.txt`; the name doesn't change when the text does. Other items refer to it by that name without `.txt` (`-> label @name`).
+
+## Keyboard
+
+`?` lists the shortcuts (`App.tsx`; the hook is `frontend/src/dumb/keys.ts`).
+
+- **Ctrl/⌘+Enter** accepts what's being edited, from any of its fields: a note's editor (wherever the note panel is, Graph cards too), the source form (then back), the Graph's new-note card and edge labels. In a relationship's target field it creates a new note even when a result is chosen.
+- **Esc** never saves or discards edits. It leaves a note's editor, a card or label editor, or closes a modal, only when nothing was edited; otherwise it shows a notice and does nothing (a click outside a modal does the same). In a search or filter field it just leaves the field.
+- Single keys, ignored while typing in a field, holding Ctrl/Alt/Meta, or with a modal open:
+  - `g` then a tab's key (in its tooltip) switches tab, `c` opens a new note, `/` focuses the search or filter, `u` undoes the change the toast offers.
+  - Notes: ←/→ page the search. Calendar: ←/→ a day (or the range's length), `t` today/this week, `a` add, `d`/`r` day/range view. Queue: `n` next. Questions: `s` skip, `e` edit, `d` disable. Suggest: Shift+N next.
 
 ## Semantic search
 

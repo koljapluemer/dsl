@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, useState, type ReactNode, type Ref } from 'react';
 import { ChevronLeft, ChevronRight, CircleHelp, LoaderCircle, Search } from 'lucide-react';
 import type { OrphanFilter } from '@/api/types';
+import { isSubmit } from '@/dumb/keys';
 import { NoteResult } from './NoteResult';
 import { SearchHelpModal } from './SearchHelpModal';
 import { withQuery, type SearchState } from './search';
@@ -25,9 +26,9 @@ type Props = {
   /** notes to set apart (open, pinned) */
   marked?: { has: (file: string) => boolean };
   onSelect: (file: string) => void;
-  /** a button beside the field acting on its text; Enter does it while no result is chosen with the arrow keys */
+  /** a button beside the field acting on its text; Enter does it while no result is chosen with the arrow keys, Mod-Enter always */
   action?: { label: ReactNode; title: string; run: (text: string) => void };
-  /** Escape; without it, Escape only closes the dropdown */
+  /** Escape; without it, Escape closes the dropdown, or leaves a `list`'s field */
   onEscape?: () => void;
   placeholder?: string;
   autoFocus?: boolean;
@@ -83,12 +84,13 @@ export function NoteSearch({
       setActive({ query, index: at <= 0 ? n - 1 : at - 1 });
     } else if (event.key === 'Enter') {
       event.preventDefault();
-      if (at >= 0 && at < n) pick(shown[at].filename);
+      if (at >= 0 && at < n && !(action && isSubmit(event))) pick(shown[at].filename);
       else if (action) { if (query) action.run(query); }
       else if (shown[0]) pick(shown[0].filename);
     } else if (event.key === 'Escape') {
       if (onEscape) onEscape();
-      else setDismissed(query);
+      else if (suggest) setDismissed(query);
+      else event.currentTarget.blur();
     }
   }
 

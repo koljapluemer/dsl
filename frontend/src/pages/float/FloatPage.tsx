@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { EyeOff } from 'lucide-react';
 import type { ItemView as View } from '@/api/types';
 import { showError } from '@/dumb/errorBanner';
+import { blurOnEscape, useSlashFocus } from '@/dumb/keys';
 import { offerUndo } from '@/dumb/undo';
 import { useDebounced } from '@/dumb/useDebounced';
 import { ItemView } from '@/entities/item/ItemView';
@@ -23,6 +24,7 @@ let nextId = 0;
 export function FloatPage() {
   const qc = useQueryClient();
   const [q, setQ] = useState('');
+  const filter = useSlashFocus();
   const query = useDebounced(q.trim(), 300);
   const [round, setRound] = useState(0);
   const { data } = useQuery(floatQuery(query, round));
@@ -93,7 +95,7 @@ export function FloatPage() {
           </div>
         ))}
       </div>
-      <input className="input w-full my-4" placeholder="Filter" value={q} onChange={(e) => setQ(e.target.value)} />
+      <input ref={filter} onKeyDown={blurOnEscape} className="input w-full my-4" placeholder="Filter" value={q} onChange={(e) => setQ(e.target.value)} />
       {editing && (
         <Modal wide onClose={close}>
           <NotePanel key={editing.id} file={editing.item.file} onClose={close} onDeleted={close}
