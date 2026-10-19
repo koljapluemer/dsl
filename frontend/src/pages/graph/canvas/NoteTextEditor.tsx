@@ -4,6 +4,7 @@ import { EditorView, ViewPlugin, keymap } from '@codemirror/view';
 import { CodeMirrorHost } from '@/dumb/CodeMirrorHost';
 import { analyze } from '@/entities/item/dsl/analyze';
 import { dslExtensions } from '@/entities/item/dslExtensions';
+import { pastedMedia } from '@/entities/item/media';
 import { useSchema } from '@/entities/item/schema';
 
 export interface NoteTextEditorProps {
@@ -16,9 +17,6 @@ export interface NoteTextEditorProps {
   /** A pasted image or video, instead of inserting anything. */
   onPasteFile: (file: File) => void;
 }
-
-const pastedMedia = (data: DataTransfer | null) =>
-  Array.from(data?.files ?? []).find((item) => item.type.startsWith('image/') || item.type.startsWith('video/'));
 
 /**
  * A note file's full text in the app's item-language editor (highlighting,

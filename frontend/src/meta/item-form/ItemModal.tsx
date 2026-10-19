@@ -4,22 +4,7 @@ import { Check, Trash2, X } from 'lucide-react';
 import type { Item } from '@/api/types';
 import { Modal } from '@/dumb/Modal';
 import { itemQuery } from '@/entities/item/queries';
-import { ItemTextEditor } from './ItemTextEditor';
-import { useAutosave } from './useAutosave';
-
-/**
- * The item `file` in an editor, or with `file` null a new one starting as `initial` (created by its first save).
- * Saved on Mod-s and on closing, except by discard, which drops the changes since the last save;
- * closing then refreshes the queries under `refresh`, the page's view of its items.
- * Delete hands the item to `onDelete` (a page's `useDeleteItem()`) and closes once that says it's gone.
- */
-export function ItemModal({ file, ...rest }: Props) {
-  // the file as it is now, not as cached: the editor keeps the text it starts with
-  const { data, isFetchedAfterMount } = useQuery({ ...itemQuery(file ?? ''), enabled: !!file });
-  const loaded = !file || (data && isFetchedAfterMount);
-  if (!loaded) return <Modal onClose={rest.onClose}><span className="loading loading-dots loading-sm" /></Modal>;
-  return <Editor item={file ? data! : null} {...rest} />;
-}
+import { ItemForm, useItemForm } from './ItemForm';
 
 type Props = {
   file: string | null;
@@ -29,19 +14,27 @@ type Props = {
   onClose: () => void;
 };
 
+/** Shared full item form used by page-specific modal editors. */
+export function ItemModal({ file, ...rest }: Props) {
+  const { data, isFetchedAfterMount } = useQuery({ ...itemQuery(file ?? ''), enabled: !!file });
+  const loaded = !file || (data && isFetchedAfterMount);
+  if (!loaded) return <Modal onClose={rest.onClose}><span className="loading loading-dots loading-sm" /></Modal>;
+  return <Editor item={file ? data! : null} {...rest} />;
+}
+
 function Editor({ item, initial, refresh, onDelete, onClose }: Omit<Props, 'file'> & { item: Item | null }) {
   const qc = useQueryClient();
   const [current, setCurrent] = useState(item);
-  const { change, save } = useAutosave({ file: item?.file ?? null, saved: item?.text ?? '', onSaved: setCurrent });
+  const form = useItemForm({ item, onSaved: setCurrent });
 
   async function close(keep = true) {
-    if (keep) await save();
+    if (keep) await form.save();
     await qc.invalidateQueries({ queryKey: refresh });
     onClose();
   }
 
   async function del() {
-    await save();
+    await form.save();
     if (current && (await onDelete(current))) onClose();
   }
 
@@ -53,7 +46,7 @@ function Editor({ item, initial, refresh, onDelete, onClose }: Omit<Props, 'file
         {current && <button className="btn btn-square btn-error btn-outline" title="delete" onClick={del}><Trash2 size={20} /></button>}
         {current && <span className="ml-auto font-mono text-xs text-base-content/50">{current.file}</span>}
       </div>
-      <ItemTextEditor initial={item?.text ?? initial} saveOnBlur={false} onChange={change} onSave={save} />
+      <ItemForm controller={form} initial={current?.text ?? initial} saveOnBlur={false} />
     </Modal>
   );
 }

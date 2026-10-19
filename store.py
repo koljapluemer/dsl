@@ -114,14 +114,15 @@ def _file(name: str) -> Path:
 
 
 def _item(path: Path, text: str) -> dict:
-    return {"file": path.name, "text": text, **dsl.diagnostics(dsl.parse(SCHEMA, text))}
+    doc = dsl.parse(SCHEMA, text)
+    return {"file": path.name, "text": text, "media": views.media(doc), **dsl.diagnostics(doc)}
 
 
 def _read(path: Path) -> dict:
     try:
         return _item(path, path.read_text(encoding="utf-8"))
     except (OSError, UnicodeDecodeError) as e:
-        return {"file": path.name, "text": "", "warnings": [],
+        return {"file": path.name, "text": "", "media": None, "warnings": [],
                 "errors": [{"code": "unreadable", "line": None, "detail": str(e)}]}
 
 

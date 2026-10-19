@@ -31,17 +31,6 @@ export const hideNote = (file: string) => api<null>('POST', `/api/graph/notes/${
 /** Restores whatever `deleteNote`/`deleteRelation` removed or `hideNote` hid last. */
 export const undoDelete = () => api<{ restored: boolean }>('POST', '/api/graph/undo');
 
-export async function attachMedia(file: string, media: Blob) {
-  const res = await fetch(`/api/graph/notes/${enc(file)}/media`, { method: 'PUT', headers: { 'Content-Type': media.type }, body: media });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error || res.statusText);
-  return data as { image: string };
-}
-
-export const clearMedia = (file: string) => api<null>('DELETE', `/api/graph/notes/${enc(file)}/media`);
-
-export const mediaPath = async (path: string) => (await api<{ path: string }>('GET', `/api/graph/media-path?p=${enc(path)}`)).path;
-
 export const connectNotes = (body: { source: string; target: string; label: string }) => api<{ label: string }>('POST', '/api/graph/relations', body);
 
 export const updateRelationLabel = (body: { source: string; target: string; label: string; nextLabel: string }) =>

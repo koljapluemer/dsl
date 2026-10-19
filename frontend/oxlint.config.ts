@@ -1,8 +1,9 @@
 import { defineConfig } from 'oxlint';
 
-/** Layers may only import from below: pages > features > entities > dumb, api. Slices of one layer don't import each other. */
+/** Layers may only import from below: pages > meta > features > entities > dumb, api. Slices of one layer don't import each other. */
 const below = {
-  page: ['feature', 'entity', 'dumb', 'api'],
+  page: ['meta', 'feature', 'entity', 'dumb', 'api'],
+  meta: ['feature', 'entity', 'dumb', 'api'],
   feature: ['entity', 'dumb', 'api'],
   entity: ['dumb', 'api'],
   dumb: [],
@@ -43,6 +44,7 @@ export default defineConfig({
       { type: 'dumb', pattern: 'src/dumb' },
       { type: 'entity', pattern: 'src/entities/*', capture: ['slice'] },
       { type: 'feature', pattern: 'src/features/*', capture: ['slice'] },
+      { type: 'meta', pattern: 'src/meta/*', capture: ['slice'] },
       { type: 'page', pattern: 'src/pages/*', capture: ['slice'] },
       // the rest: main, router and the App shell at the root
       { type: 'app', pattern: 'src' },

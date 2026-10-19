@@ -1,11 +1,10 @@
 import { EyeOff, GripVertical, Maximize2, Pencil, Trash2 } from 'lucide-react';
 import { memo, useState } from 'react';
-import { MediaPreview } from './MediaPreview';
+import { MediaPreview } from '@/dumb/MediaPreview';
 import { MediaModal } from './MediaModal';
 import { NoteMarkdown } from './NoteMarkdown';
 import { PinControl } from './PinControl';
-import { mediaUrl } from '../media';
-import { isVideoFilename } from '../media';
+import { isVideoFilename, mediaUrl } from '@/entities/item/media';
 import type { GraphNodePayload } from '@/api/types';
 
 function NoteCardInner({

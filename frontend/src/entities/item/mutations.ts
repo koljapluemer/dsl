@@ -11,6 +11,17 @@ export const restoreItem = ({ file, text }: Item) => api<Item>('POST', '/api/ite
 
 export const deleteItem = (file: string) => api<null>('DELETE', `/api/items/${enc(file)}`);
 
+export async function attachMedia(file: string, media: Blob) {
+  const res = await fetch(`/api/items/${enc(file)}/media`, { method: 'PUT', headers: { 'Content-Type': media.type }, body: media });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || res.statusText);
+  return data as Item;
+}
+
+export const clearMedia = (file: string) => api<Item>('DELETE', `/api/items/${enc(file)}/media`);
+
+export const mediaPath = async (path: string) => (await api<{ path: string }>('GET', `/api/media-path?p=${enc(path)}`)).path;
+
 /** Links the item to `target` (a file) or to a new item with `text`, under any `label` ('' for none). */
 export const relateItem = (file: string, body: { label: string } & ({ target: string } | { text: string })) =>
   api<Answered>('POST', `/api/items/${enc(file)}/relate`, body);

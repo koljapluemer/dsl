@@ -8,7 +8,7 @@ import { useDebounced } from '@/dumb/useDebounced';
 import { ItemView } from '@/entities/item/ItemView';
 import { itemsChanged, saveItem } from '@/entities/item/mutations';
 import { useDeleteItem } from '@/features/item-delete/useDeleteItem';
-import { ItemModal } from '@/features/item-edit/ItemModal';
+import { ItemModal } from '@/meta/item-form/ItemModal';
 import { MAX_S, MIN_S, SPAWN_MS, floatQuery, hideFromFloat } from './float';
 import './float.css';
 

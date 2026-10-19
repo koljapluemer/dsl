@@ -17,8 +17,6 @@ import { useQueryClient } from '@tanstack/react-query';
 import type { GraphEdgePayload } from '@/api/types';
 import { showError } from '@/dumb/errorBanner';
 import {
-  attachMedia,
-  clearMedia,
   connectNotes,
   createNote,
   deleteNote,
@@ -29,6 +27,7 @@ import {
   undoDelete,
   updateNote,
 } from '@/entities/graph/mutations';
+import { attachMedia, clearMedia } from '@/entities/item/mutations';
 
 const selectDomNode = (state: ReactFlowState): HTMLDivElement | null => state.domNode;
 

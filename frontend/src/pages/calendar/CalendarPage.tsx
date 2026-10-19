@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate, useSearch } from '@tanstack/react-router';
 import { useDeleteItem } from '@/features/item-delete/useDeleteItem';
-import { ItemModal } from '@/features/item-edit/ItemModal';
+import { ItemModal } from '@/meta/item-form/ItemModal';
 import { calendarQuery } from './calendar';
 import { addDays, startOfWeek, toDsl, today, type Day } from './dates';
 import { DayView } from './DayView';

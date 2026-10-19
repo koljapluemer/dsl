@@ -1,6 +1,6 @@
 """The graph view's backend: notes linked by their relationships, pinned onto a
 canvas, searched with a small query language, and edited where the graph
-owns their lines (relationships, `media`). Only error-free notes are part of
+owns their relationship lines. Only error-free notes are part of
 the graph; a relationship to anything else is left out until it is fixed."""
 
 import heapq
@@ -11,10 +11,10 @@ import time
 import unicodedata
 from collections import deque
 from dataclasses import dataclass, field
-from pathlib import Path
 
 import regex
 
+import attachments
 import dsl
 import questions
 import store
@@ -28,8 +28,6 @@ PIN_ALL_CAP = 100
 # Search runs per keystroke: a folder scan per query would lag on a big folder.
 SEARCH_MAX_AGE = 2.0
 
-IMAGES_DIR = "images"
-MAX_VIDEO_BYTES = 250 * 1024 * 1024
 UNLABELED_RELATION = store.UNLABELED_RELATION
 
 
@@ -744,104 +742,6 @@ def delete_relation(body: dict) -> None:
     _undo = {"type": "relation", "source": source, "label": label, "target": target}
 
 
-# --- media ----------------------------------------------------------------------
-
-_MEDIA_CLAUSE_RE = re.compile(r'(?<!\S)media\s+("(?:[^"\\]|\\.)*"|\S+)\s*')
-
-
-def _media_token(path: str) -> str:
-    quoted = '"' + path.replace('"', '\\"') + '"' if re.search(r'[\s"]', path) else path
-    return f"{views.MEDIA_KEYWORD} {quoted}"
-
-
-def _set_media(lines: list[str], doc: dsl.Document, path: str | None) -> None:
-    """Points the `media` line at `path`, or removes it for None; other
-    clauses on its line stay."""
-    clause = next((c for c in doc.clauses if c.keyword == views.MEDIA_KEYWORD), None)
-    if clause is None:
-        if path is None:
-            return
-        first = next(i for i, l in enumerate(lines) if l.strip())
-        at = next((i for i in range(first + 1, len(lines)) if dsl.is_section_opener(store.SCHEMA, lines[i])), None)
-        if at is None:
-            _append_line(lines, _media_token(path))
-        else:
-            lines.insert(at, _media_token(path))
-        return
-    i = clause.line - 1
-    alone = (all(c.keyword == views.MEDIA_KEYWORD for c in doc.clauses if c.line == clause.line)
-             and not any(d.code == "unknown_keyword" and d.line == clause.line for d in doc.diagnostics))
-    if alone:
-        if path is None:
-            del lines[i]
-        else:
-            lines[i] = _media_token(path)
-    else:
-        replaced = _MEDIA_CLAUSE_RE.sub(lambda m: "" if path is None else _media_token(path) + " ", lines[i], count=1)
-        lines[i] = replaced.rstrip()
-
-
-def _append_line(lines: list[str], line: str) -> None:
-    while lines and not lines[-1].strip():
-        lines.pop()
-    lines.extend([line, ""])
-
-
-def _media_file(rel: str) -> Path:
-    return store._dir() / rel
-
-
-def _release(owner: str, rel: str) -> None:
-    """Deletes media `owner` no longer points at, if this app manages it
-    (directly inside images/) and no other note points at it."""
-    parts = rel.split("/")
-    if len(parts) != 2 or parts[0] != IMAGES_DIR:
-        return
-    with store.index() as ix:
-        if any(e.media == rel for n, e in ix.entries.items() if n != owner):
-            return
-    _media_file(rel).unlink(missing_ok=True)
-
-
-_EXTENSIONS = {("image", "jpeg"): "jpg", ("video", "quicktime"): "mov"}
-
-
-def attach(name: str, data: bytes, content_type: str) -> dict:
-    """Writes `data` to images/<stem>-<ms>.<ext> and points the note's `media`
-    line at it, replacing any media attached before."""
-    e = _require(name)
-    m = re.fullmatch(r"(image|video)/(\w+)", (content_type or "").split(";")[0].strip().lower())
-    if not m:
-        raise store.ValidationError("Unsupported media data.")
-    kind, subtype = m.groups()
-    ext = _EXTENSIONS.get((kind, subtype), subtype)
-    if f".{ext}" not in (views.IMAGE_EXTENSIONS if kind == "image" else views.VIDEO_EXTENSIONS):
-        raise store.ValidationError(f"Unsupported {kind} type: {ext}.")
-    if kind == "video" and len(data) > MAX_VIDEO_BYTES:
-        raise store.ValidationError(f"Video is too large; keep clips under {MAX_VIDEO_BYTES // (1024 * 1024)}MB.")
-    rel = f"{IMAGES_DIR}/{_stem(name)}-{int(time.time() * 1000)}.{ext}"
-    path = _media_file(rel)
-    path.parent.mkdir(exist_ok=True)
-    path.write_bytes(data)
-    _mutate(name, lambda lines, doc: _set_media(lines, doc, rel))
-    if e.media and e.media != rel:
-        _release(name, e.media)
-    return {"image": rel}
-
-
-def clear_media(name: str) -> None:
-    """Removes the note's `media` line and the file it named."""
-    e = _require(name)
-    if not e.media:
-        return
-    _mutate(name, lambda lines, doc: _set_media(lines, doc, None))
-    _release(name, e.media)
-
-
-def media_path(rel: str) -> str:
-    return str(store.media_path(rel))
-
-
 # --- delete, hide and undo ---------------------------------------------------------
 
 # The last deletion or hide, for the undo popup: a note (its text and media bytes),
@@ -856,10 +756,10 @@ def delete(name: str) -> None:
     media = None
     if e.media:
         try:
-            media = (e.media, _media_file(e.media).read_bytes())
+            media = (e.media, attachments.read(e.media))
         except FileNotFoundError:
             pass
-        _release(name, e.media)
+        attachments.release(name, e.media)
     store.delete(name)
     _undo = {"type": "note", "file": name, "text": text, "media": media}
 
@@ -883,8 +783,7 @@ def undo() -> dict:
         store.create({"file": pending["file"], "text": pending["text"]})
         if pending["media"]:
             rel, data = pending["media"]
-            _media_file(rel).parent.mkdir(parents=True, exist_ok=True)
-            _media_file(rel).write_bytes(data)
+            attachments.restore(rel, data)
     elif pending["type"] == "hide":
         # not through _mutate: the note is hidden, so not part of the graph
         store.update(pending["file"], {"text": pending["text"]})

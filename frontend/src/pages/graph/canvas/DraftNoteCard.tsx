@@ -7,10 +7,10 @@ import {
   type ClipboardEvent as ReactClipboardEvent,
   type KeyboardEvent as ReactKeyboardEvent,
 } from 'react';
-import { MediaPreview } from './MediaPreview';
+import { MediaPreview } from '@/dumb/MediaPreview';
+import { useMediaAttachment, type MediaAttachment } from '@/features/item-media/useMediaAttachment';
 import { NoteTextEditor } from './NoteTextEditor';
-import { compressImage } from '../compress-image';
-import { isVideoFilename, MAX_VIDEO_ATTACHMENT_BYTES, mediaUrl } from '../media';
+import { isVideoFilename, mediaUrl } from '@/entities/item/media';
 
 /**
  * One attached image or video, one per note, alternative not additive. `existing`
@@ -20,7 +20,7 @@ import { isVideoFilename, MAX_VIDEO_ATTACHMENT_BYTES, mediaUrl } from '../media'
  * edit mode). Persisting it is the save handler's job - this card only tracks
  * the intent.
  */
-export type ImageState = { status: 'existing'; filename: string } | { status: 'new'; kind: 'image' | 'video'; blob: Blob; url: string } | null;
+export type ImageState = MediaAttachment;
 
 export interface DraftNoteCardProps {
   /**
@@ -50,7 +50,7 @@ export function DraftNoteCard({
   const [body, setBody] = useState(initialText);
   const [label, setLabel] = useState('');
   const [reverse, setReverse] = useState(false);
-  const [image, setImage] = useState<ImageState>(initialImage ? { status: 'existing', filename: initialImage } : null);
+  const { attachment: image, setAttachment: setImage, attachFile, error: attachmentError } = useMediaAttachment(initialImage);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -71,36 +71,10 @@ export function DraftNoteCard({
     return () => cancelAnimationFrame(frame);
   }, [mode]);
 
-  // a preview's object URL lives as long as it's the one shown
-  useEffect(() => {
-    if (image?.status !== 'new') return;
-    return () => URL.revokeObjectURL(image.url);
-  }, [image]);
-
   const handleFieldEscape = (event: ReactKeyboardEvent<HTMLInputElement>): void => {
     event.stopPropagation();
     if (event.key === 'Escape') {
       onCancel();
-    }
-  };
-
-  /** Shared by paste and the file-picker button - both just hand this a File. */
-  const attachFile = async (file: File): Promise<void> => {
-    setError(null);
-    try {
-      if (file.type.startsWith('video/')) {
-        if (file.size > MAX_VIDEO_ATTACHMENT_BYTES) {
-          const maxMb = Math.round(MAX_VIDEO_ATTACHMENT_BYTES / (1024 * 1024));
-          setError(`Video is too large; keep clips under ${maxMb}MB.`);
-          return;
-        }
-        setImage({ status: 'new', kind: 'video', blob: file, url: URL.createObjectURL(file) });
-      } else if (file.type.startsWith('image/')) {
-        const compressed = await compressImage(file);
-        setImage({ status: 'new', kind: 'image', blob: compressed, url: URL.createObjectURL(compressed) });
-      }
-    } catch (attachError) {
-      setError((attachError as Error).message);
     }
   };
 
@@ -240,7 +214,7 @@ export function DraftNoteCard({
         </>
       ) : null}
 
-      {error ? <p className="mt-2 text-xs text-error">{error}</p> : null}
+      {error || attachmentError ? <p className="mt-2 text-xs text-error">{error ?? attachmentError}</p> : null}
 
       <div className="nodrag mt-3 flex justify-end gap-2">
         <button type="button" className="btn btn-ghost btn-xs rounded-full" onClick={onCancel}>

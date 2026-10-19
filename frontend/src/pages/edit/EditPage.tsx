@@ -4,10 +4,9 @@ import { useNavigate, useParams } from '@tanstack/react-router';
 import { ArrowLeft, Trash2 } from 'lucide-react';
 import type { Item } from '@/api/types';
 import { itemQuery } from '@/entities/item/queries';
-import { ItemTextEditor } from '@/features/item-edit/ItemTextEditor';
-import { useAutosave } from '@/features/item-edit/useAutosave';
 import { useDeleteItem } from '@/features/item-delete/useDeleteItem';
 import { Relationships } from '@/features/item-relate/Relationships';
+import { ItemForm, useItemForm } from '@/meta/item-form/ItemForm';
 import { useGoBack } from './useGoBack';
 
 /**
@@ -36,11 +35,8 @@ function LoadedEditor({ item, onCreated }: { item: Item | null; onCreated: (file
   const goBack = useGoBack();
   const remove = useDeleteItem();
   const [current, setCurrent] = useState(item);
-  /** bumped to remount the editor when a relationship changed the text underneath it */
-  const [editorKey, setEditorKey] = useState(0);
-  const { change, save, reset } = useAutosave({
-    file: item?.file ?? null,
-    saved: item?.text ?? '',
+  const form = useItemForm({
+    item,
     onSaved: (saved) => {
       if (!current) {
         onCreated(saved.file);
@@ -51,13 +47,12 @@ function LoadedEditor({ item, onCreated }: { item: Item | null; onCreated: (file
   });
 
   function related(changed: Item) {
-    reset(changed.file, changed.text);
+    form.reset(changed);
     setCurrent(changed);
-    setEditorKey((k) => k + 1);
   }
 
   async function del() {
-    await save();
+    await form.save();
     if (current && (await remove(current))) void goBack();
   }
 
@@ -68,9 +63,9 @@ function LoadedEditor({ item, onCreated }: { item: Item | null; onCreated: (file
         {current && <button className="btn btn-square btn-error btn-outline" title="delete" onClick={del}><Trash2 size={20} /></button>}
         {current && <span className="ml-auto font-mono text-xs text-base-content/50">{current.file}</span>}
       </div>
-      <ItemTextEditor key={editorKey} initial={current?.text ?? ''} autofocus={editorKey === 0} onChange={change} onSave={save} />
+      <ItemForm controller={form} initial={current?.text ?? ''} />
       <div className="mt-6">
-        <Relationships item={current} flush={save} onChanged={related} deleteItem={remove} />
+        <Relationships item={current} flush={form.save} onChanged={related} deleteItem={remove} />
       </div>
     </div>
   );

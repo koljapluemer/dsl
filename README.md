@@ -87,10 +87,10 @@ A port of `../dsl-graph`: notes as cards on a [React Flow](https://reactflow.dev
 - **Pins**: a pinned note shows the notes up to its depth (the chevrons beside the pin) relationships away, in either direction. Picking a search result pins it at depth 2. The badge under a card counts its related notes not on the canvas; a click shows them. Pins are kept under `graph` in the config file.
 - **Sidebar**: Search (the query syntax is behind the `?`: words match as prefixes, `"exact phrase"`, `/regex/ims`, `-exclude`, `OR`, parentheses, `file:`, `body:`, `extra:`), optionally only orphans or connected notes, and Recent (by modification time).
 - **Canvas**: right-click opens a quick search at the cursor; each pick pins a note, and it stays open for several picks. Double-click adds a note. Drag from a card's edge dot onto another card to relate them, or onto empty canvas for a new related note. Drag a card by its grip to move it; it keeps its spot while it's on the canvas.
-- **Cards**: edit the full text (Mod-Enter saves, Escape cancels; text with errors isn't saved), attach an image (downscaled to WebP) or a short video by paste or upload, hide (tags it `no-graph`) or delete, both with undo. A click on an edge label edits or deletes its relationships (with undo).
+- **Cards**: edit the full text (Mod-Enter saves, Escape cancels; text with errors isn't saved), attach media, hide (tags it `no-graph`) or delete, both with undo. A click on an edge label edits or deletes its relationships (with undo).
 - The toolbar: add note, unpin all, pin a random orphan, open a random note or search result, pin all search results (the first 100, without neighbors), zoom and fit.
 
-Attachments go into `images/` in the data folder as `<note>-<ms>.<ext>`; one the graph wrote is deleted when it's replaced or removed and no other note names it.
+The New/Edit forms, shared modal form, and Graph cards accept one image (downscaled to WebP) or short video by paste or upload. Attachments go into `images/` in the data folder as `<note>-<ms>.<ext>`; an attachment the app wrote is deleted when it is replaced or removed and no other note names it.
 
 ## Spec
 

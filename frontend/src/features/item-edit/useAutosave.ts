@@ -29,9 +29,11 @@ export function useAutosave({ file, saved, onSaved, onError = showError }: Optio
 
   const save = useCallback(() => {
     const s = state.current;
-    s.pending = s.pending.then(async () => {
+    let result: Promise<string | null>;
+    result = s.pending.then(async () => {
       const sent = s.text;
-      if (!sent.trim() || sent === s.saved) return;
+      if (!sent.trim()) return null;
+      if (sent === s.saved) return s.file;
       try {
         const item = await saveItem(s.file, sent);
         s.file = item.file;
@@ -39,9 +41,14 @@ export function useAutosave({ file, saved, onSaved, onError = showError }: Optio
         qc.setQueryData(itemQuery(item.file).queryKey, item);
         void itemsChanged(qc, false);
         callbacks.current.onSaved?.(item);
-      } catch (e) { callbacks.current.onError(e); }
+        return item.file;
+      } catch (e) {
+        callbacks.current.onError(e);
+        return null;
+      }
     });
-    return s.pending.then(() => s.file);
+    s.pending = result.then(() => undefined);
+    return result;
   }, [qc]);
 
   /** Edits another item from now on (after the pending saves); `file` and `saved` are as for the hook. */

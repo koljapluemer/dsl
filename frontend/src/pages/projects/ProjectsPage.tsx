@@ -5,7 +5,7 @@ import type { ProjectIssue, Projects } from '@/api/types';
 import { showError } from '@/dumb/errorBanner';
 import { itemQuery } from '@/entities/item/queries';
 import { useDeleteItem } from '@/features/item-delete/useDeleteItem';
-import { ItemModal } from '@/features/item-edit/ItemModal';
+import { ItemModal } from '@/meta/item-form/ItemModal';
 import { NEW_PROJECT, newIssue, projectsQuery } from './projects';
 
 /** The modal: an item to edit, or a new one starting as `initial`. */

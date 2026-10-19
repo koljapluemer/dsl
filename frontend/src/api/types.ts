@@ -13,7 +13,7 @@ export type KeywordDef = {
 export type Schema = { version: number; keywords: Record<string, KeywordDef> };
 export type Diagnostic = { code: string; line: number | null; detail: string | null };
 /** `refs` maps relationship targets to their headings; null for a missing target */
-export type Item = { file: string; text: string; errors: Diagnostic[]; warnings: Diagnostic[]; refs?: Record<string, string | null> };
+export type Item = { file: string; text: string; media: string | null; errors: Diagnostic[]; warnings: Diagnostic[]; refs?: Record<string, string | null> };
 export type ItemPage = { items: Item[]; total: number; page: number; page_size: number; focused?: boolean; semantic?: SemanticStatus | null };
 
 export type Pull = { status: string; completed: number; total: number; error: string | null };

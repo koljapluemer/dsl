@@ -5,6 +5,7 @@ from pathlib import Path
 
 from flask import Flask, abort, jsonify, request, send_file, send_from_directory
 
+import attachments
 import bibtex_export
 import bibtex_import
 import fields
@@ -306,17 +307,6 @@ def graph_undo():
     return jsonify(graph.undo())
 
 
-@app.put("/api/graph/notes/<name>/media")
-def graph_attach(name):
-    return jsonify(graph.attach(name, request.get_data(), request.content_type))
-
-
-@app.delete("/api/graph/notes/<name>/media")
-def graph_clear_media(name):
-    graph.clear_media(name)
-    return "", 204
-
-
 @app.post("/api/graph/relations")
 def graph_connect():
     return jsonify(graph.connect(_json()))
@@ -334,14 +324,14 @@ def graph_delete_relation():
     return "", 204
 
 
-@app.get("/api/graph/media-path")
-def graph_media_path():
-    return jsonify(path=graph.media_path(request.args.get("p", "")))
-
-
 @app.get("/api/media/<path:rel>")
 def media(rel):
     return send_file(store.media_path(rel), conditional=True)
+
+
+@app.get("/api/media-path")
+def media_path():
+    return jsonify(path=str(store.media_path(request.args.get("p", ""))))
 
 
 @app.get("/api/items")
@@ -371,6 +361,16 @@ def create_item():
 @app.put("/api/items/<name>")
 def update_item(name):
     return jsonify(store.with_refs(store.update(name, request.get_json())))
+
+
+@app.put("/api/items/<name>/media")
+def attach_item_media(name):
+    return jsonify(attachments.attach(name, request.get_data(), request.content_type))
+
+
+@app.delete("/api/items/<name>/media")
+def clear_item_media(name):
+    return jsonify(attachments.clear(name))
 
 
 @app.post("/api/items/<name>/relate")

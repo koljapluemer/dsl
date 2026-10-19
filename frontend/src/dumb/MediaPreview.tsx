@@ -1,0 +1,25 @@
+import { Pause, Play } from 'lucide-react';
+import { useRef, useState } from 'react';
+
+/** An image, or a muted looping video with one play/pause control. */
+export function MediaPreview({ src, kind, className }: { src: string; kind: 'image' | 'video'; className?: string }) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [playing, setPlaying] = useState(false);
+  if (kind === 'image') return <img src={src} alt="" className={className} />;
+
+  const toggle = () => {
+    const video = videoRef.current;
+    if (!video) return;
+    if (video.paused) void video.play(); else video.pause();
+  };
+  return (
+    <div className={`relative ${className ?? ''}`}>
+      <video ref={videoRef} src={src} className="h-auto w-full" muted playsInline loop
+             onPlay={() => setPlaying(true)} onPause={() => setPlaying(false)} />
+      <button type="button" className="btn btn-circle btn-sm absolute inset-0 m-auto border-none bg-base-100/70 hover:bg-base-100/90"
+              onClick={toggle} title={playing ? 'Pause' : 'Play'}>
+        {playing ? <Pause className="size-4" /> : <Play className="size-4 pl-0.5" />}
+      </button>
+    </div>
+  );
+}

@@ -1,10 +1,11 @@
 import { Clipboard, Copy, Trash2, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { MediaPreview } from './MediaPreview';
+import { MediaPreview } from '@/dumb/MediaPreview';
 import { useQueryClient } from '@tanstack/react-query';
-import { clearMedia, mediaPath, notesChanged } from '@/entities/graph/mutations';
-import { imageUrlToPngBlob, isVideoFilename, mediaUrl } from '../media';
+import { notesChanged } from '@/entities/graph/mutations';
+import { clearMedia, mediaPath } from '@/entities/item/mutations';
+import { imageUrlToPngBlob, isVideoFilename, mediaUrl } from '@/entities/item/media';
 
 export function MediaModal({ filename, noteFilename, onClose }: { filename: string; noteFilename: string; onClose: () => void }) {
   const qc = useQueryClient();
