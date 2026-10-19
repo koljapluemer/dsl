@@ -111,6 +111,7 @@ function FlowScene({
     addNoteAtCenter,
     selectSearchNote,
     performUndo,
+    dismissUndo,
   } = useGraphInteraction({
     setInteraction,
     onPinNote,
@@ -199,9 +200,16 @@ function FlowScene({
       ) : null}
       {undoAction ? (
         <Panel position="bottom-center">
-          <div className="flex items-center gap-3 rounded-full border border-base-300 bg-base-100 px-4 py-2 text-sm shadow-lg">
+          <div className="flex cursor-pointer items-center gap-3 rounded-full border border-base-300 bg-base-100 px-4 py-2 text-sm shadow-lg" onClick={dismissUndo}>
             <span>{undoAction.message}</span>
-            <button type="button" className="btn btn-ghost btn-xs rounded-full text-accent" onClick={performUndo}>
+            <button
+              type="button"
+              className="btn btn-ghost btn-xs rounded-full text-accent"
+              onClick={(e) => {
+                e.stopPropagation();
+                performUndo();
+              }}
+            >
               Undo
             </button>
           </div>

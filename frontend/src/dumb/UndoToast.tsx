@@ -15,9 +15,9 @@ export function UndoToast() {
 
   return (
     <div className="toast toast-top toast-end z-[1000]">
-      <div className="alert shadow-lg">
+      <div className="alert shadow-lg cursor-pointer" onClick={dropUndo}>
         <span>{pending.message}</span>
-        <button className="btn btn-sm" onClick={undo}>Undo</button>
+        <button className="btn btn-sm" onClick={(e) => { e.stopPropagation(); void undo(); }}>Undo</button>
       </div>
     </div>
   );

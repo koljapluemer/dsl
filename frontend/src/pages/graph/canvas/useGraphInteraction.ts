@@ -51,6 +51,7 @@ export interface UseGraphInteractionResult {
   addNoteAtCenter: () => void;
   selectSearchNote: (filename: string) => void;
   performUndo: () => void;
+  dismissUndo: () => void;
 }
 
 /**
@@ -353,5 +354,6 @@ export function useGraphInteraction({
     addNoteAtCenter,
     selectSearchNote,
     performUndo,
+    dismissUndo,
   };
 }
