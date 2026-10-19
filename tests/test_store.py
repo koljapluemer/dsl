@@ -206,6 +206,12 @@ def test_relate_with_any_label(data_dir):
         store.relate("a.txt", {"target": "x.txt"})
 
 
+def test_with_refs(data_dir):
+    store.create({"file": "x.txt", "text": "X person"})
+    item = store.create({"file": "a.txt", "text": "a > b\n-> knows @x\n-> @gone\n"})
+    assert store.with_refs(item)["refs"] == {"gone": None, "x": "X person"}
+
+
 def test_detach_removes_first_match(data_dir):
     store.create({"file": "a.txt", "text": "a > b\n-> knows @x\n-> @x\n-> knows @x\n"})
     res = store.detach("a.txt", {"label": "knows", "target": "x"})

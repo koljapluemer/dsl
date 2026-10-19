@@ -7,6 +7,7 @@ import { itemQuery } from '@/entities/item/queries';
 import { ItemTextEditor } from '@/features/item-edit/ItemTextEditor';
 import { useAutosave } from '@/features/item-edit/useAutosave';
 import { useDeleteItem } from '@/features/item-delete/useDeleteItem';
+import { Relationships } from '@/features/item-relate/Relationships';
 import { useGoBack } from './useGoBack';
 
 /**
@@ -35,7 +36,9 @@ function LoadedEditor({ item, onCreated }: { item: Item | null; onCreated: (file
   const goBack = useGoBack();
   const remove = useDeleteItem();
   const [current, setCurrent] = useState(item);
-  const { change, save } = useAutosave({
+  /** bumped to remount the editor when a relationship changed the text underneath it */
+  const [editorKey, setEditorKey] = useState(0);
+  const { change, save, reset } = useAutosave({
     file: item?.file ?? null,
     saved: item?.text ?? '',
     onSaved: (saved) => {
@@ -46,6 +49,12 @@ function LoadedEditor({ item, onCreated }: { item: Item | null; onCreated: (file
       setCurrent(saved);
     },
   });
+
+  function related(changed: Item) {
+    reset(changed.file, changed.text);
+    setCurrent(changed);
+    setEditorKey((k) => k + 1);
+  }
 
   async function del() {
     await save();
@@ -59,7 +68,10 @@ function LoadedEditor({ item, onCreated }: { item: Item | null; onCreated: (file
         {current && <button className="btn btn-square btn-error btn-outline" title="delete" onClick={del}><Trash2 size={20} /></button>}
         {current && <span className="ml-auto font-mono text-xs text-base-content/50">{current.file}</span>}
       </div>
-      <ItemTextEditor initial={item?.text ?? ''} onChange={change} onSave={save} />
+      <ItemTextEditor key={editorKey} initial={current?.text ?? ''} autofocus={editorKey === 0} onChange={change} onSave={save} />
+      <div className="mt-6">
+        <Relationships item={current} flush={save} onChanged={related} deleteItem={remove} />
+      </div>
     </div>
   );
 }

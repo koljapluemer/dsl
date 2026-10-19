@@ -16,8 +16,9 @@ type Options = {
 
 /**
  * Saves of an item's text, one after the other so a create is never sent
- * twice; unchanged or blank text isn't sent. `save` resolves once this and
- * every earlier save is done. `file` and `saved` are read once (see `reset`).
+ * twice; unchanged or blank text isn't sent. `save` resolves to the item's
+ * file (null while there's none) once this and every earlier save is done.
+ * `file` and `saved` are read once (see `reset`).
  */
 export function useAutosave({ file, saved, onSaved, onError = showError }: Options) {
   const qc = useQueryClient();
@@ -40,7 +41,7 @@ export function useAutosave({ file, saved, onSaved, onError = showError }: Optio
         callbacks.current.onSaved?.(item);
       } catch (e) { callbacks.current.onError(e); }
     });
-    return s.pending;
+    return s.pending.then(() => s.file);
   }, [qc]);
 
   /** Edits another item from now on (after the pending saves); `file` and `saved` are as for the hook. */

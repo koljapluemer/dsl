@@ -1,14 +1,14 @@
 import { useState } from 'react';
 import type { Answered, Question, Suggestion } from '@/api/types';
 import { showError } from '@/dumb/errorBanner';
-import { NotePicker, type Pick } from './NotePicker';
+import { NotePicker, type Pick } from '@/features/item-relate/NotePicker';
 import { answer } from './questions';
 
 type Props = {
   file: string;
   question: Question;
   /** resolves once pending edits of the note are saved */
-  flush: () => Promise<void>;
+  flush: () => Promise<unknown>;
   onAnswered: (note: Answered) => void;
 };
 

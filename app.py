@@ -111,11 +111,6 @@ def next_question_note():
     return jsonify(store.random_candidate(_excluded()))
 
 
-@app.get("/api/questions/note/<name>")
-def question_note(name):
-    return jsonify(store.get_with_refs(name))
-
-
 @app.get("/api/questions/pick/<name>")
 def pick_questions(name):
     """The questions to ask about the note; the first ones when the LLM can't
@@ -150,16 +145,6 @@ def pull_question_model():
 @app.post("/api/questions/answer/<name>")
 def answer_question(name):
     return jsonify(store.answer(name, request.get_json(silent=True)))
-
-
-@app.post("/api/questions/relate/<name>")
-def relate_note(name):
-    return jsonify(store.relate(name, request.get_json(silent=True)))
-
-
-@app.post("/api/questions/detach/<name>")
-def detach_note(name):
-    return jsonify(store.detach(name, request.get_json(silent=True)))
 
 
 @app.post("/api/questions/disable/<name>")
@@ -364,17 +349,27 @@ def list_items():
 
 @app.get("/api/items/<name>")
 def get_item(name):
-    return jsonify(store.get(name))
+    return jsonify(store.get_with_refs(name))
 
 
 @app.post("/api/items")
 def create_item():
-    return jsonify(store.create(request.get_json())), 201
+    return jsonify(store.with_refs(store.create(request.get_json()))), 201
 
 
 @app.put("/api/items/<name>")
 def update_item(name):
-    return jsonify(store.update(name, request.get_json()))
+    return jsonify(store.with_refs(store.update(name, request.get_json())))
+
+
+@app.post("/api/items/<name>/relate")
+def relate_item(name):
+    return jsonify(store.relate(name, request.get_json(silent=True)))
+
+
+@app.post("/api/items/<name>/detach")
+def detach_item(name):
+    return jsonify(store.detach(name, request.get_json(silent=True)))
 
 
 @app.delete("/api/items/<name>")
