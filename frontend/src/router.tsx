@@ -40,7 +40,7 @@ const sourceEditor = createRoute({ getParentRoute: () => root, id: 'source-edito
 
 const tree = root.addChildren([
   createRoute({ getParentRoute: () => root, path: '/', validateSearch: validateNotesSearch, component: () => <NotesPage /> }),
-  createRoute({ getParentRoute: () => root, path: '/broken', validateSearch: validateNotesSearch, component: () => <NotesPage attention /> }),
+  createRoute({ getParentRoute: () => root, path: '/broken', beforeLoad: () => { throw redirect({ to: '/tasks' }); } }),
   editor.addChildren([
     createRoute({ getParentRoute: () => editor, path: '/new' }),
     createRoute({ getParentRoute: () => editor, path: '/edit/$file' }),

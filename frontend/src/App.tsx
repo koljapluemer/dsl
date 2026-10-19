@@ -6,7 +6,6 @@ import { UndoToast } from './dumb/UndoToast';
 const TABS = [
   { to: '/', label: 'Notes' },
   { to: '/new', label: 'New' },
-  { to: '/broken', label: 'Broken' },
   { to: '/graph', label: 'Graph' },
   { to: '/tasks', label: 'Tasks' },
   { to: '/projects', label: 'Projects' },

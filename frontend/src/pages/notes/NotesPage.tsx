@@ -3,9 +3,9 @@ import { ItemRow } from './ItemRow';
 import { SearchBar } from './SearchBar';
 import { useItemList } from './useItemList';
 
-/** All items, or with `attention` the ones with problems. */
-export function NotesPage({ attention = false }: { attention?: boolean }) {
-  const { q, semantic, focused, status, list, setQuery, toggleSemantic, setPage, jump, reload } = useItemList(attention);
+/** All items. */
+export function NotesPage() {
+  const { q, semantic, focused, status, list, setQuery, toggleSemantic, setPage, jump, reload } = useItemList();
   return (
     <div>
       <SearchBar q={q} semantic={semantic} status={status} onQuery={setQuery} onToggleSemantic={toggleSemantic} onModelInstalled={reload} />

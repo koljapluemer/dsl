@@ -357,11 +357,11 @@ def index(max_age: float = 0):
 
 
 def list_page(
-    q: str = "", attention: bool = False, page: int = 0, seed: int = 0, focus: str | None = None, tasks: bool = False,
+    q: str = "", attention: bool | None = None, page: int = 0, seed: int = 0, focus: str | None = None, tasks: bool = False,
     semantic_search: bool = False,
 ) -> dict:
     """One page of items whose text contains `q`, optionally only those needing
-    attention or only those with a tasks line, in an order shuffled by `seed` (stable across pages and filters
+    attention (`attention` True) or not (False) and only those with a tasks line, in an order shuffled by `seed` (stable across pages and filters
     for one seed); plus the counts. With `focus`, the page holding that file
     instead, and `focused` says whether it was among the matches.
     With `semantic_search` and a `q`, the items whose body is embedded, ranked by
@@ -371,7 +371,7 @@ def list_page(
     entries = _INDEX.refresh()
     needle = q.strip().lower()
     seed &= 0xFFFFFFFF
-    keep = lambda e: (not attention or e.flagged) and (not tasks or e.has_tasks)
+    keep = lambda e: (attention is None or e.flagged == attention) and (not tasks or e.has_tasks)
     names, status = None, None
     if semantic_search and needle:
         try:

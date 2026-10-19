@@ -132,6 +132,8 @@ def test_tasks_filter(data_dir, monkeypatch):
     r = store.list_page(tasks=True)
     assert sorted(i["file"] for i in r["items"]) == ["b.txt", "d.txt"]
     assert r["total"] == 2 and r["tasks"] == 2
+    store.update("d.txt", {"text": "note d\ntasks clean up\nappointment 26-02-30"})
+    assert [i["file"] for i in store.list_page(tasks=True, attention=False)["items"]] == ["b.txt"]
     assert store.list_page()["total"] == 5
 
 

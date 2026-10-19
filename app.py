@@ -339,7 +339,7 @@ def list_items():
     args = request.args
     return jsonify(store.list_page(
         args.get("q", ""),
-        args.get("attention") == "1",
+        {"1": True, "0": False}.get(args.get("attention", "")),
         args.get("page", 0, type=int),
         args.get("seed", 0, type=int),
         args.get("focus") or None,
