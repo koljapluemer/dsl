@@ -22,8 +22,8 @@ export function RelationAdder({ exclude, busy, onAdd, compact }: Props) {
   }
 
   return (
-    <div className="flex gap-1 mt-1 items-start">
-      <input className={`input shrink-0 ${compact ? 'input-sm w-24' : 'w-48'}`} value={label} disabled={busy} placeholder="label"
+    <div className={`flex gap-1 mt-1 items-start ${compact ? '' : 'flex-col sm:flex-row'}`}>
+      <input className={`input ${compact ? 'input-sm w-24 shrink-0' : 'w-full sm:w-48 sm:shrink-0'}`} value={label} disabled={busy} placeholder="label"
              onChange={(e) => setLabel(e.target.value)}
              onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); picker.current?.focus(); } }} />
       <NotePicker exclude={exclude} busy={busy} onPick={pick} inputRef={picker} compact={compact} />
