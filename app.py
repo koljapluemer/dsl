@@ -13,6 +13,7 @@ import graph
 import llm
 import maintenance
 import questions
+import search as note_search
 import semantic
 import sources
 import store
@@ -105,7 +106,24 @@ def _excluded() -> list[str]:
 
 @app.get("/api/search")
 def search():
-    return jsonify(store.search(request.args.get("q", ""), _excluded()))
+    args = request.args
+    return jsonify(note_search.search(
+        args.get("q", ""),
+        args.get("scope", "all"),
+        args.get("orphan", "any"),
+        args.get("page", 0, type=int),
+        args.get("regex", "1") == "1",
+        args.get("semantic") == "1",
+        _excluded(),
+        args.get("limit", note_search.PAGE_SIZE, type=int),
+    ))
+
+
+@app.get("/api/search/filenames")
+def search_filenames():
+    args = request.args
+    return jsonify(note_search.filenames(
+        args.get("q", ""), args.get("scope", "all"), args.get("orphan", "any"), args.get("cap", note_search.PIN_ALL_CAP, type=int)))
 
 
 @app.get("/api/questions/next")
@@ -258,23 +276,6 @@ def graph_open():
     return jsonify(graph.open_graph(_json().get("pins")))
 
 
-@app.get("/api/graph/search")
-def graph_search():
-    args = request.args
-    return jsonify(graph.search(args.get("q", ""), args.get("orphan", "any"), args.get("page", 0, type=int)))
-
-
-@app.get("/api/graph/search/filenames")
-def graph_search_filenames():
-    args = request.args
-    return jsonify(graph.search_filenames(args.get("q", ""), args.get("orphan", "any"), args.get("cap", graph.PIN_ALL_CAP, type=int)))
-
-
-@app.get("/api/graph/recent")
-def graph_recent():
-    return jsonify(graph.recent(request.args.get("page", 0, type=int)))
-
-
 @app.get("/api/graph/random")
 def graph_random():
     return jsonify(filename=graph.random_note(_excluded(), request.args.get("orphan") == "1"))
@@ -354,13 +355,10 @@ def media_path():
 def list_items():
     args = request.args
     return jsonify(store.list_page(
-        args.get("q", ""),
         {"1": True, "0": False}.get(args.get("attention", "")),
         args.get("page", 0, type=int),
         args.get("seed", 0, type=int),
-        args.get("focus") or None,
         args.get("tasks") == "1",
-        args.get("semantic") == "1",
     ))
 
 

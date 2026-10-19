@@ -15,14 +15,12 @@ import { useUndoToast, type UndoAction } from './useUndoToast';
 import { CREATED_NOTE_PIN_DEPTH, MANUAL_PIN_DEPTH, SEARCH_RESULT_PIN_DEPTH } from '../useNoteGraph';
 import { useQueryClient } from '@tanstack/react-query';
 import type { GraphEdgePayload } from '@/api/types';
-import { showError } from '@/dumb/errorBanner';
 import {
   connectNotes,
   createNote,
   deleteNote,
   deleteRelation,
   hideNote,
-  noteText,
   notesChanged,
   undoDelete,
   updateNote,
@@ -215,10 +213,10 @@ export function useGraphInteraction({
     [qc, onUnpinNote, onPinNote, showUndo],
   );
 
-  // Edit mode works on the file's full text, read fresh from disk.
+  // The card's editor reads the file's full text fresh from disk.
   const handleStartEdit = useCallback(
     (filename: string) => {
-      void noteText(filename).then((text) => setInteraction({ type: 'edit', filename, text }), showError);
+      setInteraction({ type: 'edit', filename });
     },
     [setInteraction],
   );

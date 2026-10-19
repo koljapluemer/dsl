@@ -1,6 +1,8 @@
-import { EyeOff, GripVertical, Maximize2, Pencil, Trash2 } from 'lucide-react';
+import { GripVertical, Maximize2 } from 'lucide-react';
 import { memo, useState } from 'react';
 import { MediaPreview } from '@/dumb/MediaPreview';
+import { NotePanel } from '@/meta/note-panel/NotePanel';
+import type { MediaAttachment } from '@/features/item-media/useMediaAttachment';
 import { MediaModal } from './MediaModal';
 import { NoteMarkdown } from './NoteMarkdown';
 import { PinControl } from './PinControl';
@@ -11,9 +13,12 @@ function NoteCardInner({
   note,
   pinDepth,
   isAnchor,
+  editing,
   onDelete,
   onHide,
   onEdit,
+  onSaveEdit,
+  onCancelEdit,
   onPin,
   onUnpin,
   onChangeDepth,
@@ -21,126 +26,58 @@ function NoteCardInner({
   note: GraphNodePayload;
   pinDepth: number | null;
   isAnchor: boolean;
+  editing: boolean;
   onDelete: (filename: string, pinDepth: number | null) => Promise<void>;
   onHide: (filename: string, pinDepth: number | null) => Promise<void>;
   onEdit: (filename: string) => void;
+  /** Rejected when the text has errors: the note would drop out of the graph. */
+  onSaveEdit: (filename: string, text: string, image: MediaAttachment, previousImage: string | null) => Promise<void>;
+  onCancelEdit: () => void;
   onPin: (filename: string) => void;
   onUnpin: (filename: string) => void;
   onChangeDepth: (filename: string, nextDepth: number) => void;
 }) {
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [mediaModalOpen, setMediaModalOpen] = useState(false);
   const hasExtra = note.extraContent.trim().length > 0;
 
-  // Deleting or hiding removes the card, so `busy` is only reset on failure.
-  const run = async (action: typeof onDelete): Promise<void> => {
-    setBusy(true);
-    setError(null);
+  const toolbar = (
+    <>
+      {/*
+        The only drag surface for the node - React Flow's `dragHandle` on the
+        note node points at this class (see buildView), so the rest of the card
+        stays free for text selection and its buttons.
+      */}
+      <span
+        className="note-drag-handle -ml-1 cursor-grab rounded p-0.5 text-base-content/30 transition-colors hover:text-base-content/60 active:cursor-grabbing"
+        title="Drag to move"
+      >
+        <GripVertical className="size-4" />
+      </span>
+      <PinControl
+        pinDepth={pinDepth}
+        onPin={() => onPin(note.filename)}
+        onUnpin={() => onUnpin(note.filename)}
+        onChangeDepth={(next) => onChangeDepth(note.filename, next)}
+      />
+      {note.image && !editing ? (
+        <button type="button" className="btn btn-ghost btn-xs btn-square" onClick={() => setMediaModalOpen(true)} title="Enlarge media">
+          <Maximize2 className="size-3.5" />
+        </button>
+      ) : null}
+    </>
+  );
 
-    try {
-      await action(note.filename, pinDepth);
-    } catch (actionError) {
-      setError((actionError as Error).message);
-      setBusy(false);
-    }
-  };
-
-  return (
-    <article
-      className={[
-        // React Flow's node wrapper sets `user-select: none` and a grab cursor;
-        // undo both here so the card's text can be selected (drag is limited to
-        // the handle below).
-        'note-card cursor-auto select-text',
-        ' border bg-base-100 px-5 py-4 text-left shadow-xl',
-        pinDepth !== null ? 'border-primary' : 'border-base-300',
-        isAnchor ? 'border-dashed' : '',
-      ].join(' ')}
-    >
-      <div className="mb-3 flex min-h-6 items-center justify-between">
-        <div className="flex items-center gap-1.5">
-          {/*
-            The only drag surface for the node - React Flow's `dragHandle` on the
-            note node points at this class (see GraphCanvas' buildView), so the
-            rest of the card stays free for text selection and its buttons.
-          */}
-          <span
-            className="note-drag-handle -ml-1 cursor-grab rounded p-0.5 text-base-content/30 transition-colors hover:text-base-content/60 active:cursor-grabbing"
-            title="Drag to move"
-          >
-            <GripVertical className="size-4" />
-          </span>
-          <PinControl
-            pinDepth={pinDepth}
-            onPin={() => onPin(note.filename)}
-            onUnpin={() => onUnpin(note.filename)}
-            onChangeDepth={(next) => onChangeDepth(note.filename, next)}
-          />
-        </div>
-        <div className="flex items-center gap-1">
-          {note.image ? (
-            <button
-              type="button"
-              className="btn btn-ghost btn-xs rounded-full"
-              onClick={(event) => {
-                event.stopPropagation();
-                setMediaModalOpen(true);
-              }}
-              title="Enlarge media"
-            >
-              <Maximize2 className="size-3.5" />
-            </button>
-          ) : null}
-          <button
-            type="button"
-            className="btn btn-ghost btn-xs rounded-full"
-            onClick={(event) => {
-              event.stopPropagation();
-              onEdit(note.filename);
-            }}
-            title="Edit this note"
-          >
-            <Pencil className="size-3.5" />
-          </button>
-          <button
-            type="button"
-            className="btn btn-ghost btn-xs rounded-full disabled:opacity-50"
-            onClick={(event) => {
-              event.stopPropagation();
-              void run(onHide);
-            }}
-            disabled={busy}
-            title="Hide from graph"
-          >
-            <EyeOff className="size-3.5" />
-          </button>
-          <button
-            type="button"
-            className="btn btn-ghost btn-xs rounded-full hover:bg-error/10 hover:text-error disabled:opacity-50"
-            onClick={(event) => {
-              event.stopPropagation();
-              void run(onDelete);
-            }}
-            disabled={busy}
-            title="Delete this note"
-          >
-            <Trash2 className="size-3.5" />
-          </button>
-        </div>
-      </div>
-
-      {error ? <p className="mb-2 text-xs text-error">{error}</p> : null}
-
+  /*
+    The note's full content: body, then the keyword lines worth reading and the
+    data block, then the extra content a size down. Media is the preview above;
+    relationships are the edges; tags and state lines are left out.
+  */
+  const view = (
+    <>
       {note.image ? (
         <MediaPreview src={mediaUrl(note.image)} kind={isVideoFilename(note.image) ? 'video' : 'image'} className="mb-3 h-auto w-full" />
       ) : null}
 
-      {/*
-        The note's full content: body, then the keyword lines worth reading and the
-        data block, then the extra content a size down. Media is the preview above;
-        relationships are the edges; tags and state lines are left out.
-      */}
       {note.body.trim() ? <NoteMarkdown markdown={note.body} /> : <p className="text-sm italic text-base-content/50">Empty note</p>}
 
       {note.sectionLines.length > 0 || note.dataText !== null ? (
@@ -157,6 +94,35 @@ function NoteCardInner({
           <NoteMarkdown markdown={note.extraContent} small />
         </div>
       ) : null}
+    </>
+  );
+
+  return (
+    <article
+      className={[
+        // React Flow's node wrapper sets `user-select: none` and a grab cursor;
+        // undo both here so the card's text can be selected (drag is limited to
+        // the handle).
+        'note-card cursor-auto select-text',
+        ' border bg-base-100 px-5 py-4 text-left shadow-xl',
+        pinDepth !== null ? 'border-primary' : 'border-base-300',
+        isAnchor || editing ? 'border-dashed' : '',
+      ].join(' ')}
+    >
+      <NotePanel
+        file={note.filename}
+        showFile={false}
+        view={view}
+        toolbar={toolbar}
+        editing={editing}
+        onEditingChange={(next) => (next ? onEdit(note.filename) : onCancelEdit())}
+        onAccept={(text, image) => onSaveEdit(note.filename, text, image, note.image)}
+        hide={{ title: 'Hide from graph', run: () => onHide(note.filename, pinDepth) }}
+        onDelete={async () => {
+          await onDelete(note.filename, pinDepth);
+          return true;
+        }}
+      />
 
       {mediaModalOpen && note.image ? (
         <MediaModal filename={note.image} noteFilename={note.filename} onClose={() => setMediaModalOpen(false)} />

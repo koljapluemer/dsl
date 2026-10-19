@@ -19,13 +19,15 @@ type Props = {
   onChanged: (note: Item) => void;
   /** deletes a target; resolves to whether it was deleted */
   deleteItem: (item: Item) => Promise<boolean>;
+  /** a click on a target; by default it opens in the editor page */
+  onRef?: (file: string) => void;
 };
 
 /**
  * The note's relationships, each detachable and its target deletable, then
  * one empty group for another relationship with any label.
  */
-export function Relationships({ item, flush, onChanged, deleteItem }: Props) {
+export function Relationships({ item, flush, onChanged, deleteItem, onRef }: Props) {
   const qc = useQueryClient();
   const schema = useSchema();
   const [busy, setBusy] = useState(false);
@@ -66,7 +68,7 @@ export function Relationships({ item, flush, onChanged, deleteItem }: Props) {
       <p className="font-medium mb-1">Relationships</p>
       {relations.map((rel) => (
         <RelationRow key={rel.line} direction="out" label={rel.label} file={rel.target + '.txt'} heading={item?.refs?.[rel.target]}
-                     busy={busy} onDetach={() => unlink(rel)} onDelete={() => remove(rel)} />
+                     busy={busy} onDetach={() => unlink(rel)} onDelete={() => remove(rel)} onOpen={onRef} />
       ))}
       <RelationAdder exclude={[...(item ? [item.file] : []), ...relations.map((r) => r.target + '.txt')]} busy={busy} onAdd={add} />
     </div>

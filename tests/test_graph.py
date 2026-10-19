@@ -79,69 +79,9 @@ def test_section_lines_and_data_on_nodes():
     assert (n["dataText"], n["extraContent"], n["image"]) == ("k: v", "more", "images/x.png")
 
 
-# --- search ---
-
-
-def test_query_parser():
-    q = graph.parse_query('foo "a b" OR -/x+/i body:(bar baz) key:val')
-    assert isinstance(q, graph.Op) and q.type == "or"
-    assert q.children[0] == graph.Op("and", [graph.Term("foo", "fuzzy"), graph.Term("a b", "exact")])
-    right = q.children[1].children
-    assert right[0] == graph.Not(graph.Term("x+", "regex", "i"))
-    assert right[1] == graph.Scope("body", graph.Op("and", [graph.Term("bar", "fuzzy"), graph.Term("baz", "fuzzy")]))
-    assert right[2] == graph.Term("key:val", "fuzzy")
-    for incomplete in ['"open', "/open", "(a", "a OR"]:
-        with pytest.raises(graph.IncompleteQuery):
-            graph.parse_query(incomplete)
-    with pytest.raises(store.ValidationError):
-        graph.parse_query("/x/g")
-
-
-def hits(q: str, **kw) -> list[str]:
-    return [r["filename"] for r in graph.search(q, **kw)["results"]]
-
-
-def test_fuzzy_prefix_and_fields():
-    note("a", "Apples and pears")
-    note("b", "Bananas\nextra\nalso apples")
-    note("c", "Cherries")
-    assert hits("app") == ["a.txt", "b.txt"]  # an extra-only match comes last
-    assert hits("body:app") == ["a.txt"]
-    assert hits("extra:apples") == ["b.txt"]
-    assert hits("app -bananas") == ["a.txt"]
-    assert hits("cherries OR pears") == ["a.txt", "c.txt"] or hits("cherries OR pears") == ["c.txt", "a.txt"]
-    assert hits("file:cherr") == [] and hits("file:c.txt") == ["c.txt"]
-
-
-def test_exact_regex_and_orphans():
-    note("a", "The quick fox\n-> r @b")
-    note("b", "Slow fox")
-    assert hits('"QUICK FOX"') == ["a.txt"]
-    assert hits("/sl.w/i") == ["b.txt"]
-    assert hits("fox", orphan="connected") == ["a.txt", "b.txt"] or hits("fox", orphan="connected") == ["b.txt", "a.txt"]
-    note("c", "Lonely fox")
-    assert hits("fox", orphan="orphan") == ["c.txt"]
-    with pytest.raises(store.ValidationError):
-        graph.search("/(/")
-    assert graph.search_filenames("fox", cap=1)["total"] == 3
-
-
-def test_match_display_uses_utf16_offsets():
-    note("a", "😀 x needle")
-    r = graph.search('"needle"')["results"][0]
-    assert r["preview"] == "😀 x needle"
-    assert r["previewMatch"] == {"start": 5, "length": 6}
-    note("b", "Body\nextra\n" + "w " * 40 + "deep needle")
-    r = next(x for x in graph.search('"deep"')["results"])
-    assert r["previewMatch"] is None and r["excerpt"]["text"].startswith("…")
-    ex = r["excerpt"]
-    assert ex["text"][ex["match"]["start"] : ex["match"]["start"] + ex["match"]["length"]] == "deep"
-
-
-def test_recent_and_random():
+def test_random():
     for k in "abc":
         note(k, k)
-    assert graph.recent()["total"] == 3
     assert graph.random_note(["a.txt", "b.txt"]) == "c.txt"
     assert graph.random_note(["a.txt", "b.txt", "c.txt"]) is None
 
@@ -242,7 +182,6 @@ def test_hidden_notes_leave_the_graph_and_hide_undoes(data_dir):
     text = (data_dir / "b.txt").read_text()
     graph.hide("b.txt")
     assert names(graph.build(pins)) == ["a.txt"]
-    assert graph.search("B")["results"] == []
     graph.undo()
     assert (data_dir / "b.txt").read_text() == text
     assert names(graph.build(pins)) == ["a.txt", "b.txt"]

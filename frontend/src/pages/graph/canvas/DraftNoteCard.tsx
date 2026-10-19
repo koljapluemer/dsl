@@ -9,46 +9,26 @@ import {
 import { pastedMedia } from '@/entities/item/media';
 import { MediaAttachmentPreview, MediaPicker } from '@/features/item-media/MediaAttachmentField';
 import { useMediaAttachment, type MediaAttachment } from '@/features/item-media/useMediaAttachment';
-import { NoteTextEditor } from './NoteTextEditor';
 
 export interface DraftNoteCardProps {
-  /**
-   * 'edit' reuses this same card to edit an existing note in place, in lieu of a
-   * separate dialog - as the file's full text, in a highlighting editor.
-   */
-  mode?: 'create' | 'edit';
-  /** The note file's full text - only meaningful in 'edit' mode. */
-  initialText?: string;
-  /** Filename of the note's existing attached image, if any - only meaningful in 'edit' mode. */
-  initialImage?: string | null;
   /** Whether to show the relation-label/reverse fields - false for a freestanding note with no related note. */
   showRelation: boolean;
-  /** `body` is the new note's body, or in 'edit' mode the file's full text. */
+  /** `body` is the new note's body. */
   onSave: (body: string, label: string, reverse: boolean, image: MediaAttachment) => Promise<void>;
   onCancel: () => void;
 }
 
-export function DraftNoteCard({
-  mode = 'create',
-  initialText = '',
-  initialImage = null,
-  showRelation,
-  onSave,
-  onCancel,
-}: DraftNoteCardProps) {
-  const [body, setBody] = useState(initialText);
+/** A new note on the canvas, related to the note it was dragged from unless freestanding. */
+export function DraftNoteCard({ showRelation, onSave, onCancel }: DraftNoteCardProps) {
+  const [body, setBody] = useState('');
   const [label, setLabel] = useState('');
   const [reverse, setReverse] = useState(false);
-  const { attachment: image, setAttachment: setImage, attachFile, error: attachmentError } = useMediaAttachment(initialImage);
+  const { attachment: image, setAttachment: setImage, attachFile, error: attachmentError } = useMediaAttachment(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
-    // The edit-mode editor focuses itself.
-    if (mode === 'edit') {
-      return;
-    }
     // Deferred a frame: this card can mount mid-drag (dropping a connection onto
     // empty canvas), and React Flow's own pointerup/connection-end handling is
     // still settling focus at that point - focusing synchronously on mount loses
@@ -57,7 +37,7 @@ export function DraftNoteCard({
       textareaRef.current?.focus();
     });
     return () => cancelAnimationFrame(frame);
-  }, [mode]);
+  }, []);
 
   const handleFieldEscape = (event: ReactKeyboardEvent<HTMLInputElement>): void => {
     event.stopPropagation();
@@ -95,7 +75,7 @@ export function DraftNoteCard({
   return (
     <article className="note-card group-focus:ring-2 group-focus:ring-primary/40  border border-dashed border-primary/50 bg-base-100 px-5 py-4 text-left shadow-xl">
       <div className="mb-3 flex items-center justify-between">
-        <span className="text-xs font-semibold uppercase tracking-wide text-base-content/60">{mode === 'edit' ? 'Edit note' : 'New note'}</span>
+        <span className="text-xs font-semibold uppercase tracking-wide text-base-content/60">New note</span>
         <div className="flex items-center gap-1">
           {!image ? <MediaPicker compact onAttach={(file) => void attachFile(file)} /> : null}
           <button type="button" className="btn btn-ghost btn-xs rounded-full" onClick={onCancel} title="Discard">
@@ -110,32 +90,22 @@ export function DraftNoteCard({
         </div>
       ) : null}
 
-      {mode === 'edit' ? (
-        <NoteTextEditor
-          initialText={initialText}
-          onChange={setBody}
-          onSubmit={() => void handleSave()}
-          onCancel={onCancel}
-          onPasteFile={(file) => void attachFile(file)}
-        />
-      ) : (
-        <textarea
-          ref={textareaRef}
-          className="note-textarea textarea nodrag nowheel min-h-36 w-full resize-none text-sm leading-6 focus:border-primary/60"
-          placeholder="Write the note… (paste an image or short video to attach it)"
-          value={body}
-          onChange={(event) => setBody(event.target.value)}
-          onPaste={(event) => void handlePaste(event)}
-          onKeyDown={(event) => {
-            event.stopPropagation();
-            if (event.key === 'Escape') {
-              onCancel();
-            } else if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) {
-              void handleSave();
-            }
-          }}
-        />
-      )}
+      <textarea
+        ref={textareaRef}
+        className="note-textarea textarea nodrag nowheel min-h-36 w-full resize-none text-sm leading-6 focus:border-primary/60"
+        placeholder="Write the note… (paste an image or short video to attach it)"
+        value={body}
+        onChange={(event) => setBody(event.target.value)}
+        onPaste={(event) => void handlePaste(event)}
+        onKeyDown={(event) => {
+          event.stopPropagation();
+          if (event.key === 'Escape') {
+            onCancel();
+          } else if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) {
+            void handleSave();
+          }
+        }}
+      />
 
       {showRelation ? (
         <>

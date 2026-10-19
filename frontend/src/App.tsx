@@ -27,8 +27,8 @@ export function App() {
   const error = errorBanner.use();
   useEffect(() => errorBanner.set(''), [path]);
 
-  // the graph's canvas and the float stage take the whole window; the other pages a readable column
-  const full = path === '/graph' || path === '/float';
+  // the notes, the graph's canvas and the float stage take the whole window; the other pages a readable column
+  const full = ['/', '/graph', '/float'].includes(path);
 
   return (
     <div className={full ? 'flex h-screen flex-col px-4 pt-4' : 'max-w-5xl mx-auto p-4'}>

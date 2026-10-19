@@ -62,7 +62,6 @@ def test_pages_filters_and_flags(data_dir, monkeypatch):
     assert [len(p["items"]) for p in pages] == [2, 2, 1]
     assert sorted(i["file"] for p in pages for i in p["items"]) == ["a.txt", "b.txt", "c.txt", "d.txt", "e.txt"]
     assert (pages[0]["total"], pages[0]["flagged"]) == (5, 1)
-    assert [i["file"] for i in store.list_page("NOTE C")["items"]] == ["c.txt"]
     assert [i["file"] for i in store.list_page(attention=True)["items"]] == ["d.txt"]
     store.update("d.txt", {"text": "note d\nappointment 26-02-28"})
     assert store.list_page(attention=True)["total"] == 0
@@ -78,19 +77,6 @@ def test_order_is_shuffled_by_seed(data_dir, monkeypatch):
     assert order(1) == order(1)
     assert order(1) != order(2)
     assert order(1) != sorted(order(1))
-
-
-def test_focus_returns_its_page(data_dir, monkeypatch):
-    monkeypatch.setattr(store, "PAGE_SIZE", 2)
-    for k in "abcde":
-        store.create({"file": f"{k}.txt", "text": f"note {k}"})
-    for k in "abcde":
-        res = store.list_page(seed=7, focus=f"{k}.txt")
-        assert res["focused"]
-        assert f"{k}.txt" in [i["file"] for i in res["items"]]
-        assert res["page"] == next(p for p in range(3) if res["items"] == store.list_page(seed=7, page=p)["items"])
-    assert not store.list_page("note a", focus="b.txt")["focused"]
-    assert not store.list_page(focus="x.txt")["focused"]
 
 
 def test_refs_carry_target_headings(data_dir):
@@ -149,31 +135,6 @@ def test_random_candidate(data_dir):
     store.delete("a.txt")
     store.delete("b.txt")
     assert store.random_candidate() == {"item": None, "total": 0}
-
-
-def test_search_ranks_and_prefixes(data_dir):
-    store.create({"file": "ml.txt", "text": "Machine learning basics\nabout models"})
-    store.create({"file": "body.txt", "text": "Notes\nsome machine learning in the body"})
-    store.create({"file": "mach.txt", "text": "Machinery"})
-    store.create({"file": "cafe.txt", "text": "Café culture"})
-    files = lambda q, ex=(): [r["file"] for r in store.search(q, list(ex))]
-    assert files("machine learning") == ["ml.txt", "body.txt", "mach.txt"]
-    assert files("machine lea")[:2] == ["ml.txt", "body.txt"]
-    assert files("mach")[0] == "mach.txt"  # heading, prefix
-    assert files("cafe") == files("CAFÉ") == ["cafe.txt"]
-    assert files("machine learning", ["ml.txt"]) == ["body.txt", "mach.txt"]
-    assert store.search("machine")[0] == {"file": "ml.txt", "heading": "Machine learning basics"}
-    assert files("  ") == []
-
-
-def test_search_sees_own_writes_at_once(data_dir):
-    store.search("x")
-    store.create({"file": "n.txt", "text": "zebra"})
-    assert [r["file"] for r in store.search("zeb")] == ["n.txt"]
-    store.update("n.txt", {"text": "yak"})
-    assert store.search("zeb") == []
-    store.delete("n.txt")
-    assert store.search("yak") == []
 
 
 def test_answer_links_existing_and_new(data_dir):

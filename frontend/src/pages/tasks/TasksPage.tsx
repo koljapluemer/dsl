@@ -4,7 +4,7 @@ import { Pager } from '@/dumb/Pager';
 import { itemsQuery } from '@/entities/item/queries';
 import { TaskRow } from './TaskRow';
 
-/** The items with problems, then the other items with tasks; each in its own editor. */
+/** The items with problems, then the other items with tasks; each editable in place. */
 export function TasksPage() {
   const [brokenPage, setBrokenPage] = useState(0);
   const [taskPage, setTaskPage] = useState(0);

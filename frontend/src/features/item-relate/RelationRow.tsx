@@ -13,10 +13,12 @@ type Props = {
   onDetach: () => void;
   onDelete: () => void;
   compact?: boolean;
+  /** a click on the other note; by default it opens in the editor page */
+  onOpen?: (file: string) => void;
 };
 
 /** One relationship: its label and the other note, detachable and that note deletable. */
-export function RelationRow({ direction, label, file, heading, busy, onDetach, onDelete, compact }: Props) {
+export function RelationRow({ direction, label, file, heading, busy, onDetach, onDelete, compact, onOpen }: Props) {
   const navigate = useNavigate();
   const name = file.replace(/\.txt$/, '');
   const icon = compact ? 14 : 16;
@@ -25,7 +27,7 @@ export function RelationRow({ direction, label, file, heading, busy, onDetach, o
       <span className="ov-muted shrink-0">{direction === 'out' ? `${label ? label + ' ' : ''}→` : `←${label ? ' ' + label : ''}`}</span>
       {heading === null
         ? <span className="ov-missing" title={`no item ${file}`}>{name}</span>
-        : <a className="link link-hover truncate" title={file} onClick={() => navigate({ to: '/edit/$file', params: { file } })}>{heading || name}</a>}
+        : <a className="link link-hover truncate" title={file} onClick={() => (onOpen ? onOpen(file) : void navigate({ to: '/edit/$file', params: { file } }))}>{heading || name}</a>}
       <button className="btn btn-ghost btn-xs btn-square ml-auto" disabled={busy} title="detach (remove the relationship)" onClick={onDetach}>
         <Unlink size={icon} />
       </button>

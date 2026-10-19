@@ -27,11 +27,10 @@ export interface ConnectingInteraction {
   target: string;
 }
 
+/** The note's card shows its editor. */
 export interface EditInteraction {
   type: 'edit';
   filename: string;
-  /** The note file's full text when editing started. */
-  text: string;
 }
 
 export interface SearchInteraction {

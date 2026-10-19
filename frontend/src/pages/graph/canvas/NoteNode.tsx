@@ -15,7 +15,11 @@ export type NoteNodeData =
       isAnchor: boolean;
       onDelete: (filename: string, pinDepth: number | null) => Promise<void>;
       onHide: (filename: string, pinDepth: number | null) => Promise<void>;
+      /** Whether the card shows its editor. */
+      editing: boolean;
       onEdit: (filename: string) => void;
+      onSaveEdit: (filename: string, text: string, image: MediaAttachment, previousImage: string | null) => Promise<void>;
+      onCancelEdit: () => void;
       onPin: (filename: string) => void;
       onUnpin: (filename: string) => void;
       onChangeDepth: (filename: string, nextDepth: number) => void;
@@ -25,14 +29,6 @@ export type NoteNodeData =
       /** Whether to show the relation-label/reverse fields - false for a freestanding note with no related note. */
       showRelation: boolean;
       onSave: (body: string, label: string, reverse: boolean, image: MediaAttachment) => Promise<void>;
-      onCancel: () => void;
-    }
-  | {
-      kind: 'edit';
-      /** The note file's full text. */
-      initialText: string;
-      initialImage: string | null;
-      onSave: (text: string, image: MediaAttachment) => Promise<void>;
       onCancel: () => void;
     };
 
@@ -94,19 +90,13 @@ function NoteNodeInner({ data }: NodeProps<NoteFlowNode>) {
           isAnchor={data.isAnchor}
           onDelete={data.onDelete}
           onHide={data.onHide}
+          editing={data.editing}
           onEdit={data.onEdit}
+          onSaveEdit={data.onSaveEdit}
+          onCancelEdit={data.onCancelEdit}
           onPin={data.onPin}
           onUnpin={data.onUnpin}
           onChangeDepth={data.onChangeDepth}
-        />
-      ) : data.kind === 'edit' ? (
-        <DraftNoteCard
-          mode="edit"
-          initialText={data.initialText}
-          initialImage={data.initialImage}
-          showRelation={false}
-          onSave={(body, _label, _reverse, image) => data.onSave(body, image)}
-          onCancel={data.onCancel}
         />
       ) : (
         <DraftNoteCard showRelation={data.showRelation} onSave={data.onSave} onCancel={data.onCancel} />

@@ -3,6 +3,7 @@ import pytest
 
 import llm
 import semantic
+import search
 import store
 
 WORDS = ["cat", "dog", "car"]
@@ -32,17 +33,21 @@ def wait():
 
 
 def files(res):
-    return [i["file"] for i in res["items"]]
+    return [r["filename"] for r in res["results"]]
+
+
+def ranked(q):
+    return search.search(q, semantic_search=True)
 
 
 def test_ranks_by_similarity_once_embedded():
     store.create({"file": "a.txt", "text": "the dog barked"})
     store.create({"file": "b.txt", "text": "a cat sat"})
     store.create({"file": "c.txt", "text": "car car"})
-    first = store.list_page("kitten cat", semantic_search=True)
+    first = ranked("kitten cat")
     assert first["semantic"]["total"] == 3
     wait()
-    res = store.list_page("kitten cat", semantic_search=True)
+    res = ranked("kitten cat")
     assert files(res)[0] == "b.txt"
     assert res["total"] == 3
     assert res["semantic"] | {"embedding": False} == {
@@ -52,13 +57,13 @@ def test_ranks_by_similarity_once_embedded():
 def test_cache_survives_restart_and_is_pruned(setup):
     store.create({"file": "a.txt", "text": "dog"})
     store.create({"file": "b.txt", "text": "cat"})
-    store.list_page("cat", semantic_search=True)
+    ranked("cat")
     wait()
     store.delete("a.txt")
-    store.list_page("cat", semantic_search=True)
+    ranked("cat")
     wait()  # nothing new: no worker ran, the stale vector is still cached
     store.update("b.txt", {"text": "cat cat"})
-    store.list_page("cat", semantic_search=True)
+    ranked("cat")
     wait()
     restarted = semantic._Embeddings(setup / "cache" / "e.npz")
     restarted._load()
@@ -68,26 +73,26 @@ def test_cache_survives_restart_and_is_pruned(setup):
 def test_only_body_is_embedded():
     store.create({"file": "a.txt", "text": "dog\ntags cat"})
     store.create({"file": "b.txt", "text": "cat"})
-    store.list_page("cat", semantic_search=True)
+    ranked("cat")
     wait()
-    assert files(store.list_page("cat", semantic_search=True)) == ["b.txt", "a.txt"]
+    assert files(ranked("cat")) == ["b.txt", "a.txt"]
 
 
-def test_unavailable_falls_back_to_text_filter(monkeypatch):
+def test_unavailable_falls_back_to_the_query_language(monkeypatch):
     def missing(model, inputs):
         raise llm.ModelMissing("404: model not found")
 
     monkeypatch.setattr(llm, "embed", missing)
     store.create({"file": "a.txt", "text": "dog"})
     store.create({"file": "b.txt", "text": "cat"})
-    res = store.list_page("cat", semantic_search=True)
+    res = ranked("cat")
     assert files(res) == ["b.txt"]
     assert res["semantic"]["missing_model"] == semantic.MODEL
     wait()
     assert semantic.status()["missing_model"] == semantic.MODEL
 
 
-def test_empty_query_lists_all():
+def test_empty_query_lists_all_newest_first():
     store.create({"file": "a.txt", "text": "dog"})
-    res = store.list_page("", semantic_search=True)
+    res = ranked("")
     assert files(res) == ["a.txt"] and res["semantic"] is None

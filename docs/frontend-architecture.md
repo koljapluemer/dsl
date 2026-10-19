@@ -21,8 +21,9 @@ Conventions:
 - Something two features need goes down a layer, usually into `dumb` when it
   has no app logic. That's why the undo toast's store is `dumb/undo.ts` and not
   part of `item-delete`.
-- Use `meta` only for real feature composition. For example, `item-form`
-  coordinates text autosave with `item-media`; either feature remains usable
+- Use `meta` only for real feature composition. For example, `note-panel`
+  shows a note and composes `item-edit`, `item-media`, `item-delete` and
+  `item-relate` into its editor and actions; each feature remains usable
   on its own.
 - Don't make a feature that only one page uses. Put it in the page's folder,
   split into files rather than one big page file.

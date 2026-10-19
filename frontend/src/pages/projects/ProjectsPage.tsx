@@ -5,26 +5,30 @@ import type { ProjectIssue, Projects } from '@/api/types';
 import { showError } from '@/dumb/errorBanner';
 import { itemQuery } from '@/entities/item/queries';
 import { useDeleteItem } from '@/features/item-delete/useDeleteItem';
-import { ItemModal } from '@/meta/item-form/ItemModal';
+import { Modal } from '@/dumb/Modal';
+import { NotePanel } from '@/meta/note-panel/NotePanel';
 import { NEW_PROJECT, newIssue, projectsQuery } from './projects';
 
-/** The modal: an item to edit, or a new one starting as `initial`. */
+/** The modal: an item, or a new one starting as `initial`. */
 type Editing = { file: string | null; initial: string; key: number };
 
-/** Projects, each collapsible with its issues, and the issues without a project; items open in a modal to edit, add or delete. */
+/** Projects, each collapsible with its issues, and the issues without a project; items open in a modal to read, edit or delete; new ones too. */
 export function ProjectsPage() {
   const { data } = useQuery(projectsQuery);
   const [editing, setEditing] = useState<Editing | null>(null);
   const open = (file: string) => setEditing({ file, initial: '', key: Date.now() });
   const add = (initial: string) => setEditing({ file: null, initial, key: Date.now() });
   const del = useDelete();
-  const remove = useDeleteItem();
 
   return (
     <div>
       <button className="btn btn-sm mb-4" onClick={() => add(NEW_PROJECT)}><Plus size={16} />Project</button>
       {data && <Lists projects={data} onOpen={open} onAdd={add} onDelete={del} />}
-      {editing && <ItemModal key={editing.key} file={editing.file} initial={editing.initial} refresh={projectsQuery.queryKey} onDelete={remove} onClose={() => setEditing(null)} />}
+      {editing && (
+        <Modal wide onClose={() => setEditing(null)}>
+          <NotePanel key={editing.key} file={editing.file} initial={editing.initial} onClose={() => setEditing(null)} onDeleted={() => setEditing(null)} />
+        </Modal>
+      )}
     </div>
   );
 }
