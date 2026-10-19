@@ -22,20 +22,25 @@ SUGGEST_PREFIX = "suggest-"
 @dataclass(frozen=True)
 class Hiding:
     """Which notes a view leaves out: those whose type is one of `types`, or
-    tagged `tag` (what the view's hide button adds) or one of `tags`. See
-    docs/hiding.md."""
+    tagged `tag` (what the view's hide button adds), one of `tags` or one
+    starting with one of `tag_prefixes`. See docs/hiding.md."""
     tag: str
     types: frozenset[str] = frozenset()
     tags: frozenset[str] = frozenset()
+    tag_prefixes: tuple[str, ...] = ()
 
     def hides(self, primary: str | None, tags: frozenset[str]) -> bool:
-        return primary in self.types or self.tag in tags or bool(tags & self.tags)
+        return (primary in self.types or self.tag in tags or bool(tags & self.tags)
+                or any(t.startswith(self.tag_prefixes) for t in tags))
 
 
-# What each view hides - edit here.
-QUEUE_HIDING = Hiding("no-q", frozenset({APPOINTMENT_KEYWORD, RECURRING_KEYWORD, "source"}))
-FLOAT_HIDING = Hiding("no-float", frozenset({APPOINTMENT_KEYWORD, RECURRING_KEYWORD, "source"}))
-GRAPH_HIDING = Hiding("no-graph", frozenset({APPOINTMENT_KEYWORD, RECURRING_KEYWORD}))
+# What each view hides - edit here. Suggest's notes are left out of all three.
+QUEUE_HIDING = Hiding("no-q", frozenset({APPOINTMENT_KEYWORD, RECURRING_KEYWORD, "source"}),
+                      tag_prefixes=(SUGGEST_PREFIX,))
+FLOAT_HIDING = Hiding("no-float", frozenset({APPOINTMENT_KEYWORD, RECURRING_KEYWORD, "source"}),
+                      tag_prefixes=(SUGGEST_PREFIX,))
+GRAPH_HIDING = Hiding("no-graph", frozenset({APPOINTMENT_KEYWORD, RECURRING_KEYWORD}),
+                      tag_prefixes=(SUGGEST_PREFIX,))
 
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp"}
 VIDEO_EXTENSIONS = {".mp4", ".webm", ".mov"}

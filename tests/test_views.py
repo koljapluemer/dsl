@@ -36,3 +36,10 @@ def test_hidings_name_real_types_and_valid_tags():
     for h in (views.QUEUE_HIDING, views.FLOAT_HIDING, views.GRAPH_HIDING):
         assert all(store.SCHEMA["keywords"][t]["role"] == "primary" for t in h.types)
         assert all(dsl.is_tag(t) for t in {h.tag, *h.tags})
+        assert all(dsl.is_tag(p + "x") for p in h.tag_prefixes)
+
+
+def test_hiding_tag_prefixes():
+    h = views.Hiding("no-x", tag_prefixes=(views.SUGGEST_PREFIX,))
+    assert h.hides(None, frozenset({"a", "suggest-book"}))
+    assert not h.hides(None, frozenset({"a", "suggest"}))
