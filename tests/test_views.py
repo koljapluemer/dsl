@@ -27,11 +27,6 @@ def test_primary_and_tags():
     assert views.primary(store.SCHEMA, parse("note")) is None
 
 
-def test_hashtags_in_body_and_extra():
-    doc = parse("read #Article, not foo#bar\nextra\nsee #project-idea")
-    assert views.hashtags(doc) == {"#article", "#project-idea"}
-
-
 def test_view_media_only_images_and_videos():
     assert views.view({}, parse("x\nmedia a/b.JPG"))["media"] == "a/b.JPG"
     assert views.view({}, parse("x\nmedia a.pdf"))["media"] is None

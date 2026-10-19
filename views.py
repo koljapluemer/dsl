@@ -1,7 +1,6 @@
 """What the queue, zero, suggest, calendar and projects views read from an item."""
 
 import calendar as _calendar
-import re
 from pathlib import PurePosixPath
 
 import dsl
@@ -15,14 +14,12 @@ ISSUE_KEYWORD = "issue"
 # an issue belongs to the projects its relationships with this label point to
 PROJECT_RELATION = "project"
 ZERO_TAG = "zero"
+# the tags suggest offers
+SUGGEST_PREFIX = "suggest-"
 
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp"}
 VIDEO_EXTENSIONS = {".mp4", ".webm", ".mov"}
 MEDIA_EXTENSIONS = IMAGE_EXTENSIONS | VIDEO_EXTENSIONS
-
-# `#` and letters, digits and dashes, not glued onto a preceding word character
-_HASHTAG = re.compile(r"(?<![A-Za-z0-9_])#[A-Za-z0-9-]+")
-
 
 def _clause(doc: dsl.Document, keyword: str) -> dsl.Clause | None:
     return next((c for c in doc.clauses if c.keyword == keyword), None)
@@ -36,12 +33,6 @@ def primary(schema: dict, doc: dsl.Document) -> str | None:
 def tags(doc: dsl.Document) -> list[str]:
     c = _clause(doc, TAGS_KEYWORD)
     return list(c.args) if c else []
-
-
-def hashtags(doc: dsl.Document) -> set[str]:
-    """Every `#tag` in the body and extra content, lowercased."""
-    text = "\n".join(doc.body + (doc.extra or []))
-    return {m.lower() for m in _HASHTAG.findall(text)}
 
 
 def media(doc: dsl.Document) -> str | None:

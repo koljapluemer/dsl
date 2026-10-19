@@ -54,7 +54,7 @@ Ports of the `../dsl-mobile` apps calendar, queue and zero, and of `../suggest`,
 - **Calendar**: `appointment` and `recurring` items by day or over a From..To range (this week, Sunday to Saturday, by default), toggled at the top; view, day and range are in the URL. A click on an item opens it in the editor in a modal (with delete); `+` adds one, prefilled with `appointment <that day>`.
 - **Queue**: 3 random items (body, `media` attachment, `extra`), Next draws others. Types and tags hidden from it are set in its Hidden panel and stored under `queue` in the config file.
 - **Zero**: a card per item tagged `zero`, in a random order per page load and colored by file name; a click greys it out and moves it last until reload.
-- **Suggest**: a card per `#hashtag` in the notes' body or `extra`. A click shows a random note carrying it; hold "Hold for next" for another, or delete it (with undo).
+- **Suggest**: a dropdown of the `suggest-` tags (`tags suggest-book`), a random one selected on load, and a random note carrying the selected one; hold "Hold for next" for another, or delete it (with undo).
 
 ## Projects
 

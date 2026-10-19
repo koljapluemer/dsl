@@ -250,13 +250,14 @@ def test_zero_items(data_dir):
 
 
 def test_suggest_random_excludes_unless_only_one(data_dir):
-    store.create({"file": "a.txt", "text": "a #idea"})
-    store.create({"file": "b.txt", "text": "b #Idea"})
-    store.create({"file": "c.txt", "text": "c #other"})
-    assert store.suggest_tags() == ["#idea", "#other"]
-    assert store.suggest_random("#idea", ["a.txt"])["file"] == "b.txt"
-    assert store.suggest_random("#other", ["c.txt"])["file"] == "c.txt"
-    assert store.suggest_random("#none") is None
+    store.create({"file": "a.txt", "text": "a\ntags suggest-idea"})
+    store.create({"file": "b.txt", "text": "b\ntags x suggest-idea"})
+    store.create({"file": "c.txt", "text": "c\ntags suggest-other"})
+    store.create({"file": "d.txt", "text": "d #suggest-hashtag\ntags other"})
+    assert store.suggest_tags() == ["suggest-idea", "suggest-other"]
+    assert store.suggest_random("suggest-idea", ["a.txt"])["file"] == "b.txt"
+    assert store.suggest_random("suggest-other", ["c.txt"])["file"] == "c.txt"
+    assert store.suggest_random("suggest-none") is None
 
 
 def test_calendar_items(data_dir):
