@@ -1,7 +1,7 @@
 import type { ItemView as View } from '@/api/types';
 import { Markdown } from '@/dumb/Markdown';
-import { Media } from '@/dumb/Media';
-import { mediaUrl } from './media';
+import { Media } from './Media';
+import { isVideoFilename, mediaUrl } from './media';
 import './item.css';
 
 /**
@@ -21,7 +21,7 @@ export function ItemView({ item }: { item: View }) {
   return (
     <div className="space-y-3">
       <Markdown source={item.body} />
-      {item.media && <Media src={mediaUrl(item.media)} />}
+      {item.media && <Media src={mediaUrl(item.media)} kind={isVideoFilename(item.media) ? 'video' : 'image'} path={item.media} />}
       {item.extra && <Markdown className="rounded-box bg-base-200 p-3 text-xs" source={item.extra} />}
     </div>
   );

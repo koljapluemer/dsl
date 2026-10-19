@@ -1,6 +1,6 @@
 import { Camera, ImageOff, Upload } from 'lucide-react';
 import { useRef, type ChangeEvent } from 'react';
-import { MediaPreview } from '@/dumb/MediaPreview';
+import { Media } from '@/entities/item/Media';
 import { isVideoFilename, mediaUrl } from '@/entities/item/media';
 import type { MediaAttachment } from './useMediaAttachment';
 
@@ -32,7 +32,7 @@ export function MediaPicker({ onAttach, compact = false }: { onAttach: (file: Fi
   );
 }
 
-/** Preview of a staged attachment with its remove button; nothing when there is none. */
+/** Preview of a staged attachment, enlargeable, with its remove button; nothing when there is none. */
 export function MediaAttachmentPreview({ attachment, onRemove, compact = false }: {
   attachment: MediaAttachment;
   onRemove: () => void;
@@ -42,13 +42,12 @@ export function MediaAttachmentPreview({ attachment, onRemove, compact = false }
   const src = attachment.status === 'existing' ? mediaUrl(attachment.filename) : attachment.url;
   const kind = attachment.status === 'existing' ? (isVideoFilename(attachment.filename) ? 'video' : 'image') : attachment.kind;
   return (
-    <div className="relative">
-      <MediaPreview src={src} kind={kind} className={compact ? 'h-auto w-full' : 'max-h-[33vh] max-w-full rounded-box object-contain'} />
-      <button type="button" className="btn btn-ghost btn-xs absolute right-1.5 top-1.5 rounded-full bg-base-100/90 hover:bg-error/10 hover:text-error"
+    <Media src={src} kind={kind} path={attachment.status === 'existing' ? attachment.filename : undefined} fill={compact} actions={
+      <button type="button" className="btn btn-ghost btn-xs rounded-full bg-base-100/90 hover:bg-error/10 hover:text-error"
               onClick={onRemove} title="Remove attachment">
         <ImageOff className="size-3.5" />
       </button>
-    </div>
+    } />
   );
 }
 
