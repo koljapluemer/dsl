@@ -23,7 +23,7 @@ export function SuggestNote({ tag }: { tag: string }) {
 
   // the first note, once; its state is set after the fetch, not during the effect
   // eslint-disable-next-line react-hooks/exhaustive-deps, react-hooks-js/set-state-in-effect
-  useEffect(() => { draw([]); return () => clearTimeout(hold.current); }, []);
+  useEffect(() => { void draw([]); return () => clearTimeout(hold.current); }, []);
 
   const startHold = () => {
     clearTimeout(hold.current);
@@ -32,7 +32,7 @@ export function SuggestNote({ tag }: { tag: string }) {
   const cancelHold = () => clearTimeout(hold.current);
 
   async function del() {
-    if (note && (await remove(note))) draw([note.file]);
+    if (note && (await remove(note))) void draw([note.file]);
   }
 
   return (

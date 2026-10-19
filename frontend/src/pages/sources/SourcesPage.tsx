@@ -16,7 +16,7 @@ async function copy(text: string) {
   try { await navigator.clipboard.writeText(text); } catch { showError('Could not copy to clipboard'); }
 }
 
-const copyMarkdown = (s: Source) => copy(`[${(s.title || s.key).replace(/[[\]]/g, '\\$&')}](${s.url ?? ''})`);
+const copyMarkdown = (s: Source) => copy(`[${(s.title || s.key).replace(/[[\]]/g, '\\$&')}](${String(s.url ?? '')})`);
 const copyHtml = (s: Source) => copy(`<a href="${escHtml(String(s.url ?? ''))}" target="_blank">${escHtml(s.title || s.key)}</a>`);
 
 /** Every source, filtered by the URL's `q`; the most recently edited highlighted. */
@@ -32,7 +32,7 @@ export function SourcesPage() {
     try {
       const created = await importBibtex(await navigator.clipboard.readText());
       await itemsChanged(qc);
-      if (created.length === 1) edit(created[0].file);
+      if (created.length === 1) void edit(created[0].file);
     } catch (e) { showError(e); }
   }
 

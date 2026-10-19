@@ -65,7 +65,7 @@ function Editor({ schema, source, onCreated }: { schema: SourceSchema; source: S
         file.current = s.file;
         setExists(true);
         onCreated(s.file);
-        navigate({ to: '/sources/edit/$file', params: { file: s.file }, replace: true });
+        void navigate({ to: '/sources/edit/$file', params: { file: s.file }, replace: true });
       }
       await itemsChanged(qc, false);
     } catch (e) { showError(e); }
@@ -77,7 +77,7 @@ function Editor({ schema, source, onCreated }: { schema: SourceSchema; source: S
     await save();
     if (!file.current) return;
     try {
-      if (await remove(await qc.fetchQuery({ ...itemQuery(file.current), staleTime: 0 }))) back();
+      if (await remove(await qc.fetchQuery({ ...itemQuery(file.current), staleTime: 0 }))) void back();
     } catch (e) { showError(e); }
   }
 

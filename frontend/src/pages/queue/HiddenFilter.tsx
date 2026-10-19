@@ -30,7 +30,7 @@ export function HiddenFilter({ onChanged }: { onChanged: () => void }) {
     if (!TAG.test(tag)) { setError('Tags are a-z, 0-9 and -'); return; }
     setText('');
     setError('');
-    if (!data!.tags.includes(tag)) save({ ...data!, tags: [...data!.tags, tag] });
+    if (!data!.tags.includes(tag)) void save({ ...data!, tags: [...data!.tags, tag] });
   }
 
   // hidden types no longer in the folder stay listed, so they can be shown again
