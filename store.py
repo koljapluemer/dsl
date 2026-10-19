@@ -161,7 +161,6 @@ class _Entry:
     words: frozenset[str]
     primary: str | None
     tags: frozenset[str]
-    hashtags: frozenset[str]
     when: dict | None
     # what the graph reads (see graph.py)
     valid: bool
@@ -211,7 +210,6 @@ def _entry(mtime_ns: int, item: dict) -> "_Entry":
         frozenset(words(text)),
         views.primary(SCHEMA, doc),
         frozenset(views.tags(doc)),
-        frozenset(views.hashtags(doc)),
         views.when(doc),
         not item["errors"],
         tuple((r.label or UNLABELED_RELATION, f"{r.target}.txt") for r in doc.relations),
@@ -587,14 +585,14 @@ def zero_items() -> list[dict]:
 
 
 def suggest_tags() -> list[str]:
-    return sorted({t for e in _INDEX.refresh().values() for t in e.hashtags})
+    """Every tag starting with views.SUGGEST_PREFIX."""
+    return sorted({t for e in _INDEX.refresh().values() for t in e.tags if t.startswith(views.SUGGEST_PREFIX)})
 
 
 def suggest_random(tag: str, exclude: list[str] = ()) -> dict | None:
-    """A random item carrying the hashtag `tag`, other than those in `exclude`
+    """A random item carrying the tag `tag`, other than those in `exclude`
     - or, when that leaves none, any; None when none carries it."""
-    tag = tag.lower()
-    names = sorted(n for n, e in _INDEX.refresh().items() if tag in e.hashtags)
+    names = sorted(n for n, e in _INDEX.refresh().items() if tag in e.tags)
     pool = [n for n in names if n not in set(exclude)] or names
     return _view(random.choice(pool)) if pool else None
 

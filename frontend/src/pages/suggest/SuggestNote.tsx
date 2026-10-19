@@ -3,14 +3,13 @@ import { Shuffle, Trash2 } from 'lucide-react';
 import type { ItemView } from '@/api/types';
 import { showError } from '@/dumb/errorBanner';
 import { Markdown } from '@/dumb/Markdown';
-import { Modal } from '@/dumb/Modal';
 import { useDeleteItem } from '@/features/item-delete/useDeleteItem';
 import { pickNote } from './suggest';
 
 const HOLD_MS = 500;
 
 /** A random note carrying `tag`; hold the button for another, or delete it (with undo). */
-export function SuggestModal({ tag, onClose }: { tag: string; onClose: () => void }) {
+export function SuggestNote({ tag }: { tag: string }) {
   const remove = useDeleteItem();
   /** undefined while the first one loads */
   const [note, setNote] = useState<ItemView | null | undefined>(undefined);
@@ -37,8 +36,7 @@ export function SuggestModal({ tag, onClose }: { tag: string; onClose: () => voi
   }
 
   return (
-    <Modal onClose={onClose}>
-      <h3 className="font-medium mb-3">{tag}</h3>
+    <div>
       {note === null && <p className="text-base-content/50">No more notes tagged {tag}</p>}
       {note && (
         <div className="overview select-text">
@@ -55,6 +53,6 @@ export function SuggestModal({ tag, onClose }: { tag: string; onClose: () => voi
         </button>
         <button className="btn btn-outline" disabled={!note} onClick={del}><Trash2 size={20} />Delete</button>
       </div>
-    </Modal>
+    </div>
   );
 }
