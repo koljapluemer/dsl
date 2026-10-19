@@ -1,23 +1,23 @@
-import { useReducer, useState } from 'react';
+import { useState } from 'react';
 import { errorBanner, showError } from '@/dumb/errorBanner';
-import { randomNote, searchFilenames } from '@/entities/graph/mutations';
+import { randomNote } from '@/entities/graph/mutations';
+import { NoteSearch } from '@/entities/item/search/NoteSearch';
+import { EMPTY_SEARCH, searchFilenames } from '@/entities/item/search/search';
+import { useNoteSearch } from '@/entities/item/search/useNoteSearch';
 import { GraphCanvas } from './canvas/GraphCanvas';
-import { Sidebar } from './sidebar/Sidebar';
-import { INITIAL_SEARCH_STATE, searchReducer } from './sidebar/search-state';
 import { MANUAL_PIN_DEPTH, PIN_ALL_CAP, PIN_ALL_DEPTH, SEARCH_RESULT_PIN_DEPTH, useNoteGraph } from './useNoteGraph';
-import { useNoteSearch } from './useNoteSearch';
-import { useSearchHistory } from './useSearchHistory';
 import './graph.css';
 
-/** Pinned notes and their relationships on a canvas, with search and recent notes beside it. */
+/** Pinned notes and their relationships on a canvas, with a search beside it (the newest notes without a query). */
 export function GraphPage() {
   const { graph, pins, loading: graphLoading, pinNote, pinNotes, unpinNote, setPinDepth, pinAtLeast, clearPins } = useNoteGraph();
-  const [search, dispatchSearch] = useReducer(searchReducer, INITIAL_SEARCH_STATE);
-  const searchHistory = useSearchHistory();
+  const [search, setSearch] = useState(EMPTY_SEARCH);
+  const searching = search.query.trim() !== '';
   const [orphanBusy, setOrphanBusy] = useState(false);
   const [randomNoteBusy, setRandomNoteBusy] = useState(false);
   const [pinAllBusy, setPinAllBusy] = useState(false);
-  const { results, total: searchTotal, loading: searchLoading } = useNoteSearch(search.criteria, { page: search.page });
+  const found = useNoteSearch(search, { scope: 'graph' });
+  const { results } = found;
 
   const pinRandom = async (orphan: boolean, setBusy: (busy: boolean) => void, noneLeft: string) => {
     setBusy(true);
@@ -39,9 +39,8 @@ export function GraphPage() {
   const handlePinAllSearchResults = async () => {
     setPinAllBusy(true);
     try {
-      const { filenames, total } = await searchFilenames(search.criteria, PIN_ALL_CAP);
+      const { filenames, total } = await searchFilenames(search.query, { scope: 'graph', orphan: search.orphan }, PIN_ALL_CAP);
       pinNotes(filenames, PIN_ALL_DEPTH);
-      searchHistory.record(search.criteria.query);
       errorBanner.set(total > filenames.length ? `Pinned the first ${filenames.length} of ${total} matches.` : '');
     } catch (error) {
       showError(error);
@@ -50,13 +49,8 @@ export function GraphPage() {
     }
   };
 
-  const handleSelectSearchResult = (filename: string) => {
-    pinNote(filename, SEARCH_RESULT_PIN_DEPTH);
-    searchHistory.record(search.criteria.query);
-  };
-
   const handleOpenRandomSearchResult = () => {
-    if (results.length === 0) return;
+    if (!searching || results.length === 0) return;
     pinNote(results[Math.floor(Math.random() * results.length)].filename, SEARCH_RESULT_PIN_DEPTH);
   };
 
@@ -77,25 +71,16 @@ export function GraphPage() {
           onOpenRandomNote={() => void pinRandom(false, setRandomNoteBusy, 'No unopened notes left to open.')}
           openRandomNoteBusy={randomNoteBusy}
           onOpenRandomSearchResult={handleOpenRandomSearchResult}
-          openRandomSearchResultDisabled={results.length === 0}
+          openRandomSearchResultDisabled={!searching || results.length === 0}
           onPinAllSearchResults={() => void handlePinAllSearchResults()}
-          pinAllSearchResultsDisabled={searchTotal === 0 || pinAllBusy}
+          pinAllSearchResultsDisabled={!searching || found.total === 0 || pinAllBusy}
         />
       </section>
 
-      <Sidebar
-        search={{
-          state: search,
-          dispatch: dispatchSearch,
-          results,
-          total: searchTotal,
-          loading: searchLoading,
-          history: searchHistory.history,
-          onSelectNote: handleSelectSearchResult,
-        }}
-        pins={pins}
-        onSelectNote={(filename) => pinNote(filename, SEARCH_RESULT_PIN_DEPTH)}
-      />
+      <aside className="flex min-h-0 flex-col border border-base-300 bg-base-100/90 shadow-xl backdrop-blur">
+        <NoteSearch state={search} onState={setSearch} found={found} orphanFilter historyKey="graph-search-history" marked={pins}
+                    onSelect={(filename) => pinNote(filename, SEARCH_RESULT_PIN_DEPTH)} />
+      </aside>
     </div>
   );
 }

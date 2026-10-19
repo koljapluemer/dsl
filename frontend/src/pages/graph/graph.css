@@ -14,11 +14,11 @@
 /* React Flow sets `user-select: none` (and a pointer cursor) on every node.
    Chromium doesn't let a contenteditable under that be focused or edited, so
    CodeMirror's content element needs selection back explicitly. */
-.raw-note-editor .cm-editor {
+.note-card .cm-editor {
   max-height: 32rem;
 }
-.raw-note-editor .cm-editor,
-.raw-note-editor .cm-content {
+.note-card .cm-editor,
+.note-card .cm-content {
   -webkit-user-select: text;
   user-select: text;
   cursor: text;

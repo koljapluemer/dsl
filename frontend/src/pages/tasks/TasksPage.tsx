@@ -4,7 +4,7 @@ import { Pager } from '@/dumb/Pager';
 import { itemsQuery } from '@/entities/item/queries';
 import { TaskRow } from './TaskRow';
 
-/** Every item with tasks, each in its own editor. */
+/** Every item with tasks, each editable in place. */
 export function TasksPage() {
   const [page, setPage] = useState(0);
   const { data } = useQuery(itemsQuery({ tasks: true, page }));

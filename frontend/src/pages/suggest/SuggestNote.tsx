@@ -1,16 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
-import { Shuffle, Trash2 } from 'lucide-react';
+import { Shuffle } from 'lucide-react';
 import type { ItemView } from '@/api/types';
 import { showError } from '@/dumb/errorBanner';
-import { Markdown } from '@/dumb/Markdown';
-import { useDeleteItem } from '@/features/item-delete/useDeleteItem';
+import { NotePanel } from '@/meta/note-panel/NotePanel';
 import { pickNote } from './suggest';
 
 const HOLD_MS = 500;
 
-/** A random note carrying `tag`; hold the button for another, or delete it (with undo). */
+/** A random note carrying `tag`; hold the button for another. */
 export function SuggestNote({ tag }: { tag: string }) {
-  const remove = useDeleteItem();
   /** undefined while the first one loads */
   const [note, setNote] = useState<ItemView | null | undefined>(undefined);
   const hold = useRef(0);
@@ -31,27 +29,16 @@ export function SuggestNote({ tag }: { tag: string }) {
   };
   const cancelHold = () => clearTimeout(hold.current);
 
-  async function del() {
-    if (note && (await remove(note))) void draw([note.file]);
-  }
-
   return (
     <div>
       {note === null && <p className="text-base-content/50">No more notes tagged {tag}</p>}
-      {note && (
-        <div className="overview select-text">
-          <Markdown source={note.body.trim() ? note.body : '_(empty note)_'} />
-          <div className="divider" />
-          <Markdown source={note.extra?.trim() ? note.extra : '_(no extra content)_'} />
-        </div>
-      )}
+      {note && <NotePanel key={note.file} file={note.file} item={note} showFile={false} onDeleted={() => void draw([note.file])} />}
       <div className="flex gap-3 mt-4">
         <button className="btn btn-primary flex-1 select-none" disabled={!note}
                 onPointerDown={startHold} onPointerUp={cancelHold} onPointerCancel={cancelHold} onPointerLeave={cancelHold}
                 onContextMenu={(e) => e.preventDefault()}>
           <Shuffle size={20} />Hold for next
         </button>
-        <button className="btn btn-outline" disabled={!note} onClick={del}><Trash2 size={20} />Delete</button>
       </div>
     </div>
   );

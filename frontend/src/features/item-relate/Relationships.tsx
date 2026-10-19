@@ -19,13 +19,15 @@ type Props = {
   onChanged: (note: Item) => void;
   /** deletes a target; resolves to whether it was deleted */
   deleteItem: (item: Item) => Promise<boolean>;
+  /** a click on a target; by default it opens in the editor page */
+  onRef?: (file: string) => void;
 };
 
 /**
  * The note's relationships, each detachable and its target deletable, then
  * one empty group for another relationship with any label.
  */
-export function Relationships({ item, flush, onChanged, deleteItem }: Props) {
+export function Relationships({ item, flush, onChanged, deleteItem, onRef }: Props) {
   const qc = useQueryClient();
   const navigate = useNavigate();
   const schema = useSchema();
@@ -79,7 +81,7 @@ export function Relationships({ item, flush, onChanged, deleteItem }: Props) {
             <span className="ov-muted">{rel.label ? rel.label + ' ' : ''}→</span>
             {heading === null
               ? <span className="ov-missing" title={`no item ${file}`}>{rel.target}</span>
-              : <a className="link link-hover truncate" title={file} onClick={() => navigate({ to: '/edit/$file', params: { file } })}>{heading || rel.target}</a>}
+              : <a className="link link-hover truncate" title={file} onClick={() => (onRef ? onRef(file) : void navigate({ to: '/edit/$file', params: { file } }))}>{heading || rel.target}</a>}
             <button className="btn btn-ghost btn-xs btn-square ml-auto" disabled={busy} title="detach (remove the relationship)" onClick={() => unlink(rel)}>
               <Unlink size={16} />
             </button>

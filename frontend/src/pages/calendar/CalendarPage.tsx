@@ -1,24 +1,23 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate, useSearch } from '@tanstack/react-router';
-import { useDeleteItem } from '@/features/item-delete/useDeleteItem';
-import { ItemModal } from '@/meta/item-form/ItemModal';
+import { Modal } from '@/dumb/Modal';
+import { NotePanel } from '@/meta/note-panel/NotePanel';
 import { calendarQuery } from './calendar';
 import { addDays, startOfWeek, toDsl, today, type Day } from './dates';
 import { DayView } from './DayView';
 import { RangeView } from './RangeView';
 import type { CalendarSearch } from './search';
 
-/** The modal: an item to edit, or a new one starting as `initial`. */
+/** The modal: an item, or a new one starting as `initial`. */
 type Editing = { file: string | null; initial: string; key: number };
 
-/** Appointments and recurring items, by day or over a range (this week by default); items open in a modal to edit, add or delete. */
+/** Appointments and recurring items, by day or over a range (this week by default); items open in a modal to read, edit or delete; new ones too. */
 export function CalendarPage() {
   const navigate = useNavigate();
   const search = useSearch({ strict: false }) as CalendarSearch;
   const { data } = useQuery(calendarQuery);
   const [editing, setEditing] = useState<Editing | null>(null);
-  const remove = useDeleteItem();
 
   const now = today();
   const day = search.day ?? now;
@@ -37,7 +36,11 @@ export function CalendarPage() {
       {data && (search.view === 'range'
         ? <RangeView entries={data} from={from} to={to} onRange={(f, t) => set({ from: f, to: t })} onOpen={open} onAdd={add} />
         : <DayView entries={data} day={day} onDay={(d) => set({ day: d === now ? undefined : d })} onOpen={open} onAdd={add} />)}
-      {editing && <ItemModal key={editing.key} file={editing.file} initial={editing.initial} refresh={calendarQuery.queryKey} onDelete={remove} onClose={() => setEditing(null)} />}
+      {editing && (
+        <Modal wide onClose={() => setEditing(null)}>
+          <NotePanel key={editing.key} file={editing.file} initial={editing.initial} onClose={() => setEditing(null)} onDeleted={() => setEditing(null)} />
+        </Modal>
+      )}
     </div>
   );
 }

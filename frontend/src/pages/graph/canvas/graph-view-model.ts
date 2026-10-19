@@ -71,33 +71,23 @@ export function buildView(
       className: slot ? NODE_CLASS_NAME : `${NODE_CLASS_NAME} invisible`,
     };
 
-    if (interaction.type === 'edit' && interaction.filename === note.filename) {
-      return {
-        ...shared,
-        draggable: false,
-        zIndex: EDITING_NODE_Z_INDEX,
-        data: {
-          kind: 'edit',
-          initialText: interaction.text,
-          initialImage: note.image,
-          onSave: (text: string, image: ImageState) => callbacks.onSaveEdit(note.filename, text, image, note.image),
-          onCancel: callbacks.onCancelInteraction,
-        },
-      };
-    }
-
+    const editing = interaction.type === 'edit' && interaction.filename === note.filename;
     return {
       ...shared,
-      draggable: true,
+      draggable: !editing,
       dragHandle: '.note-drag-handle',
+      ...(editing ? { zIndex: EDITING_NODE_Z_INDEX } : {}),
       data: {
         kind: 'note',
         note,
         pinDepth: pins.get(note.filename) ?? null,
         isAnchor: note.filename === anchorFilename,
+        editing,
         onDelete: callbacks.onDeleteNote,
         onHide: callbacks.onHideNote,
         onEdit: callbacks.onStartEdit,
+        onSaveEdit: callbacks.onSaveEdit,
+        onCancelEdit: callbacks.onCancelInteraction,
         onPin: callbacks.onPinNote,
         onUnpin: callbacks.onUnpinNote,
         onChangeDepth: callbacks.onChangeDepth,

@@ -14,7 +14,7 @@ export type Schema = { version: number; keywords: Record<string, KeywordDef> };
 export type Diagnostic = { code: string; line: number | null; detail: string | null };
 /** `refs` maps relationship targets to their headings; null for a missing target */
 export type Item = { file: string; text: string; media: string | null; errors: Diagnostic[]; warnings: Diagnostic[]; refs?: Record<string, string | null> };
-export type ItemPage = { items: Item[]; total: number; page: number; page_size: number; focused?: boolean; semantic?: SemanticStatus | null };
+export type ItemPage = { items: Item[]; total: number; page: number; page_size: number };
 
 export type Pull = { status: string; completed: number; total: number; error: string | null };
 export type SemanticStatus = { indexed: number; total: number; embedding: boolean; error: string | null; missing_model: string | null; pull?: Pull | null };
@@ -65,11 +65,16 @@ export type NoteGraph = { nodes: GraphNodePayload[]; edges: GraphEdgePayload[]; 
 /** a span of text, as UTF-16 offsets into the string it refers to */
 export type MatchRange = { start: number; length: number };
 export type SearchExcerpt = { text: string; match: MatchRange };
-/** `previewMatch` is where the match sits in `preview`; `excerpt` is set exactly when it isn't visible there */
-export type SearchResult = { filename: string; preview: string; previewMatch: MatchRange | null; excerpt: SearchExcerpt | null };
-export type RecentNote = { filename: string; preview: string };
+/**
+ * A note a search found: `previewMatch` is where the match sits in `preview`; `excerpt` is set exactly
+ * when it isn't visible there. `problem`: whether the note has errors or only warnings.
+ */
+export type SearchResult = {
+  filename: string; preview: string; previewMatch: MatchRange | null; excerpt: SearchExcerpt | null; problem: 'error' | 'warning' | null;
+};
 /** narrows search results by whether a note has any relationship, incoming or outgoing */
 export type OrphanFilter = 'any' | 'orphan' | 'connected';
-export type SearchCriteria = { query: string; orphan: OrphanFilter };
-export type NoteSearchPage = { results: SearchResult[]; total: number };
-export type RecentPage = { results: RecentNote[]; total: number };
+/** the notes a search looks at: `graph` the graph's, `attention` those with problems, `tasks` those with tasks */
+export type SearchScope = 'all' | 'graph' | 'attention' | 'tasks';
+/** `semantic`: the embedding's status, when the search was to rank semantically */
+export type NoteSearchPage = { results: SearchResult[]; total: number; page: number; pageSize: number; semantic: SemanticStatus | null };

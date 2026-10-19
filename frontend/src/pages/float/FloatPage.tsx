@@ -7,8 +7,8 @@ import { offerUndo } from '@/dumb/undo';
 import { useDebounced } from '@/dumb/useDebounced';
 import { ItemView } from '@/entities/item/ItemView';
 import { itemsChanged, saveItem } from '@/entities/item/mutations';
-import { useDeleteItem } from '@/features/item-delete/useDeleteItem';
-import { ItemModal } from '@/meta/item-form/ItemModal';
+import { Modal } from '@/dumb/Modal';
+import { NotePanel } from '@/meta/note-panel/NotePanel';
 import { MAX_S, MIN_S, SPAWN_MS, floatQuery, hideFromFloat } from './float';
 import './float.css';
 
@@ -22,7 +22,6 @@ let nextId = 0;
  */
 export function FloatPage() {
   const qc = useQueryClient();
-  const remove = useDeleteItem();
   const [q, setQ] = useState('');
   const query = useDebounced(q.trim(), 300);
   const [round, setRound] = useState(0);
@@ -52,18 +51,22 @@ export function FloatPage() {
 
   const drop = (file: string) => setCards((cs) => cs.filter((c) => c.item.file !== file));
 
-  async function hide(e: MouseEvent, item: View) {
-    e.stopPropagation();
-    try {
-      await hideFromFloat(item.file);
-      drop(item.file);
-      pending.current = pending.current.filter((i) => i.file !== item.file);
-      offerUndo(`${item.file} hidden from float`, async () => {
-        await saveItem(item.file, item.text);
-        await itemsChanged(qc);
-      });
+  async function hide(item: View) {
+    await hideFromFloat(item.file);
+    drop(item.file);
+    pending.current = pending.current.filter((i) => i.file !== item.file);
+    offerUndo(`${item.file} hidden from float`, async () => {
+      await saveItem(item.file, item.text);
       await itemsChanged(qc);
-    } catch (err) { showError(err); }
+    });
+    await itemsChanged(qc);
+  }
+
+  // the stage moves on with what's drawn next, and the card is gone
+  function close() {
+    if (editing) drop(editing.item.file);
+    setEditing(null);
+    void qc.invalidateQueries({ queryKey: ['float'] });
   }
 
   // links in a card work as links rather than opening the editor
@@ -83,7 +86,7 @@ export function FloatPage() {
           >
             <div className="card-body flex-row items-start gap-1 p-3">
               <div className="overview min-w-0 flex-1"><ItemView item={c.item} /></div>
-              <button className="btn btn-ghost btn-xs btn-square" title="Hide from float" onClick={(e) => hide(e, c.item)}>
+              <button className="btn btn-ghost btn-xs btn-square" title="Hide from float" onClick={(e) => { e.stopPropagation(); hide(c.item).catch(showError); }}>
                 <EyeOff size={14} />
               </button>
             </div>
@@ -92,14 +95,10 @@ export function FloatPage() {
       </div>
       <input className="input w-full my-4" placeholder="Filter" value={q} onChange={(e) => setQ(e.target.value)} />
       {editing && (
-        <ItemModal
-          key={editing.id}
-          file={editing.item.file}
-          initial=""
-          refresh={['float']}
-          onDelete={remove}
-          onClose={() => { drop(editing.item.file); setEditing(null); }}
-        />
+        <Modal wide onClose={close}>
+          <NotePanel key={editing.id} file={editing.item.file} onClose={close} onDeleted={close}
+                     hide={{ title: 'Hide from float', run: async () => { await hide(editing.item); close(); } }} />
+        </Modal>
       )}
     </div>
   );

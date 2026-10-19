@@ -14,25 +14,37 @@ Flask serves the frontend's build from `frontend/dist`: `just run` builds it whe
 
 ## Frontend
 
-Vite + React + TypeScript in `frontend/`, with TanStack Router (the list's filter, semantic toggle and page are in the URL) and TanStack Query (requests, polling, cache), styled with Tailwind + daisyUI. Layering: [`docs/frontend-architecture.md`](docs/frontend-architecture.md).
+Vite + React + TypeScript in `frontend/`, with TanStack Router (the Notes tab's query, semantic toggle, page and open notes are in the URL) and TanStack Query (requests, polling, cache), styled with Tailwind + daisyUI. Layering: [`docs/frontend-architecture.md`](docs/frontend-architecture.md).
+
+## Notes
+
+The Notes tab is a search on the left and the notes opened from it on the right, in a grid filling the pane: one note takes it all, two sit side by side, more add rows (3–4 in 2 columns, 5–9 in 3, at most 2 on a narrower pane; the columns follow from the number of notes and the pane's width in CSS, `pages/notes/notes.css`). Each scrolls on its own; a note's ✕ closes it. On a phone the search and the notes take turns, one column of notes. The Broken tab is the same over the notes needing attention.
+
+A note shows rendered: body and `extra` content as markdown (marked + DOMPurify), its attachment, `data` blocks as highlighted code, relationships as links headed by the target's first line (a click opens the target too), and only keyword lines in monospace with the editor's highlighting.
 
 ## Editing
 
-One [CodeMirror 6](https://codemirror.net) editor per item. A single pass over the text (`analyze` in `frontend/src/entities/item/dsl/analyze.ts`, mirroring `dsl.py`; tested against `spec/examples`) provides the highlighting (keywords, options and values by type, relationships, `data` and `extra` blocks, unknown keyword lines muted; hover for meanings) and inline lint for the errors and warnings of `spec/language.md`. Saved on blur or Ctrl+S.
+Everywhere a note is shown it's the same panel (`meta/note-panel/NotePanel.tsx`): rendered, with Edit, delete and as the page needs hide and close. Edit swaps in an editor for the full text and the attachment; nothing is written until Accept (✓, Ctrl+Enter or Ctrl+S), Discard (↶, Escape) drops it. New notes start in the editor. The Calendar, Projects and Float show it in a modal; `/edit/<file>` (and `/new`) on its own page, with the relationships below.
 
-The list shows body and `extra` content as markdown (marked + DOMPurify), `data` blocks as highlighted code, relationships as links headed by the target's first line (a click scrolls to the target, paging and clearing the filter as needed), and only keyword lines in monospace with the editor's highlighting. Its order is shuffled per page load (a seed sent with each request), stable across paging and filtering.
+The editor is [CodeMirror 6](https://codemirror.net). A single pass over the text (`analyze` in `frontend/src/entities/item/dsl/analyze.ts`, mirroring `dsl.py`; tested against `spec/examples`) provides the highlighting (keywords, options and values by type, relationships, `data` and `extra` blocks, unknown keyword lines muted; hover for meanings) and inline lint for the errors and warnings of `spec/language.md`, also listed below it.
 
-The list is filtered and paged on the server, so a folder of many items stays usable: `store.py` keeps each item's text and problem flags in memory and re-reads a file only when its mtime changes. The Broken tab shows items needing attention; the Tasks tab every item with `tasks`, each in its own editor.
+## Search
+
+Every list of notes to pick from is one search (`search.py`, `GET /api/search`; `entities/item/search/NoteSearch.tsx`): the Notes sidebar, the Graph's sidebar and its right-click search, and the field linking a relationship's target. It runs on the server over `store.py`'s index, which keeps each item's text, words and problem flags in memory and re-reads a file only when its mtime changes, so a folder of many notes stays usable. Without a query it lists the newest notes.
+
+The query syntax is behind the `?`: words match as prefixes (case and accents folded), `"exact phrase"`, `/regex/ims`, `-exclude`, `OR`, parentheses, `file:`, `body:`, `extra:`. The relationship field takes words and phrases only (a slash is part of a word there). ↑/↓ choose a result, Enter opens it (the first one when none is chosen).
+
+New files are named `<slug of the first line>-<6 hex>.txt`; the name doesn't change when the text does. Other items refer to it by that name without `.txt` (`-> label @name`).
 
 New files are named `<slug of the first line>-<6 hex>.txt`; the name doesn't change when the text does. Other items refer to it by that name without `.txt` (`-> label @name`).
 
 ## Semantic search
 
-The `semantic` toggle next to the filter ranks the notes by similarity to the query instead of filtering them by its text, as `../scripts/notes-semantic-search` did (`semantic.py`). Each note's body (not its keyword lines or `extra`) is embedded by `qwen3-embedding:0.6b` on the Ollama server below; the query gets the model's search instruction. Embeddings are cached by body hash in `~/.cache/dsl-crud/` and computed in the background on the first semantic search, so until that finishes only the notes embedded so far are ranked. Without the server or model it falls back to the text filter and offers to download the model.
+The `semantic` toggle under the Notes search ranks the notes by similarity to the query instead of matching its text, as `../scripts/notes-semantic-search` did (`semantic.py`). Each note's body (not its keyword lines or `extra`) is embedded by `qwen3-embedding:0.6b` on the Ollama server below; the query gets the model's search instruction. Embeddings are cached by body hash in `~/.cache/dsl-crud/` and computed in the background on the first semantic search, so until that finishes only the notes embedded so far are ranked. Without the server or model it falls back to the query syntax and offers to download the model.
 
 ## Questions
 
-The Questions tab shows a random note whose body contains `>` or `~`, that has at most one relationship and isn't tagged `no-questions` (`questions.is_candidate`). Below it are up to 3 of the questions in `questions.py`. An answer links the note with `-> <label> @<target>`, to an existing note picked from the search suggestions (a word index in `store.py`, prefix-matched as you type) or to a new note made from the text. Skip shows another note. Disable adds the `no-questions` tag.
+The Questions tab shows a random note whose body contains `>` or `~`, that has at most one relationship and isn't tagged `no-questions` (`questions.is_candidate`). Below it are up to 3 of the questions in `questions.py`. An answer links the note with `-> <label> @<target>`, to an existing note picked from the search's suggestions or to a new note made from the text. The note itself can be edited in place. Skip shows another note. Disable adds the `no-questions` tag.
 
 When `questions.py` lists more than 3 questions, a local LLM chooses the 3 that fit the note best: `gemma3:4b` (`questions.MODEL`, tuned together with the prompt `prompts/pick-questions.md`) on an [Ollama](https://ollama.com) server. Without the server or the model it asks the first 3, and offers to download a missing model.
 
@@ -42,15 +54,15 @@ The server's URL is the only LLM setting (Settings, stored under `llm` in the co
 
 Ports of the `../dsl-mobile` apps calendar, queue and zero, of `../floating-notes` and of `../suggest`, one route each; what an item means to them is in `views.py`.
 
-- **Calendar**: `appointment` and `recurring` items by day or over a From..To range (this week, Sunday to Saturday, by default), toggled at the top; view, day and range are in the URL. A click on an item opens it in the editor in a modal (with delete); `+` adds one, prefilled with `appointment <that day>`.
-- **Queue**: 3 random items (body, `media` attachment, `extra`), Next draws others. An item's hide button tags it `no-q`; what it hides is set in code, see [`docs/hiding.md`](docs/hiding.md).
-- **Float**: random items drifting across the window, a new one every few seconds, drawn in batches of 20 (`store.float_draw`); the filter below keeps those containing its text. A card stops under the pointer; a click opens it in the editor in a modal (with delete), which holds the stage still. The hide button tags it `no-float`, see [`docs/hiding.md`](docs/hiding.md).
+- **Calendar**: `appointment` and `recurring` items by day or over a From..To range (this week, Sunday to Saturday, by default), toggled at the top; view, day and range are in the URL. A click on an item opens it in a modal; `+` adds one, prefilled with `appointment <that day>`.
+- **Queue**: 3 random items, Next draws others. An item's hide button tags it `no-q`; what it hides is set in code, see [`docs/hiding.md`](docs/hiding.md).
+- **Float**: random items drifting across the window, a new one every few seconds, drawn in batches of 20 (`store.float_draw`); the filter below keeps those containing its text. A card stops under the pointer; a click opens it in a modal, which holds the stage still. The hide button tags it `no-float`, see [`docs/hiding.md`](docs/hiding.md).
 - **Zero**: a card per item tagged `zero`, in a random order per page load and colored by file name; a click greys it out and moves it last until reload.
-- **Suggest**: a dropdown of the `suggest-` tags (`tags suggest-book`), a random one selected on load, and a random note carrying the selected one; hold "Hold for next" for another, or delete it (with undo).
+- **Suggest**: a dropdown of the `suggest-` tags (`tags suggest-book`), a random one selected on load, and a random note carrying the selected one; hold "Hold for next" for another.
 
 ## Projects
 
-`project` and `issue` items (`store.projects`). An issue belongs to the projects its `-> project @<name>` relationships point to; issues belonging to none are listed below the projects. Each project is collapsible, with its issues by heading; a click on one opens it in the editor in a modal (with delete). `+ Project` adds a project; a project's `+ Issue` adds an issue, prefilled with `issue` and its relationship to the project.
+`project` and `issue` items (`store.projects`). An issue belongs to the projects its `-> project @<name>` relationships point to; issues belonging to none are listed below the projects. Each project is collapsible, with its issues by heading; a click on one opens it in a modal. `+ Project` adds a project; a project's `+ Issue` adds an issue, prefilled with `issue` and its relationship to the project.
 
 ## Sources
 
@@ -85,12 +97,12 @@ Settings → "bibtex export" takes any number of `.bib` paths (a directory gets 
 A port of `../dsl-graph`: notes as cards on a [React Flow](https://reactflow.dev) canvas, laid out by [ELK](https://eclipse.dev/elk/), their relationships as labeled edges (`graph.py` on the server, `frontend/src/pages/graph`). Only notes without errors and not hidden from it ([`docs/hiding.md`](docs/hiding.md)) are part of it; a relationship to anything else is left out until it's fixed.
 
 - **Pins**: a pinned note shows the notes up to its depth (the chevrons beside the pin) relationships away, in either direction. Picking a search result pins it at depth 2. The badge under a card counts its related notes not on the canvas; a click shows them. Pins are kept under `graph` in the config file.
-- **Sidebar**: Search (the query syntax is behind the `?`: words match as prefixes, `"exact phrase"`, `/regex/ims`, `-exclude`, `OR`, parentheses, `file:`, `body:`, `extra:`), optionally only orphans or connected notes, and Recent (by modification time).
+- **Sidebar**: the search over the graph's notes (the newest without a query), optionally only orphans or connected notes.
 - **Canvas**: right-click opens a quick search at the cursor; each pick pins a note, and it stays open for several picks. Double-click adds a note. Drag from a card's edge dot onto another card to relate them, or onto empty canvas for a new related note. Drag a card by its grip to move it; it keeps its spot while it's on the canvas.
-- **Cards**: edit the full text (Mod-Enter saves, Escape cancels; text with errors isn't saved), attach media, hide (tags it `no-graph`) or delete, both with undo. A click on an edge label edits or deletes its relationships (with undo).
+- **Cards**: the note panel, with the graph's own rendering: edit (text with errors isn't saved), hide (tags it `no-graph`) or delete, both with undo. A click on an edge label edits or deletes its relationships (with undo).
 - The toolbar: add note, unpin all, pin a random orphan, open a random note or search result, pin all search results (the first 100, without neighbors), zoom and fit.
 
-The New/Edit forms, shared modal form, and Graph cards accept one image (downscaled to WebP) or short video by paste or upload. Attachments go into `images/` in the data folder as `<note>-<ms>.<ext>`; an attachment the app wrote is deleted when it is replaced or removed and no other note names it.
+The note panel's editor and the Graph's new-note card accept one image (downscaled to WebP) or short video by paste or upload. Attachments go into `images/` in the data folder as `<note>-<ms>.<ext>`; an attachment the app wrote is deleted when it is replaced or removed and no other note names it.
 
 ## Spec
 

@@ -7,13 +7,11 @@ import { answer } from './questions';
 type Props = {
   file: string;
   question: Question;
-  /** resolves once pending edits of the note are saved */
-  flush: () => Promise<unknown>;
   onAnswered: (note: Answered) => void;
 };
 
 /** One question about a note, answered by linking an existing note or a new one. */
-export function QuestionAnswer({ file, question, flush, onAnswered }: Props) {
+export function QuestionAnswer({ file, question, onAnswered }: Props) {
   const [busy, setBusy] = useState(false);
   /** the notes linked so far */
   const [linked, setLinked] = useState<Suggestion[]>([]);
@@ -21,7 +19,6 @@ export function QuestionAnswer({ file, question, flush, onAnswered }: Props) {
   async function submit(how: Pick) {
     setBusy(true);
     try {
-      await flush();
       const res = await answer(file, question.id, how);
       setLinked((l) => [...l, res.target]);
       onAnswered(res);

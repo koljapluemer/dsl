@@ -16,9 +16,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import dsl
-import llm
 import questions
-import semantic
 import views
 
 CONFIG_PATH = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config")) / "dsl-crud" / "config.json"
@@ -127,9 +125,6 @@ def _read(path: Path) -> dict:
 
 
 _WORD_RE = re.compile(r"\w+")
-# Search: how much a match counts when it's only a prefix of the word, or in the heading.
-_PREFIX_WEIGHT = 0.6
-_HEADING_WEIGHT = 2.0
 # Words a query token may expand to as a prefix; bounds the cost of one-letter queries.
 _MAX_EXPANSION = 500
 
@@ -149,7 +144,6 @@ class _Entry:
     candidate: bool
     heading: str
     body: str
-    head_words: frozenset[str]
     words: frozenset[str]
     primary: str | None
     tags: frozenset[str]
@@ -198,7 +192,6 @@ def _entry(mtime_ns: int, item: dict) -> "_Entry":
         questions.is_candidate(doc),
         doc.heading,
         body,
-        frozenset(words(doc.heading)),
         frozenset(words(text)),
         views.primary(SCHEMA, doc),
         frozenset(views.tags(doc)),
@@ -317,37 +310,6 @@ class _Index:
             i += 1
         return out
 
-    def search(self, q: str, exclude: set[str], limit: int, max_age: float) -> list[dict]:
-        """Items matching the words of `q`, each word also as a prefix: those
-        matching all words first, then those matching the most; within that by
-        idf-weighted score, exact over prefix matches, heading over body."""
-        tokens = list(dict.fromkeys(words(q)))
-        if not tokens:
-            return []
-        with self._lock:
-            self._refresh(max_age)
-            n = len(self._entries)
-            matched: dict[str, int] = {}
-            score: dict[str, float] = {}
-            for token in tokens:
-                best: dict[str, float] = {}
-                for w in self.expand(token):
-                    names = self._postings[w]
-                    base = math.log(1 + n / len(names)) * (1.0 if w == token else _PREFIX_WEIGHT)
-                    for name in names:
-                        s = base * (_HEADING_WEIGHT if w in self._entries[name].head_words else 1.0)
-                        if s > best.get(name, 0.0):
-                            best[name] = s
-                for name, s in best.items():
-                    matched[name] = matched.get(name, 0) + 1
-                    score[name] = score.get(name, 0.0) + s
-            ranked = sorted(
-                (name for name in matched if name not in exclude),
-                key=lambda name: (-matched[name], -score[name], name),
-            )
-            return [{"file": name, "heading": self._entries[name].heading} for name in ranked[:limit]]
-
-
 _INDEX = _Index()
 
 
@@ -356,37 +318,16 @@ def index(max_age: float = 0):
     return _INDEX.locked(max_age)
 
 
-def list_page(
-    q: str = "", attention: bool = False, page: int = 0, seed: int = 0, focus: str | None = None, tasks: bool = False,
-    semantic_search: bool = False,
-) -> dict:
-    """One page of items whose text contains `q`, optionally only those needing
-    attention or only those with a tasks line, in an order shuffled by `seed` (stable across pages and filters
-    for one seed); plus the counts. With `focus`, the page holding that file
-    instead, and `focused` says whether it was among the matches.
-    With `semantic_search` and a `q`, the items whose body is embedded, ranked by
-    similarity to `q` instead (see semantic), and `semantic` holds the
-    embedding's status; when the query can't be embedded, the text filter
-    applies and `semantic.error` says why."""
+def list_page(attention: bool = False, page: int = 0, seed: int = 0, tasks: bool = False) -> dict:
+    """One page of items, optionally only those needing attention or only
+    those with a tasks line, in an order shuffled by `seed` (stable across
+    pages for one seed); plus the counts."""
     entries = _INDEX.refresh()
-    needle = q.strip().lower()
     seed &= 0xFFFFFFFF
-    keep = lambda e: (not attention or e.flagged) and (not tasks or e.has_tasks)
-    names, status = None, None
-    if semantic_search and needle:
-        try:
-            names = semantic.rank(q.strip(), {n: e.body for n, e in entries.items() if keep(e)})
-            status = semantic.status()
-        except llm.Unavailable as e:
-            status = semantic.status() | {"error": str(e), "missing_model": semantic.MODEL if isinstance(e, llm.ModelMissing) else None}
-    if names is None:
-        names = sorted(
-            (n for n, e in entries.items() if keep(e) and (not needle or needle in e.lower)),
-            key=lambda n: (zlib.crc32(n.encode(), seed), n),
-        )
-    focused = focus is not None and focus in names
-    if focused:
-        page = names.index(focus) // PAGE_SIZE
+    names = sorted(
+        (n for n, e in entries.items() if (not attention or e.flagged) and (not tasks or e.has_tasks)),
+        key=lambda n: (zlib.crc32(n.encode(), seed), n),
+    )
     page = max(page, 0)
     start = page * PAGE_SIZE
     return {
@@ -396,8 +337,6 @@ def list_page(
         "tasks": sum(e.has_tasks for e in entries.values()),
         "page_size": PAGE_SIZE,
         "page": page,
-        "focused": focused,
-        "semantic": status,
     }
 
 
@@ -478,16 +417,6 @@ def delete(name: str) -> None:
         raise NotFound(name)
     path.unlink()
     _INDEX.invalidate()
-
-
-SEARCH_LIMIT = 8
-# Search runs per keystroke: a folder scan per query would lag on a big folder.
-SEARCH_MAX_AGE = 2.0
-
-
-def search(q: str, exclude: list[str] = ()) -> list[dict]:
-    """Up to SEARCH_LIMIT `{file, heading}` best matching `q`, for picking a note to link."""
-    return _INDEX.search(q, set(exclude), SEARCH_LIMIT, SEARCH_MAX_AGE)
 
 
 def random_candidate(exclude: list[str] = ()) -> dict:
