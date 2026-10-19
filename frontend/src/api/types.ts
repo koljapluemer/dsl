@@ -51,8 +51,8 @@ export type Backlink = { file: string; label: string; heading: string };
 export type SourceSchema = { fields: Record<string, { type: FieldType }>; entryTypes: Record<string, string[]> };
 /** a `source` item: `file` is the item's, the rest its fields (names and lists as string[], integers as numbers) */
 export type Source = { file: string; key: string; entrytype: string; title: string; extra?: string; [field: string]: string | number | string[] | undefined };
-/** `recent`: the files of the most recently modified sources, newest first */
-export type SourceList = { sources: Source[]; recent: string[] };
+/** `recent`: the files of the most recently modified sources, newest first; `backlinks`: how many relationships point to a source */
+export type SourceList = { sources: (Source & { backlinks: number })[]; recent: string[] };
 export type CalendarEntry = { file: string; heading: string; details: string[]; when: When };
 
 /** a pinned note, rendered with the notes up to `depth` relationships away */

@@ -198,11 +198,14 @@ def list_sources() -> list[dict]:
 
 
 def listing() -> dict:
-    """Every source, and the files of the RECENT most recently modified, newest first."""
-    entries = store._INDEX.refresh()
-    names = [n for n, e in entries.items() if e.primary == SOURCE_KEYWORD]
-    recent = sorted(names, key=lambda n: entries[n].mtime_ns, reverse=True)[:RECENT]
-    return {"sources": list_sources(), "recent": recent}
+    """Every source, with `backlinks`, the number of relationships pointing to
+    it, and the files of the RECENT most recently modified, newest first."""
+    listed = list_sources()
+    with store._INDEX.locked() as ix:
+        names = [n for n, e in ix.entries.items() if e.primary == SOURCE_KEYWORD]
+        recent = sorted(names, key=lambda n: ix.entries[n].mtime_ns, reverse=True)[:RECENT]
+        counts = {s["file"]: len(ix.incoming.get(s["file"], ())) for s in listed}
+    return {"sources": [{**s, "backlinks": counts[s["file"]]} for s in listed], "recent": recent}
 
 
 def _text(source: dict, base: str | None) -> str:
