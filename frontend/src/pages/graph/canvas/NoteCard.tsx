@@ -1,9 +1,11 @@
-import { GripVertical, Maximize2 } from 'lucide-react';
-import { memo, useState } from 'react';
-import { MediaPreview } from '@/dumb/MediaPreview';
+import { GripVertical } from 'lucide-react';
+import { memo } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { notesChanged } from '@/entities/graph/mutations';
+import { Media } from '@/entities/item/Media';
+import { clearMedia } from '@/entities/item/mutations';
 import { NotePanel } from '@/meta/note-panel/NotePanel';
 import type { MediaAttachment } from '@/features/item-media/useMediaAttachment';
-import { MediaModal } from './MediaModal';
 import { NoteMarkdown } from './NoteMarkdown';
 import { PinControl } from './PinControl';
 import { isVideoFilename, mediaUrl } from '@/entities/item/media';
@@ -37,7 +39,7 @@ function NoteCardInner({
   onUnpin: (filename: string) => void;
   onChangeDepth: (filename: string, nextDepth: number) => void;
 }) {
-  const [mediaModalOpen, setMediaModalOpen] = useState(false);
+  const qc = useQueryClient();
   const hasExtra = note.extraContent.trim().length > 0;
 
   const toolbar = (
@@ -59,11 +61,6 @@ function NoteCardInner({
         onUnpin={() => onUnpin(note.filename)}
         onChangeDepth={(next) => onChangeDepth(note.filename, next)}
       />
-      {note.image && !editing ? (
-        <button type="button" className="btn btn-ghost btn-xs btn-square" onClick={() => setMediaModalOpen(true)} title="Enlarge media">
-          <Maximize2 className="size-3.5" />
-        </button>
-      ) : null}
     </>
   );
 
@@ -75,7 +72,8 @@ function NoteCardInner({
   const view = (
     <>
       {note.image ? (
-        <MediaPreview src={mediaUrl(note.image)} kind={isVideoFilename(note.image) ? 'video' : 'image'} className="mb-3 h-auto w-full" />
+        <Media src={mediaUrl(note.image)} kind={isVideoFilename(note.image) ? 'video' : 'image'} path={note.image} fill className="mb-3"
+               onDelete={async () => { await clearMedia(note.filename); await notesChanged(qc); }} />
       ) : null}
 
       {note.body.trim() ? <NoteMarkdown markdown={note.body} /> : <p className="text-sm italic text-base-content/50">Empty note</p>}
@@ -123,10 +121,6 @@ function NoteCardInner({
           return true;
         }}
       />
-
-      {mediaModalOpen && note.image ? (
-        <MediaModal filename={note.image} noteFilename={note.filename} onClose={() => setMediaModalOpen(false)} />
-      ) : null}
     </article>
   );
 }

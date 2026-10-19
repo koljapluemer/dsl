@@ -3,9 +3,9 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import { EyeOff, Pencil, Trash2, X } from 'lucide-react';
 import type { Item } from '@/api/types';
-import { Media } from '@/dumb/Media';
 import { ItemOverview } from '@/entities/item/ItemOverview';
-import { mediaUrl } from '@/entities/item/media';
+import { Media } from '@/entities/item/Media';
+import { isVideoFilename, mediaUrl } from '@/entities/item/media';
 import { attachMedia, clearMedia, itemsChanged, saveItem } from '@/entities/item/mutations';
 import { itemQuery } from '@/entities/item/queries';
 import { useDeleteItem } from '@/features/item-delete/useDeleteItem';
@@ -154,7 +154,10 @@ export function NotePanel({
           <div className={fill ? 'min-h-0 flex-1 overflow-y-auto' : ''}>
             {view ?? (item ? (
               <div className="overview select-text">
-                {item.media && <Media src={mediaUrl(item.media)} />}
+                {item.media && (
+                  <Media src={mediaUrl(item.media)} kind={isVideoFilename(item.media) ? 'video' : 'image'} path={item.media}
+                         onDelete={async () => { adopt(await clearMedia(item.file)); void itemsChanged(qc); }} />
+                )}
                 <ItemOverview item={item} onRef={onRef ?? ((target) => void navigate({ to: '/edit/$file', params: { file: target } }))} />
               </div>
             ) : fetched.error ? <p className="text-sm text-error">{fetched.error.message}</p> : <span className="loading loading-dots loading-sm" />)}
