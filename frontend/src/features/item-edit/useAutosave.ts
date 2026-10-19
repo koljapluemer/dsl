@@ -36,7 +36,7 @@ export function useAutosave({ file, saved, onSaved, onError = showError }: Optio
         s.file = item.file;
         s.saved = sent;
         qc.setQueryData(itemQuery(item.file).queryKey, item);
-        itemsChanged(qc, false);
+        void itemsChanged(qc, false);
         callbacks.current.onSaved?.(item);
       } catch (e) { callbacks.current.onError(e); }
     });

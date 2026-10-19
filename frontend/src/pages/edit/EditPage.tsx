@@ -41,7 +41,7 @@ function LoadedEditor({ item, onCreated }: { item: Item | null; onCreated: (file
     onSaved: (saved) => {
       if (!current) {
         onCreated(saved.file);
-        navigate({ to: '/edit/$file', params: { file: saved.file }, replace: true });
+        void navigate({ to: '/edit/$file', params: { file: saved.file }, replace: true });
       }
       setCurrent(saved);
     },
@@ -49,7 +49,7 @@ function LoadedEditor({ item, onCreated }: { item: Item | null; onCreated: (file
 
   async function del() {
     await save();
-    if (current && (await remove(current))) goBack();
+    if (current && (await remove(current))) void goBack();
   }
 
   return (

@@ -16,7 +16,7 @@ export function SettingsPage() {
     if (!value.trim() || value === path) return;
     try {
       await saveSettings(qc, { path: value });
-      navigate({ to: '/' });
+      void navigate({ to: '/' });
     } catch (e) { showError(e); }
   }
 

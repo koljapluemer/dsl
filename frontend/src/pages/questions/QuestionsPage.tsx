@@ -51,7 +51,7 @@ export function QuestionsPage() {
 
   // the first note, once; its state is set after the fetch, not during the effect
   // eslint-disable-next-line react-hooks/exhaustive-deps, react-hooks-js/set-state-in-effect
-  useEffect(() => { next(); }, []);
+  useEffect(() => { void next(); }, []);
 
   const pick = useQuery({ ...pickQuery(item?.file ?? ''), enabled: !!item });
   const picked = pick.isFetching ? null : pick.data;
@@ -63,7 +63,7 @@ export function QuestionsPage() {
 
   function skip() {
     if (item) skipped.current.push(item.file);
-    next();
+    void next();
   }
 
   async function disableNote() {
@@ -71,12 +71,12 @@ export function QuestionsPage() {
     try {
       await save();
       await disable(item.file);
-      next();
+      await next();
     } catch (e) { showError(e); }
   }
 
   function toggleEdit() {
-    if (editing) save();
+    if (editing) void save();
     setEditing(!editing);
   }
 

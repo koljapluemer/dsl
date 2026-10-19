@@ -20,7 +20,7 @@ export function useItemList(attention: boolean) {
   /** the item last jumped to via a reference */
   const [focused, setFocused] = useState<string | null>(null);
 
-  const setSearch = (next: NotesSearch) => navigate({ to: '.', search: next, replace: true });
+  const setSearch = (next: NotesSearch) => void navigate({ to: '.', search: next, replace: true });
   const params = { q: debouncedQ, page, attention, semantic };
 
   const list = useQuery({
@@ -45,7 +45,7 @@ export function useItemList(attention: boolean) {
   const embedding = status?.embedding;
   const wasEmbedding = useRef(false);
   useEffect(() => {
-    if (wasEmbedding.current && embedding === false && semantic && q) qc.invalidateQueries({ queryKey: ['items'] });
+    if (wasEmbedding.current && embedding === false && semantic && q) void qc.invalidateQueries({ queryKey: ['items'] });
     wasEmbedding.current = !!embedding;
   }, [embedding, semantic, q, qc]);
 
