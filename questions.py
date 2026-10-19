@@ -71,6 +71,20 @@ def add_tag(schema: dict, text: str, tag: str) -> str:
     return "\n".join(lines)
 
 
+
+def remove_tag(schema: dict, text: str, tag: str) -> str:
+    """`text` without the tag `tag`; drops the tags line when nothing's left on it."""
+    tags = next((c for c in dsl.parse(schema, text).clauses if c.keyword == TAGS_KEYWORD), None)
+    if tags is None or tag not in tags.args:
+        return text
+    lines = text.split("\n")
+    rest = [w for w in lines[tags.line - 1].split() if w != tag]
+    if rest == [TAGS_KEYWORD]:
+        del lines[tags.line - 1]
+    else:
+        lines[tags.line - 1] = " ".join(rest)
+    return "\n".join(lines)
+
 _cache: dict[tuple, list[str]] = {}
 _cache_lock = threading.Lock()
 
