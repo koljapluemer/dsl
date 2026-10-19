@@ -14,6 +14,7 @@ import questions
 import semantic
 import sources
 import store
+import views
 
 PORT = 8766
 # the frontend's build (`just build`)
@@ -184,14 +185,10 @@ def queue_draw():
     return jsonify(store.queue_draw())
 
 
-@app.get("/api/queue/filter")
-def get_queue_filter():
-    return jsonify(store.queue_filter())
-
-
-@app.put("/api/queue/filter")
-def put_queue_filter():
-    return jsonify(store.set_queue_filter(request.get_json(silent=True)))
+@app.post("/api/queue/hide/<name>")
+def queue_hide(name):
+    store.hide(name, views.QUEUE_HIDING)
+    return "", 204
 
 
 @app.get("/api/zero")
@@ -299,6 +296,12 @@ def graph_update(name):
 @app.delete("/api/graph/notes/<name>")
 def graph_delete(name):
     graph.delete(name)
+    return "", 204
+
+
+@app.post("/api/graph/notes/<name>/hide")
+def graph_hide(name):
+    graph.hide(name)
     return "", 204
 
 

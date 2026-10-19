@@ -14,14 +14,7 @@ Flask serves the frontend's build from `frontend/dist`: `just run` builds it whe
 
 ## Frontend
 
-Vite + React + TypeScript in `frontend/`, with TanStack Router (the list's filter, semantic toggle and page are in the URL) and TanStack Query (requests, polling, cache), styled with Tailwind + daisyUI. `frontend/src` is feature-sliced; each layer imports only from those below it, and slices of one layer don't import each other (enforced by `eslint-plugin-boundaries`, see `frontend/eslint.config.js`):
-
-- `api`: the fetch wrapper and the API's types
-- `dumb`: generic pieces without app logic (pager, modal, media, CodeMirror host, markdown, a tiny store)
-- `entities`: `graph` (the graph page's requests), `item` (queries, the item language's client-side mirror in `dsl/`, the read-only `ItemOverview` and `ItemView`), `ollama` (model status and downloads), `settings`
-- `features`: `item-edit` (the item editor and its autosave), `item-delete` (delete with undo), `model-download`
-- `pages`: one folder per route (`sources` holds the list and the form); code only one page uses lives there
-- `main.tsx`, `router.tsx`, `App.tsx` (tabs, error banner, undo toast) at the root
+Vite + React + TypeScript in `frontend/`, with TanStack Router (the list's filter, semantic toggle and page are in the URL) and TanStack Query (requests, polling, cache), styled with Tailwind + daisyUI. Layering: [`docs/frontend-architecture.md`](docs/frontend-architecture.md).
 
 ## Editing
 
@@ -29,7 +22,7 @@ One [CodeMirror 6](https://codemirror.net) editor per item. A single pass over t
 
 The list shows body and `extra` content as markdown (marked + DOMPurify), `data` blocks as highlighted code, relationships as links headed by the target's first line (a click scrolls to the target, paging and clearing the filter as needed), and only keyword lines in monospace with the editor's highlighting. Its order is shuffled per page load (a seed sent with each request), stable across paging and filtering.
 
-The list is filtered and paged on the server, so a folder of many items (e.g. one shared with graphirst's notes) stays usable: `store.py` keeps each item's text and problem flags in memory and re-reads a file only when its mtime changes. The Broken tab shows items needing attention.
+The list is filtered and paged on the server, so a folder of many items stays usable: `store.py` keeps each item's text and problem flags in memory and re-reads a file only when its mtime changes. The Broken tab shows items needing attention; the Tasks tab every item with `tasks`, each in its own editor.
 
 New files are named `<slug of the first line>-<6 hex>.txt`; the name doesn't change when the text does. Other items refer to it by that name without `.txt` (`-> label @name`).
 
@@ -41,18 +34,16 @@ The `semantic` toggle next to the filter ranks the notes by similarity to the qu
 
 The Questions tab shows a random note whose body contains `>` or `~`, that has at most one relationship and isn't tagged `no-questions` (`questions.is_candidate`). Below it are up to 3 of the questions in `questions.py`. An answer links the note with `-> <label> @<target>`, to an existing note picked from the search suggestions (a word index in `store.py`, prefix-matched as you type) or to a new note made from the text. Skip shows another note. Disable adds the `no-questions` tag.
 
-When `questions.py` lists more than 3 questions, a local LLM chooses the 3 that fit the note best (prompt: `prompts/pick-questions.md`). Without an LLM it asks the first 3. The LLM is an [Ollama](https://ollama.com) server, set in Settings and stored under `llm` in the config file:
+When `questions.py` lists more than 3 questions, a local LLM chooses the 3 that fit the note best: `gemma3:4b` (`questions.MODEL`, tuned together with the prompt `prompts/pick-questions.md`) on an [Ollama](https://ollama.com) server. Without the server or the model it asks the first 3, and offers to download a missing model.
 
-- `url`: defaults to `OLLAMA_HOST`, then `http://127.0.0.1:11434`
-- `model`: chosen from the server's installed models. There is no default, so without one the questions aren't chosen
-- `think` (default `false`), `keep_alive` (default `"30m"`), `options`: passed on to Ollama's `/api/chat`
+The server's URL is the only LLM setting (Settings, stored under `llm` in the config file); it defaults to `OLLAMA_HOST`, then `http://127.0.0.1:11434`. Each feature names its own model, and models are kept loaded for 30 minutes between calls (`llm.py`).
 
 ## Calendar, Queue, Zero, Suggest
 
 Ports of the `../dsl-mobile` apps calendar, queue and zero, and of `../suggest`, one route each; what an item means to them is in `views.py`.
 
 - **Calendar**: `appointment` and `recurring` items by day or over a From..To range (this week, Sunday to Saturday, by default), toggled at the top; view, day and range are in the URL. A click on an item opens it in the editor in a modal (with delete); `+` adds one, prefilled with `appointment <that day>`.
-- **Queue**: 3 random items (body, `media` attachment, `extra`), Next draws others. Types and tags hidden from it are set in its Hidden panel and stored under `queue` in the config file.
+- **Queue**: 3 random items (body, `media` attachment, `extra`), Next draws others. An item's hide button tags it `no-q`; what it hides is set in code, see [`docs/hiding.md`](docs/hiding.md).
 - **Zero**: a card per item tagged `zero`, in a random order per page load and colored by file name; a click greys it out and moves it last until reload.
 - **Suggest**: a dropdown of the `suggest-` tags (`tags suggest-book`), a random one selected on load, and a random note carrying the selected one; hold "Hold for next" for another, or delete it (with undo).
 
@@ -90,12 +81,12 @@ Settings → "bibtex export" takes any number of `.bib` paths (a directory gets 
 
 ## Graph
 
-A port of `../dsl-graph`: notes as cards on a [React Flow](https://reactflow.dev) canvas, laid out by [ELK](https://eclipse.dev/elk/), their relationships as labeled edges (`graph.py` on the server, `frontend/src/pages/graph`). Only notes without errors are part of it; a relationship to anything else is left out until it's fixed.
+A port of `../dsl-graph`: notes as cards on a [React Flow](https://reactflow.dev) canvas, laid out by [ELK](https://eclipse.dev/elk/), their relationships as labeled edges (`graph.py` on the server, `frontend/src/pages/graph`). Only notes without errors and not hidden from it ([`docs/hiding.md`](docs/hiding.md)) are part of it; a relationship to anything else is left out until it's fixed.
 
 - **Pins**: a pinned note shows the notes up to its depth (the chevrons beside the pin) relationships away, in either direction. Picking a search result pins it at depth 2. The badge under a card counts its related notes not on the canvas; a click shows them. Pins are kept under `graph` in the config file.
 - **Sidebar**: Search (the query syntax is behind the `?`: words match as prefixes, `"exact phrase"`, `/regex/ims`, `-exclude`, `OR`, parentheses, `file:`, `body:`, `extra:`), optionally only orphans or connected notes, and Recent (by modification time).
 - **Canvas**: right-click opens a quick search at the cursor; each pick pins a note, and it stays open for several picks. Double-click adds a note. Drag from a card's edge dot onto another card to relate them, or onto empty canvas for a new related note. Drag a card by its grip to move it; it keeps its spot while it's on the canvas.
-- **Cards**: edit the full text (Mod-Enter saves, Escape cancels; text with errors isn't saved), attach an image (downscaled to WebP) or a short video by paste or upload, delete with undo. A click on an edge label edits or deletes its relationships (with undo).
+- **Cards**: edit the full text (Mod-Enter saves, Escape cancels; text with errors isn't saved), attach an image (downscaled to WebP) or a short video by paste or upload, hide (tags it `no-graph`) or delete, both with undo. A click on an edge label edits or deletes its relationships (with undo).
 - The toolbar: add note, unpin all, pin a random orphan, open a random note or search result, pin all search results (the first 100, without neighbors), zoom and fit.
 
 Attachments go into `images/` in the data folder as `<note>-<ms>.<ext>`; one the graph wrote is deleted when it's replaced or removed and no other note names it.
@@ -124,6 +115,4 @@ The first run installs Python, numpy (Termux's package) and a venv in `~/.venvs/
 
 ## Test
 
-```
-uv run pytest
-```
+`just check` lints, typechecks and tests both sides; `uv run pytest` runs only the backend's tests.

@@ -575,35 +575,16 @@ def _view(name: str) -> dict:
 QUEUE_SIZE = 3
 
 
-def _filter_lists(raw) -> dict:
-    raw = raw if isinstance(raw, dict) else {}
-    return {k: sorted({v for v in raw.get(k) or [] if isinstance(v, str)}) for k in ("types", "tags")}
-
-
-def queue_filter() -> dict:
-    """The types and tags the queue hides, and every type and tag in the
-    folder (hidden items included) to pick from."""
-    entries = _INDEX.refresh()
-    return _filter_lists(_config().get("queue")) | {
-        "known_types": sorted({e.primary for e in entries.values() if e.primary}),
-        "known_tags": sorted({t for e in entries.values() for t in e.tags}),
-    }
-
-
-def set_queue_filter(body) -> dict:
-    hidden = _filter_lists(body)
-    if bad := [t for t in hidden["tags"] if not dsl.is_tag(t)]:
-        raise ValidationError(f"invalid tag '{bad[0]}': tags are a-z, 0-9 and -")
-    _save_config(_config() | {"queue": hidden})
-    return queue_filter()
+def hide(name: str, hiding: views.Hiding) -> None:
+    """Tags the note so the view `hiding` belongs to leaves it out."""
+    note = get(name)
+    update(name, {"text": questions.add_tag(SCHEMA, note["text"], hiding.tag)})
 
 
 def queue_draw() -> dict:
-    """Up to QUEUE_SIZE random items the queue's filter doesn't hide; `total`
+    """Up to QUEUE_SIZE random items views.QUEUE_HIDING doesn't hide; `total`
     counts those it doesn't hide."""
-    hidden = _filter_lists(_config().get("queue"))
-    types, tags = set(hidden["types"]), set(hidden["tags"])
-    names = sorted(n for n, e in _INDEX.refresh().items() if e.primary not in types and not e.tags & tags)
+    names = sorted(n for n, e in _INDEX.refresh().items() if not views.QUEUE_HIDING.hides(e.primary, e.tags))
     return {"items": [_view(n) for n in random.sample(names, min(QUEUE_SIZE, len(names)))], "total": len(names)}
 
 

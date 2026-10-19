@@ -4,6 +4,7 @@ import re
 import pytest
 
 import store
+import views
 
 
 @pytest.fixture(autouse=True)
@@ -230,17 +231,15 @@ def test_set_llm(data_dir):
     assert store.get_path() == data_dir
 
 
-def test_queue_filter_hides_types_and_tags(data_dir):
+def test_queue_skips_hidden_types_and_tags(data_dir):
     store.create({"file": "a.txt", "text": "a\nappointment 26-08-29"})
-    store.create({"file": "b.txt", "text": "b\ntags hide"})
+    store.create({"file": "b.txt", "text": "b"})
     store.create({"file": "c.txt", "text": "c"})
-    f = store.set_queue_filter({"types": ["appointment"], "tags": ["hide"]})
-    assert f["known_types"] == ["appointment"] and f["known_tags"] == ["hide"]
+    store.hide("b.txt", views.QUEUE_HIDING)
+    assert store.get("b.txt")["text"] == "b\ntags no-q\n"
     for _ in range(5):
         res = store.queue_draw()
         assert [i["file"] for i in res["items"]] == ["c.txt"] and res["total"] == 1
-    with pytest.raises(store.ValidationError):
-        store.set_queue_filter({"tags": ["Bad tag"]})
 
 
 def test_zero_items(data_dir):

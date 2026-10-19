@@ -1,4 +1,4 @@
-import { GripVertical, Maximize2, Pencil, Trash2 } from 'lucide-react';
+import { EyeOff, GripVertical, Maximize2, Pencil, Trash2 } from 'lucide-react';
 import { memo, useState } from 'react';
 import { MediaPreview } from './MediaPreview';
 import { MediaModal } from './MediaModal';
@@ -13,6 +13,7 @@ function NoteCardInner({
   pinDepth,
   isAnchor,
   onDelete,
+  onHide,
   onEdit,
   onPin,
   onUnpin,
@@ -22,25 +23,27 @@ function NoteCardInner({
   pinDepth: number | null;
   isAnchor: boolean;
   onDelete: (filename: string, pinDepth: number | null) => Promise<void>;
+  onHide: (filename: string, pinDepth: number | null) => Promise<void>;
   onEdit: (filename: string) => void;
   onPin: (filename: string) => void;
   onUnpin: (filename: string) => void;
   onChangeDepth: (filename: string, nextDepth: number) => void;
 }) {
-  const [deleting, setDeleting] = useState(false);
+  const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [mediaModalOpen, setMediaModalOpen] = useState(false);
   const hasExtra = note.extraContent.trim().length > 0;
 
-  const handleDelete = async (): Promise<void> => {
-    setDeleting(true);
+  // Deleting or hiding removes the card, so `busy` is only reset on failure.
+  const run = async (action: typeof onDelete): Promise<void> => {
+    setBusy(true);
     setError(null);
 
     try {
-      await onDelete(note.filename, pinDepth);
-    } catch (deleteError) {
-      setError((deleteError as Error).message);
-      setDeleting(false);
+      await action(note.filename, pinDepth);
+    } catch (actionError) {
+      setError((actionError as Error).message);
+      setBusy(false);
     }
   };
 
@@ -103,12 +106,24 @@ function NoteCardInner({
           </button>
           <button
             type="button"
+            className="btn btn-ghost btn-xs rounded-full disabled:opacity-50"
+            onClick={(event) => {
+              event.stopPropagation();
+              void run(onHide);
+            }}
+            disabled={busy}
+            title="Hide from graph"
+          >
+            <EyeOff className="size-3.5" />
+          </button>
+          <button
+            type="button"
             className="btn btn-ghost btn-xs rounded-full hover:bg-error/10 hover:text-error disabled:opacity-50"
             onClick={(event) => {
               event.stopPropagation();
-              void handleDelete();
+              void run(onDelete);
             }}
-            disabled={deleting}
+            disabled={busy}
             title="Delete this note"
           >
             <Trash2 className="size-3.5" />

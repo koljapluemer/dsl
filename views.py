@@ -1,6 +1,7 @@
 """What the queue, zero, suggest, calendar and projects views read from an item."""
 
 import calendar as _calendar
+from dataclasses import dataclass
 from pathlib import PurePosixPath
 
 import dsl
@@ -16,6 +17,24 @@ PROJECT_RELATION = "project"
 ZERO_TAG = "zero"
 # the tags suggest offers
 SUGGEST_PREFIX = "suggest-"
+
+
+@dataclass(frozen=True)
+class Hiding:
+    """Which notes a view leaves out: those whose type is one of `types`, or
+    tagged `tag` (what the view's hide button adds) or one of `tags`. See
+    docs/hiding.md."""
+    tag: str
+    types: frozenset[str] = frozenset()
+    tags: frozenset[str] = frozenset()
+
+    def hides(self, primary: str | None, tags: frozenset[str]) -> bool:
+        return primary in self.types or self.tag in tags or bool(tags & self.tags)
+
+
+# What each view hides - edit here.
+QUEUE_HIDING = Hiding("no-q", frozenset({APPOINTMENT_KEYWORD, RECURRING_KEYWORD, "source"}))
+GRAPH_HIDING = Hiding("no-graph", frozenset({APPOINTMENT_KEYWORD, RECURRING_KEYWORD}))
 
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp"}
 VIDEO_EXTENSIONS = {".mp4", ".webm", ".mov"}

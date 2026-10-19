@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { Link, Outlet, useLocation, type ErrorComponentProps } from '@tanstack/react-router';
 import { errorBanner } from './dumb/errorBanner';
-import { UndoDeleteToast } from './features/item-delete/UndoDeleteToast';
+import { UndoToast } from './dumb/UndoToast';
 
 const TABS = [
   { to: '/', label: 'Notes' },
@@ -32,7 +32,7 @@ export function App() {
 
   return (
     <div className={full ? 'flex h-screen flex-col px-4 pt-4' : 'max-w-5xl mx-auto p-4'}>
-      <UndoDeleteToast />
+      <UndoToast />
       {error && <div role="alert" className="alert alert-error mb-4"><span>{error}</span></div>}
       <div role="tablist" className="tabs tabs-border mb-4 flex-nowrap overflow-x-auto">
         {TABS.map((t) => (

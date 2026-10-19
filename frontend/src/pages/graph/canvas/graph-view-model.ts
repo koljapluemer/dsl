@@ -15,6 +15,7 @@ const EDITING_NODE_Z_INDEX = 1000;
 
 export interface ViewCallbacks {
   onDeleteNote: (filename: string, pinDepth: number | null) => Promise<void>;
+  onHideNote: (filename: string, pinDepth: number | null) => Promise<void>;
   onStartEdit: (filename: string) => void;
   onSaveEdit: (filename: string, text: string, image: ImageState, previousImage: string | null) => Promise<void>;
   onSaveDraft: (draft: DraftInteraction, body: string, label: string, reverse: boolean, image: ImageState) => Promise<void>;
@@ -95,6 +96,7 @@ export function buildView(
         pinDepth: pins.get(note.filename) ?? null,
         isAnchor: note.filename === anchorFilename,
         onDelete: callbacks.onDeleteNote,
+        onHide: callbacks.onHideNote,
         onEdit: callbacks.onStartEdit,
         onPin: callbacks.onPinNote,
         onUnpin: callbacks.onUnpinNote,
