@@ -10,15 +10,15 @@ import { Modal } from '@/dumb/Modal';
 import { NotePanel } from '@/meta/note-panel/NotePanel';
 import { NEW_PROJECT, newIssue, projectsQuery, setThink } from './projects';
 
-/** The modal: an item, or a new one starting as `initial`. */
-type Editing = { file: string | null; initial: string; key: number };
+/** The modal: an item, or a new one starting as `initial`, closing once written if `closeOnCreate`. */
+type Editing = { file: string | null; initial: string; key: number; closeOnCreate?: boolean };
 
 /** Projects, each collapsible with its issues, and the issues without a project; items open in a modal to read, edit or delete; new ones too. */
 export function ProjectsPage() {
   const { data } = useQuery(projectsQuery);
   const [editing, setEditing] = useState<Editing | null>(null);
   const open = (file: string) => setEditing({ file, initial: '', key: Date.now() });
-  const add = (initial: string) => setEditing({ file: null, initial, key: Date.now() });
+  const add = (initial: string, closeOnCreate = false) => setEditing({ file: null, initial, key: Date.now(), closeOnCreate });
   const del = useDelete();
 
   return (
@@ -27,7 +27,8 @@ export function ProjectsPage() {
       {data && <Lists projects={data} onOpen={open} onAdd={add} onDelete={del} />}
       {editing && (
         <Modal wide onClose={() => setEditing(null)}>
-          <NotePanel key={editing.key} file={editing.file} initial={editing.initial} onClose={() => setEditing(null)} onDeleted={() => setEditing(null)} />
+          <NotePanel key={editing.key} file={editing.file} initial={editing.initial} onClose={() => setEditing(null)} onDeleted={() => setEditing(null)}
+                     onCreated={editing.closeOnCreate ? () => setEditing(null) : undefined} />
         </Modal>
       )}
     </div>
@@ -70,7 +71,7 @@ function useOpenProjects() {
   return { openFiles, toggle };
 }
 
-type Handlers = { onOpen: (file: string) => void; onAdd: (initial: string) => void; onDelete: (file: string) => void };
+type Handlers = { onOpen: (file: string) => void; onAdd: (initial: string, closeOnCreate?: boolean) => void; onDelete: (file: string) => void };
 
 function Lists({ projects: data, onOpen: open, onAdd: add, onDelete: del }: { projects: Projects } & Handlers) {
   const { openFiles, toggle } = useOpenProjects();
@@ -86,7 +87,7 @@ function Lists({ projects: data, onOpen: open, onAdd: add, onDelete: del }: { pr
           <div className="collapse-content">
             <div className="flex gap-1 mb-2">
               <button className="btn btn-xs" onClick={() => open(p.file)}><Pencil size={14} />Edit project</button>
-              <button className="btn btn-xs" onClick={() => add(newIssue(p.file))}><Plus size={14} />Issue</button>
+              <button className="btn btn-xs" onClick={() => add(newIssue(p.file), true)}><Plus size={14} />Issue</button>
               <button className="btn btn-xs btn-ghost text-error ml-auto" onClick={() => del(p.file)}><Trash2 size={14} />Delete project</button>
             </div>
             <IssueList issues={p.issues} onOpen={open} onDelete={del} />

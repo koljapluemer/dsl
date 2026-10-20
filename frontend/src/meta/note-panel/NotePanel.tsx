@@ -30,6 +30,8 @@ type Props = {
   /** writes the edit instead of the items API; rejects to stay in the editor */
   onAccept?: (text: string, media: MediaAttachment, item: Item | null) => Promise<unknown>;
   onSaved?: (item: Item) => void;
+  /** a new note, once written; the note isn't shown then */
+  onCreated?: (item: Item) => void;
   /** a close button */
   onClose?: () => void;
   /** a hide button */
@@ -55,7 +57,7 @@ type Props = {
  */
 export function NotePanel({
   file, initial = '', item: given, view, toolbar, editing: shownEditing, onEditingChange, onAccept, onSaved,
-  onClose, hide, deletable = true, onDelete, onDeleted, relationships = false, onRef, fill = false, id, className = '',
+  onCreated, onClose, hide, deletable = true, onDelete, onDeleted, relationships = false, onRef, fill = false, id, className = '',
 }: Props) {
   const qc = useQueryClient();
   const navigate = useNavigate();
@@ -98,6 +100,7 @@ export function NotePanel({
       adopt(saved);
       void itemsChanged(qc);
       onSaved?.(saved);
+      if (!base && onCreated) { onCreated(saved); return; }
     }
     setEditing(false);
   }
