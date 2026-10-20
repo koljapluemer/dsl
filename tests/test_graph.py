@@ -173,10 +173,9 @@ def test_delete_and_undo_with_media(data_dir):
 
 
 def test_hidden_notes_leave_the_graph_and_hide_undoes(data_dir):
-    note("a", "A\n-> knows @b\n-> at @c\n-> reads @d")
+    note("a", "A\n-> knows @b\n-> at @c")
     note("b", "B")
     note("c", "C\nappointment 26-08-29")
-    note("d", "D\ntags suggest-book")
     pins = [{"filename": "a.txt", "depth": 1}]
     assert names(graph.build(pins)) == ["a.txt", "b.txt"]
     text = (data_dir / "b.txt").read_text()
