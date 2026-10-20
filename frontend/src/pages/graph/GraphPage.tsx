@@ -2,9 +2,9 @@ import { useState } from 'react';
 import { errorBanner, showError } from '@/dumb/errorBanner';
 import { useSlashFocus } from '@/dumb/keys';
 import { randomNote } from '@/entities/graph/mutations';
-import { NoteSearch } from '@/entities/item/search/NoteSearch';
 import { EMPTY_SEARCH, searchFilenames } from '@/entities/item/search/search';
 import { useNoteSearch } from '@/entities/item/search/useNoteSearch';
+import { NoteSearchSidebar } from '@/meta/note-search-sidebar/NoteSearchSidebar';
 import { GraphCanvas } from './canvas/GraphCanvas';
 import { MANUAL_PIN_DEPTH, PIN_ALL_CAP, PIN_ALL_DEPTH, SEARCH_RESULT_PIN_DEPTH, useNoteGraph } from './useNoteGraph';
 import './graph.css';
@@ -41,7 +41,7 @@ export function GraphPage() {
   const handlePinAllSearchResults = async () => {
     setPinAllBusy(true);
     try {
-      const { filenames, total } = await searchFilenames(search.query, { scope: 'graph', orphan: search.orphan }, PIN_ALL_CAP);
+      const { filenames, total } = await searchFilenames(search.query, { scope: 'graph', orphan: search.orphan, semantic: search.semantic }, PIN_ALL_CAP);
       pinNotes(filenames, PIN_ALL_DEPTH);
       errorBanner.set(total > filenames.length ? `Pinned the first ${filenames.length} of ${total} matches.` : '');
     } catch (error) {
@@ -80,8 +80,8 @@ export function GraphPage() {
       </section>
 
       <aside className="flex min-h-0 flex-col border border-base-300 bg-base-100/90 shadow-xl backdrop-blur">
-        <NoteSearch state={search} onState={setSearch} found={found} orphanFilter historyKey="graph-search-history" marked={pins} inputRef={searchInput}
-                    onSelect={(filename) => pinNote(filename, SEARCH_RESULT_PIN_DEPTH)} />
+        <NoteSearchSidebar state={search} onState={setSearch} found={found} historyKey="graph-search-history" marked={pins} inputRef={searchInput}
+                           onSelect={(filename) => pinNote(filename, SEARCH_RESULT_PIN_DEPTH)} />
       </aside>
     </div>
   );

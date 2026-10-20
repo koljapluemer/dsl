@@ -28,5 +28,8 @@ export const noteSearchQuery = (p: Params) => queryOptions({
 });
 
 /** The first `cap` matches' files, in the search's order, and how many there are. */
-export const searchFilenames = (q: string, { scope = 'all', orphan = 'any' }: { scope?: SearchScope; orphan?: OrphanFilter }, cap: number) =>
-  api<{ filenames: string[]; total: number }>('GET', `/api/search/filenames?${new URLSearchParams({ q, scope, orphan, cap: String(cap) })}`);
+export const searchFilenames = (
+  q: string, { scope = 'all', orphan = 'any', semantic = false }: { scope?: SearchScope; orphan?: OrphanFilter; semantic?: boolean }, cap: number,
+) => api<{ filenames: string[]; total: number }>('GET', `/api/search/filenames?${new URLSearchParams({
+  q, scope, orphan, cap: String(cap), ...(semantic ? { semantic: '1' } : {}),
+})}`);

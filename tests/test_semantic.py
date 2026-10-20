@@ -96,3 +96,11 @@ def test_empty_query_lists_all_newest_first():
     store.create({"file": "a.txt", "text": "dog"})
     res = ranked("")
     assert files(res) == ["a.txt"] and res["semantic"] is None
+
+
+def test_filenames_follow_the_semantic_ranking():
+    store.create({"file": "a.txt", "text": "the dog barked"})
+    store.create({"file": "b.txt", "text": "a cat sat"})
+    ranked("cat")
+    wait()
+    assert search.filenames("cat", semantic_search=True) == {"filenames": ["b.txt", "a.txt"], "total": 2}
