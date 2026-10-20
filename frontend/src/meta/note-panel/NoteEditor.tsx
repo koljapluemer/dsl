@@ -9,6 +9,8 @@ import { useSchema } from '@/entities/item/schema';
 import { ItemTextEditor } from '@/features/item-edit/ItemTextEditor';
 import { MediaAttachmentField } from '@/features/item-media/MediaAttachmentField';
 import { useMediaAttachment, type MediaAttachment } from '@/features/item-media/useMediaAttachment';
+import { BibtexPicker, StagedSources } from '@/features/source-bibtex/BibtexSourcesField';
+import { useBibtexSources } from '@/features/source-bibtex/useBibtexSources';
 
 type Props = {
   /** the note edited, null for a new one */
@@ -23,7 +25,8 @@ type Props = {
 };
 
 /**
- * A note's full text and attachment, nothing written until Accept (Mod-Enter,
+ * A note's full text, attachment and sources pasted as BibTeX (related as
+ * `-> source @…` on Accept), nothing written until Accept (Mod-Enter,
  * Mod-s); Discard drops both. Escape discards only while nothing was edited.
  * Starts from the file as it is now, not as cached.
  */
@@ -39,7 +42,9 @@ function LoadedEditor({ item, initial, onAccept, onDiscard, header }: Omit<Props
   const schema = useSchema();
   const [text, setText] = useState(item?.text ?? initial);
   const media = useMediaAttachment(item?.media ?? null);
-  const dirty = text !== (item?.text ?? initial) || media.attachment?.status === 'new' || (media.attachment === null) !== !item?.media;
+  const bib = useBibtexSources();
+  const dirty = text !== (item?.text ?? initial) || media.attachment?.status === 'new' || (media.attachment === null) !== !item?.media
+    || bib.staged.length > 0;
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const problems = useMemo(
@@ -52,7 +57,7 @@ function LoadedEditor({ item, initial, onAccept, onDiscard, header }: Omit<Props
     setBusy(true);
     setError(null);
     try {
-      await onAccept(text, media.attachment, item);
+      await onAccept(bib.staged.length ? (await bib.apply(text)).text! : text, media.attachment, item);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -78,8 +83,14 @@ function LoadedEditor({ item, initial, onAccept, onDiscard, header }: Omit<Props
       {/* keys stay here: the graph's canvas and a modal would act on them too */}
       {/* data-unsaved: a modal around it then won't close on Escape or a click outside */}
       <div className="nodrag nowheel nopan cursor-auto select-text" data-unsaved={dirty || undefined} onKeyDown={(event) => event.stopPropagation()}>
-        <MediaAttachmentField attachment={media.attachment} onAttach={attach} onRemove={() => media.setAttachment(null)} />
-        {(error || media.error) && <p className="mb-2 text-sm text-error">{error ?? media.error}</p>}
+        <div className="flex items-start gap-2">
+          <div className="min-w-0 flex-1">
+            <MediaAttachmentField attachment={media.attachment} onAttach={attach} onRemove={() => media.setAttachment(null)} />
+          </div>
+          <BibtexPicker onPick={() => void bib.fromClipboard()} />
+        </div>
+        <StagedSources rows={bib.staged} onChoice={bib.setChoice} onRemove={bib.remove} />
+        {(error || media.error || bib.error) && <p className="mb-2 text-sm text-error">{error ?? media.error ?? bib.error}</p>}
         <ItemTextEditor initial={text} autofocus saveOnBlur={false} onChange={setText} onSave={() => void accept()} onEscape={escape} onPasteFile={attach} />
         {problems.length > 0 && (
           <ul className="mt-2 space-y-0.5 text-xs">

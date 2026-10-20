@@ -11,6 +11,8 @@ import { showNotice, UNSAVED } from '@/dumb/notice';
 import { pastedMedia } from '@/entities/item/media';
 import { MediaAttachmentPreview, MediaPicker } from '@/features/item-media/MediaAttachmentField';
 import { useMediaAttachment, type MediaAttachment } from '@/features/item-media/useMediaAttachment';
+import { BibtexPicker, StagedSources } from '@/features/source-bibtex/BibtexSourcesField';
+import { useBibtexSources } from '@/features/source-bibtex/useBibtexSources';
 
 export interface DraftNoteCardProps {
   /** Whether to show the relation-label/reverse fields - false for a freestanding note with no related note. */
@@ -26,6 +28,7 @@ export function DraftNoteCard({ showRelation, onSave, onCancel }: DraftNoteCardP
   const [label, setLabel] = useState('');
   const [reverse, setReverse] = useState(false);
   const { attachment: image, setAttachment: setImage, attachFile, error: attachmentError } = useMediaAttachment(null);
+  const bib = useBibtexSources();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -41,7 +44,7 @@ export function DraftNoteCard({ showRelation, onSave, onCancel }: DraftNoteCardP
     return () => cancelAnimationFrame(frame);
   }, []);
 
-  const dirty = body !== '' || label !== '' || reverse || image !== null;
+  const dirty = body !== '' || label !== '' || reverse || image !== null || bib.staged.length > 0;
 
   /** Escape only leaves an unedited card; discarding edits is the ✕ button's. */
   const handleEscape = (): void => {
@@ -78,7 +81,7 @@ export function DraftNoteCard({ showRelation, onSave, onCancel }: DraftNoteCardP
     setError(null);
 
     try {
-      await onSave(body, label, reverse, image);
+      await onSave(bib.staged.length ? (await bib.apply(body)).text! : body, label, reverse, image);
     } catch (saveError) {
       setError((saveError as Error).message);
       setSaving(false);
@@ -91,6 +94,7 @@ export function DraftNoteCard({ showRelation, onSave, onCancel }: DraftNoteCardP
         <span className="text-xs font-semibold uppercase tracking-wide text-base-content/60">New note</span>
         <div className="flex items-center gap-1">
           {!image ? <MediaPicker compact onAttach={(file) => void attachFile(file)} /> : null}
+          <BibtexPicker compact onPick={() => void bib.fromClipboard()} />
           <button type="button" className="btn btn-ghost btn-xs rounded-full" onClick={onCancel} title="Discard">
             <X className="size-3.5" />
           </button>
@@ -112,6 +116,12 @@ export function DraftNoteCard({ showRelation, onSave, onCancel }: DraftNoteCardP
         onPaste={(event) => void handlePaste(event)}
         onKeyDown={handleFieldKey}
       />
+
+      {bib.staged.length ? (
+        <div className="nodrag mt-2">
+          <StagedSources compact rows={bib.staged} onChoice={bib.setChoice} onRemove={bib.remove} />
+        </div>
+      ) : null}
 
       {showRelation ? (
         <>
@@ -139,7 +149,7 @@ export function DraftNoteCard({ showRelation, onSave, onCancel }: DraftNoteCardP
         </>
       ) : null}
 
-      {error || attachmentError ? <p className="mt-2 text-xs text-error">{error ?? attachmentError}</p> : null}
+      {error || attachmentError || bib.error ? <p className="mt-2 text-xs text-error">{error ?? attachmentError ?? bib.error}</p> : null}
 
       <div className="nodrag mt-3 flex justify-end gap-2">
         <button type="button" className="btn btn-ghost btn-xs rounded-full" onClick={onCancel}>

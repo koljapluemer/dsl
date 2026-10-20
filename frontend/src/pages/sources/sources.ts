@@ -25,9 +25,6 @@ export type SourceForm = { key: string; entrytype: string; title: string; extra:
 export const saveSource = (file: string | null, form: SourceForm) =>
   file ? api<Source>('PUT', `/api/sources/${enc(file)}`, form) : api<Source>('POST', '/api/sources', form);
 
-/** Creates the sources in BibTeX `text`. */
-export const importBibtex = (text: string) => api<Source[]>('POST', '/api/sources/import', { text });
-
 export const isList = (schema: SourceSchema, field: string) => ['name', 'list'].includes(schema.fields[field].type);
 
 export const blankValue = (schema: SourceSchema, field: string) => (isList(schema, field) ? [''] : '');
@@ -45,17 +42,6 @@ export function toForm(source: Source, schema: SourceSchema): SourceForm {
 }
 
 export const hasValue = (v: string | string[] | undefined) => (Array.isArray(v) ? v.some((x) => x.trim()) : !!v?.trim());
-
-/** The family part of a name: before its first comma, or all of a name without one. */
-const family = (name: string) => name.split(',')[0].trim();
-
-/** The first author's (or editor's) family name, `et al.` when there are more. */
-export function authors(s: Source) {
-  const names = (s.author ?? s.editor ?? []) as string[];
-  return names.length ? family(names[0]) + (names.length > 1 ? ' et al.' : '') : '';
-}
-
-export const year = (s: Source) => String(s.date ?? '').slice(0, 4);
 
 export function matches(s: Source, q: string) {
   const needle = q.trim().toLowerCase();

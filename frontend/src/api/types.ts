@@ -50,10 +50,19 @@ export type FieldType = 'literal' | 'integer' | 'range' | 'name' | 'list' | 'dat
 export type Backlink = { file: string; label: string; heading: string };
 
 export type SourceSchema = { fields: Record<string, { type: FieldType }>; entryTypes: Record<string, string[]> };
-/** a `source` item: `file` is the item's, the rest its fields (names and lists as string[], integers as numbers) */
-export type Source = { file: string; key: string; entrytype: string; title: string; extra?: string; [field: string]: string | number | string[] | undefined };
+/** a source's fields (names and lists as string[], integers as numbers) */
+export type SourceFields = { key: string; entrytype: string; title: string; extra?: string; [field: string]: string | number | string[] | undefined };
+/** a `source` item: `file` is the item's, the rest its fields */
+export type Source = SourceFields & { file: string };
 /** `recent`: the files of the most recently modified sources, newest first; `backlinks`: how many relationships point to a source */
 export type SourceList = { sources: (Source & { backlinks: number })[]; recent: string[] };
+/** how sure it is that an existing source is the one being added */
+export type MatchLevel = 'same' | 'likely' | 'possible';
+export type SourceCandidate = { file: string; key: string; title: string; level: MatchLevel; reasons: string[] };
+/** a source about to be added (as parsed, without `file`) and the existing ones it may be, best first */
+export type SourceMatch = { source: SourceFields; candidates: SourceCandidate[] };
+/** an existing source by file, or a new one */
+export type SourceChoice = { file: string } | { source: SourceFields };
 export type CalendarEntry = { file: string; heading: string; details: string[]; when: When };
 
 /** a pinned note, rendered with the notes up to `depth` relationships away */
