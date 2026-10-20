@@ -66,7 +66,7 @@ Ports of the `../dsl-mobile` apps calendar, queue and zero, of `../floating-note
 
 - **Calendar**: `appointment` and `recurring` items by day or over a From..To range (this week, Sunday to Saturday, by default), toggled at the top; view, day and range are in the URL. A click on an item opens it in a modal; `+` adds one, prefilled with `appointment <that day>`.
 - **Queue**: 3 random items, Next draws others. An item's hide button tags it `no-q`; what it hides is set in code, see [`docs/hiding.md`](docs/hiding.md).
-- **Float**: random items drifting across the window, a new one every few seconds, drawn in batches of 20 (`store.float_draw`); the filter below keeps those containing its text. A card stops under the pointer; a click opens it in a modal, which holds the stage still. The hide button tags it `no-float`, see [`docs/hiding.md`](docs/hiding.md).
+- **Float**: random items drifting across the window, a new one every few seconds, drawn in batches of 20 (`store.float_draw`); the filter below keeps those containing its text. A card stops under the pointer; a click opens it in a modal, which holds the stage still (clicks on its links, buttons and media do their own thing instead). The hide button tags it `no-float`, see [`docs/hiding.md`](docs/hiding.md).
 - **Zero**: a card per item tagged `zero`, in a random order per page load and colored by file name; a click greys it out and moves it last until reload.
 - **Suggest**: a dropdown of the `suggest-` tags (`tags suggest-book`), a random one selected on load, and a random note carrying the selected one; hold "Hold for next" for another.
 
