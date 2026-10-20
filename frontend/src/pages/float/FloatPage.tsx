@@ -71,8 +71,12 @@ export function FloatPage() {
     void qc.invalidateQueries({ queryKey: ['float'] });
   }
 
-  // links in a card work as links rather than opening the editor
-  const open = (e: MouseEvent, card: Card) => { if (!(e.target as Element).closest('a')) setEditing(card); };
+  // links, buttons and media in a card do their own thing rather than opening the editor,
+  // as do clicks in modals portaled from it (React bubbles those here too)
+  const open = (e: MouseEvent, card: Card) => {
+    const target = e.target as Element;
+    if (e.currentTarget.contains(target) && !target.closest('a, button, img, video')) setEditing(card);
+  };
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
