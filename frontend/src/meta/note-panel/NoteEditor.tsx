@@ -2,6 +2,7 @@ import { useMemo, useState, type ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Check, Undo2 } from 'lucide-react';
 import type { Item } from '@/api/types';
+import { isSubmit } from '@/dumb/keys';
 import { showNotice, UNSAVED } from '@/dumb/notice';
 import { analyze } from '@/entities/item/dsl/analyze';
 import { itemQuery } from '@/entities/item/queries';
@@ -20,6 +21,10 @@ type Props = {
   onDiscard: () => void;
   /** the panel's header around the editor's own actions */
   header: (actions: ReactNode) => ReactNode;
+  /** more fields below the text, accepting on Ctrl+Enter and discarding on Escape like it */
+  extra?: ReactNode;
+  /** whether those fields were edited */
+  extraDirty?: boolean;
 };
 
 /**
@@ -35,11 +40,11 @@ export function NoteEditor({ file, ...rest }: Props) {
   return <LoadedEditor item={file ? data! : null} {...rest} />;
 }
 
-function LoadedEditor({ item, initial, onAccept, onDiscard, header }: Omit<Props, 'file'> & { item: Item | null }) {
+function LoadedEditor({ item, initial, onAccept, onDiscard, header, extra, extraDirty = false }: Omit<Props, 'file'> & { item: Item | null }) {
   const schema = useSchema();
   const [text, setText] = useState(item?.text ?? initial);
   const media = useMediaAttachment(item?.media ?? null);
-  const dirty = text !== (item?.text ?? initial) || media.attachment?.status === 'new' || (media.attachment === null) !== !item?.media;
+  const dirty = extraDirty || text !== (item?.text ?? initial) || media.attachment?.status === 'new' || (media.attachment === null) !== !item?.media;
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const problems = useMemo(
@@ -89,6 +94,14 @@ function LoadedEditor({ item, initial, onAccept, onDiscard, header }: Omit<Props
               </li>
             ))}
           </ul>
+        )}
+        {extra && (
+          <div onKeyDown={(event) => {
+            if (isSubmit(event)) { event.preventDefault(); void accept(); }
+            else if (event.key === 'Escape') escape();
+          }}>
+            {extra}
+          </div>
         )}
       </div>
     </>

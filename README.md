@@ -26,7 +26,7 @@ A note shows rendered: body and `extra` content as markdown (marked + DOMPurify)
 
 ## Editing
 
-Everywhere a note is shown it's the same panel (`meta/note-panel/NotePanel.tsx`): rendered, with Edit, delete and as the page needs hide and close. Edit swaps in an editor for the full text and the attachment; nothing is written until Accept (✓, Ctrl+Enter or Ctrl+S), Discard (↶) drops it; Escape does too while nothing was edited (see Keyboard). New notes start in the editor. The Calendar, Projects and Float show it in a modal; `/edit/<file>` (and `/new`) on its own page, with the relationships below.
+Everywhere a note is shown it's the same panel (`meta/note-panel/NotePanel.tsx`): rendered, with Edit, delete and as the page needs hide and close. Edit swaps in an editor for the full text and the attachment; nothing is written until Accept (✓, Ctrl+Enter or Ctrl+S), Discard (↶) drops it; Escape does too while nothing was edited (see Keyboard). New notes start in the editor; the Graph's new-note card is that editor too, with the relation label and direction below. The Calendar, Projects and Float show it in a modal; `/edit/<file>` (and `/new`) on its own page, with the relationships below.
 
 The editor is [CodeMirror 6](https://codemirror.net). A single pass over the text (`analyze` in `frontend/src/entities/item/dsl/analyze.ts`, mirroring `dsl.py`; tested against `spec/examples`) provides the highlighting (keywords, options and values by type, relationships, `data` and `extra` blocks, unknown keyword lines muted; hover for meanings) and inline lint for the errors and warnings of `spec/language.md`, also listed below it.
 
