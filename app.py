@@ -261,13 +261,35 @@ def update_source(name):
     return jsonify(sources.update(name, request.get_json(silent=True)))
 
 
-@app.post("/api/sources/import")
-def import_bibtex():
-    try:
-        parsed = bibtex_import.parse((request.get_json(silent=True) or {}).get("text", ""))
-    except ValueError as e:
-        raise fields.ValidationError(str(e)) from None
-    return jsonify(sources.import_bibtex(parsed)), 201
+@app.post("/api/sources/match")
+def match_sources():
+    """`{text}` BibTeX, or `{source}` a form's values (nothing while they're
+    invalid): each source with the existing ones it may be."""
+    body = _json()
+    if "source" in body:
+        try:
+            # the key isn't compared, so a half-typed one doesn't matter
+            entries = [sources._normalise({**body["source"], "key": "x"})]
+        except fields.ValidationError:
+            return jsonify([])
+    else:
+        try:
+            entries = bibtex_import.parse(str(body.get("text", "")))
+        except ValueError as e:
+            raise fields.ValidationError(str(e)) from None
+    return jsonify(sources.match(entries))
+
+
+@app.post("/api/sources/resolve")
+def resolve_sources():
+    """`{entries, text?, label?}`: the entries' sources, existing or created
+    (see sources.resolve), and `text` with a relationship to each."""
+    body = _json()
+    resolved = sources.resolve(body.get("entries"))
+    out: dict = {"sources": resolved}
+    if isinstance(body.get("text"), str):
+        out["text"] = sources.link(body["text"], [s["file"] for s in resolved], str(body.get("label") or ""))
+    return jsonify(out), 201
 
 
 def _json() -> dict:

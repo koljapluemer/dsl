@@ -100,10 +100,47 @@ def test_key_change_keeps_file_and_conflicts(data_dir):
         sources.update("nope.txt", {"key": "d"})
 
 
-def test_import_renames_taken_keys(data_dir):
-    sources.create({"key": "x"})
-    created = sources.import_bibtex([{"key": "x", "entrytype": "misc"}, {"key": "x", "entrytype": "misc"}])
-    assert [s["key"] for s in created] == ["x-2", "x-3"]
+def test_resolve_renames_taken_keys_and_keeps_existing(data_dir):
+    x = sources.create({"key": "x"})
+    resolved = sources.resolve([{"source": {"key": "x", "entrytype": "misc"}}, {"file": x["file"]}, {"source": {"key": "x"}}])
+    assert [s["key"] for s in resolved] == ["x-2", "x", "x-3"]
+    assert resolved[1] == x
+    with pytest.raises(store.NotFound):
+        sources.resolve([{"source": {"key": "y"}}, {"file": "nope.txt"}])
+    assert len(sources.list_sources()) == 3  # nothing created when an entry fails
+    with pytest.raises(ValidationError):
+        sources.resolve("x")
+
+
+def test_match(data_dir):
+    s = sources.create({"key": "geb", "title": "Gödel, Escher, Bach: An Eternal Golden Braid", "author": ["Hofstadter, Douglas"]})
+    [m] = sources.match([{"key": "h79", "title": "Godel, Escher, Bach", "author": ["Hofstadter, D."]}])
+    assert m["source"]["key"] == "h79"
+    assert [(c["file"], c["level"]) for c in m["candidates"]] == [(s["file"], "likely")]
+
+
+def test_link(data_dir):
+    text = sources.link("N\n-> source @a\n", ["a.txt", "b.txt", "b.txt"], "source")
+    assert text == "N\n-> source @a\n-> source @b\n"
+    assert sources.link("N", ["a.txt"], "") == "N\n-> @a\n"
+
+
+def test_endpoints(data_dir):
+    import app
+    client = app.app.test_client()
+    bib = "@book{h, title={Gödel, Escher, Bach}, author={Hofstadter, Douglas}, year=1979, isbn={0-465-02656-7}}"
+    [m] = client.post("/api/sources/match", json={"text": bib}).get_json()
+    assert m["candidates"] == []
+    r = client.post("/api/sources/resolve", json={"entries": [{"source": m["source"]}], "text": "N\n", "label": "source"})
+    assert r.status_code == 201
+    [created] = r.get_json()["sources"]
+    assert r.get_json()["text"] == f"N\n-> source @{created['file'][:-4]}\n"
+    [m] = client.post("/api/sources/match", json={"text": bib.replace("{h,", "{other,")}).get_json()
+    assert [(c["file"], c["level"]) for c in m["candidates"]] == [(created["file"], "same")]
+    assert client.post("/api/sources/match", json={"source": {"title": "Gödel, Escher, Bach", "date": "19"}}).get_json() == []
+    [m] = client.post("/api/sources/match", json={"source": {"key": "", "title": "Gödel, Escher, Bach"}}).get_json()
+    assert m["candidates"][0]["file"] == created["file"]
+    assert client.post("/api/sources/match", json={"text": "nothing"}).status_code == 400
 
 
 def test_backlink_counts(data_dir):

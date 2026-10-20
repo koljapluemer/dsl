@@ -11,6 +11,8 @@ from dataclasses import dataclass, field
 import yaml
 
 import dsl
+import questions
+import source_match
 import store
 from fields import ENTRY_TYPES, FIELDS, ValidationError, join_name, normalise
 
@@ -268,12 +270,38 @@ def unique_key(key: str, taken: set[str]) -> str:
     return out
 
 
-def import_bibtex(parsed: list[dict]) -> list[dict]:
-    """Creates the parsed sources, renaming keys that already exist."""
-    taken = {s["key"] for s in list_sources()}
-    created = []
-    for s in parsed:
-        s["key"] = unique_key(s["key"], taken)
-        taken.add(s["key"])
-        created.append(create(s))
-    return created
+def match(entries: list[dict]) -> list[dict]:
+    """Each source in `entries` as `{source, candidates}`: the existing sources it may be."""
+    existing = list_sources()
+    return [{"source": e, "candidates": source_match.match(e, existing)} for e in entries]
+
+
+def resolve(entries) -> list[dict]:
+    """Each entry's source, in order: `{file}` an existing one, `{source}` a new
+    one, created with its key renamed when that's taken."""
+    if not isinstance(entries, list) or not all(isinstance(e, dict) for e in entries):
+        raise ValidationError("entries: expected list of objects")
+    known = _sources()
+    for e in entries:
+        if e.get("file") and e["file"] not in known:
+            raise store.NotFound(e["file"])
+    taken = {s["key"] for s in known.values()}
+    out = []
+    for e in entries:
+        if e.get("file"):
+            out.append(known[e["file"]])
+            continue
+        source = _normalise(e.get("source"))
+        source["key"] = unique_key(source["key"], taken)
+        taken.add(source["key"])
+        out.append(create(source))
+    return out
+
+
+def link(text: str, files: list[str], label: str) -> str:
+    """`text` with a relationship `label` to each of `files` it doesn't have yet."""
+    for f in files:
+        target = f.removesuffix(".txt")
+        if not any((r.label or "") == label and r.target == target for r in dsl.parse(store.SCHEMA, text).relations):
+            text = questions.add_relation(text, label, target)
+    return text

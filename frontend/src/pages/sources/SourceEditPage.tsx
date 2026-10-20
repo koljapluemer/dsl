@@ -1,15 +1,20 @@
 import { useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useNavigate, useParams, useRouter } from '@tanstack/react-router';
+import { Link, useNavigate, useParams, useRouter } from '@tanstack/react-router';
 import { ArrowLeft, Trash2 } from 'lucide-react';
 import type { Source, SourceSchema } from '@/api/types';
 import { showError } from '@/dumb/errorBanner';
 import { isSubmit } from '@/dumb/keys';
+import { useDebounced } from '@/dumb/useDebounced';
 import { itemsChanged } from '@/entities/item/mutations';
 import { itemQuery } from '@/entities/item/queries';
+import { matchSource } from '@/entities/source/match';
 import { useDeleteItem } from '@/features/item-delete/useDeleteItem';
 import { Backlinks } from '@/features/item-relate/Backlinks';
 import { EMPTY_FORM, blankValue, hasValue, isList, saveSource, sourceSchemaQuery, sourcesQuery, toForm, type SourceForm } from './sources';
+
+/** The fields a new source is compared on to find existing ones it may be. */
+const COMPARED = ['title', 'author', 'editor', 'date', 'doi', 'isbn', 'eprint', 'eprinttype', 'url'];
 
 const DATE_PATTERN = String.raw`-?\d{4}(-\d{2}(-\d{2})?)?(/(-?\d{4}(-\d{2}(-\d{2})?)?)?)?`;
 
@@ -93,6 +98,7 @@ function Editor({ schema, source, onCreated }: { schema: SourceSchema; source: S
         <button className="btn btn-square" title="back" onClick={back}><ArrowLeft size={20} /></button>
         {savedFile && <button className="btn btn-square btn-error btn-outline" title="delete" onClick={del}><Trash2 size={20} /></button>}
       </div>
+      {!source && <Similar form={form} self={savedFile} />}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-2">
         <Field label="key">
           <input className="input w-full" value={form.key} placeholder="from the title" onChange={(e) => set('key', e.target.value)} />
@@ -120,6 +126,22 @@ function Editor({ schema, source, onCreated }: { schema: SourceSchema; source: S
       </select>
       {savedFile && <div className="mt-6"><Backlinks file={savedFile} deleteItem={remove} /></div>}
     </div>
+  );
+}
+
+/** Links to the existing sources the new one in `form` may be (other than itself, once saved). */
+function Similar({ form, self }: { form: SourceForm; self: string | null }) {
+  const probe = useDebounced(JSON.stringify(Object.fromEntries(COMPARED.filter((f) => hasValue(form[f])).map((f) => [f, form[f]]))), 400);
+  const { data } = useQuery({ queryKey: ['source-match', probe], queryFn: () => matchSource(JSON.parse(probe)), enabled: probe !== '{}' });
+  const found = probe === '{}' ? [] : (data?.[0]?.candidates.filter((c) => c.file !== self) ?? []);
+  if (!found.length) return null;
+  return (
+    <p className="mb-2 text-sm text-warning">
+      Similar:{' '}
+      {found.map((c, i) => (
+        <span key={c.file}>{i > 0 && ' · '}<Link to="/sources/edit/$file" params={{ file: c.file }} className="link">{c.key} — {c.title}</Link></span>
+      ))}
+    </p>
   );
 }
 

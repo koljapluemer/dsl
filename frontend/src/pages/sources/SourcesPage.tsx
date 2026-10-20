@@ -5,11 +5,13 @@ import { ChevronDown, ChevronRight, ClipboardPaste, CodeXml, Copy, Link as LinkI
 import type { Source } from '@/api/types';
 import { showError } from '@/dumb/errorBanner';
 import { blurOnEscape, useSlashFocus } from '@/dumb/keys';
-import { itemsChanged } from '@/entities/item/mutations';
 import { itemQuery } from '@/entities/item/queries';
 import { useDeleteItem } from '@/features/item-delete/useDeleteItem';
 import { Backlinks } from '@/features/item-relate/Backlinks';
-import { authors, importBibtex, matches, sourcesQuery, year } from './sources';
+import { StagedSources } from '@/features/source-bibtex/BibtexSourcesField';
+import { useBibtexSources, type StagedSource } from '@/features/source-bibtex/useBibtexSources';
+import { authors, year } from '@/entities/source/format';
+import { matches, sourcesQuery } from './sources';
 
 const RECENT_BG = ['bg-yellow-400/50!', 'bg-yellow-400/30!', 'bg-yellow-400/15!'];
 
@@ -33,12 +35,19 @@ export function SourcesPage() {
   const [open, setOpen] = useState<ReadonlySet<string>>(new Set());
   const toggle = (file: string) => setOpen((o) => { const n = new Set(o); if (!n.delete(file)) n.add(file); return n; });
   const edit = (file: string) => navigate({ to: '/sources/edit/$file', params: { file } });
+  const bib = useBibtexSources();
 
+  /** Imports right away unless an entry may already exist; then the choices are shown first. */
   async function fromClipboard() {
+    const rows = await bib.fromClipboard();
+    if (rows && rows.every((r) => !r.candidates.length)) await importStaged(rows);
+  }
+
+  async function importStaged(rows?: StagedSource[]) {
     try {
-      const created = await importBibtex(await navigator.clipboard.readText());
-      await itemsChanged(qc);
-      if (created.length === 1) void edit(created[0].file);
+      const { sources } = await bib.apply(undefined, rows);
+      bib.clear();
+      if (sources.length === 1) void edit(sources[0].file);
     } catch (e) { showError(e); }
   }
 
@@ -55,6 +64,16 @@ export function SourcesPage() {
         <Link to="/sources/new" className="btn"><Plus size={20} />New</Link>
         <button className="btn" title="add from BibTeX in the clipboard" onClick={fromClipboard}><ClipboardPaste size={20} />Import BibTeX</button>
       </div>
+      {bib.error && <p className="mb-2 text-sm text-error">{bib.error}</p>}
+      {bib.staged.length > 0 && (
+        <div className="mb-4">
+          <StagedSources rows={bib.staged} onChoice={bib.setChoice} onRemove={bib.remove} />
+          <div className="flex gap-1">
+            <button className="btn btn-primary btn-sm" autoFocus onClick={() => void importStaged()}>Import</button>
+            <button className="btn btn-sm" onClick={bib.clear}>Cancel</button>
+          </div>
+        </div>
+      )}
       <input ref={filter} onKeyDown={blurOnEscape} className="input w-full mb-4" type="search" value={q} placeholder="Filter" autoFocus
              onChange={(e) => navigate({ to: '/sources', search: { q: e.target.value || undefined }, replace: true })} />
       <table className="table table-xs table-zebra">

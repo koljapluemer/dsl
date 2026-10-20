@@ -15,6 +15,10 @@ the note that holds the line, so a backlink is added to, or detached from, the
 | `GET /api/items/<name>/backlinks`     | `[{file, label, heading}]`, one per line in another note pointing to `<name>` |
 | `POST /api/items/<name>/backlinks`    | `{label, source}` adds a line to the existing note `source`; `{label, text}` creates a note with `text` and the line. Returns the backlinks |
 
+`POST /api/sources/resolve` with `text` adds `-> source @<file>` lines to that
+text for sources pasted as BibTeX in a note's editor (`sources.link`, skipping
+ones already there); the note is then saved as usual.
+
 Backlinks are found through the index's `incoming` map (`store._Index`), then
 each linking note is parsed again: the index stores an unlabeled relationship
 as `related` (what the graph shows), but `detach` needs the label as written,
