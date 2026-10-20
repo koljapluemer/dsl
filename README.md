@@ -18,7 +18,7 @@ Vite + React + TypeScript in `frontend/`, with TanStack Router (the Notes tab's 
 
 ## Notes
 
-The Notes tab is a search on the left and the notes opened from it on the right, in a grid filling the pane: one note takes it all, two sit side by side, more add rows (3–4 in 2 columns, 5–9 in 3, at most 2 on a narrower pane; the columns follow from the number of notes and the pane's width in CSS, `pages/notes/notes.css`). Each scrolls on its own; a note's ✕ closes it. On a phone the search and the notes take turns, one column of notes.
+The Notes tab is a search on the left (with the semantic toggle and orphan filter, shared with the Graph's sidebar) and the notes opened from it on the right, in a grid filling the pane: one note takes it all, two sit side by side, more add rows (3–4 in 2 columns, 5–9 in 3, at most 2 on a narrower pane; the columns follow from the number of notes and the pane's width in CSS, `pages/notes/notes.css`). Each scrolls on its own; a note's ✕ closes it. On a phone the search and the notes take turns, one column of notes.
 
 The Tasks tab shows the notes needing attention, then the other notes with `tasks`, each in its own editor.
 
@@ -50,7 +50,7 @@ New files are named `<slug of the first line>-<6 hex>.txt`; the name doesn't cha
 
 ## Semantic search
 
-The `semantic` toggle under the Notes search ranks the notes by similarity to the query instead of matching its text, as `../scripts/notes-semantic-search` did (`semantic.py`). Each note's body (not its keyword lines or `extra`) is embedded by `qwen3-embedding:0.6b` on the Ollama server below; the query gets the model's search instruction. Embeddings are cached by body hash in `~/.cache/dsl-crud/` and computed in the background on the first semantic search, so until that finishes only the notes embedded so far are ranked. Without the server or model it falls back to the query syntax and offers to download the model.
+The `semantic` toggle under the Notes and Graph searches ranks the notes by similarity to the query instead of matching its text, as `../scripts/notes-semantic-search` did (`semantic.py`). Each note's body (not its keyword lines or `extra`) is embedded by `qwen3-embedding:0.6b` on the Ollama server below; the query gets the model's search instruction. Embeddings are cached by body hash in `~/.cache/dsl-crud/` and computed in the background on the first semantic search, so until that finishes only the notes embedded so far are ranked. Without the server or model it falls back to the query syntax and offers to download the model.
 
 ## Questions
 
@@ -111,7 +111,7 @@ Settings → "bibtex export" takes any number of `.bib` paths (a directory gets 
 A port of `../dsl-graph`: notes as cards on a [React Flow](https://reactflow.dev) canvas, laid out by [ELK](https://eclipse.dev/elk/), their relationships as labeled edges (`graph.py` on the server, `frontend/src/pages/graph`). Only notes without errors and not hidden from it ([`docs/hiding.md`](docs/hiding.md)) are part of it; a relationship to anything else is left out until it's fixed.
 
 - **Pins**: a pinned note shows the notes up to its depth (the chevrons beside the pin) relationships away, in either direction. Picking a search result pins it at depth 2. The badge under a card counts its related notes not on the canvas; a click shows them. Pins are kept under `graph` in the config file.
-- **Sidebar**: the search over the graph's notes (the newest without a query), optionally only orphans or connected notes.
+- **Sidebar**: the same search sidebar as the Notes tab (`meta/note-search-sidebar`), over the graph's notes (the newest without a query): optionally ranked semantically, optionally only orphans or connected notes.
 - **Canvas**: right-click opens a quick search at the cursor; each pick pins a note, and it stays open for several picks. Double-click adds a note. Drag from a card's edge dot onto another card to relate them, or onto empty canvas for a new related note. Drag a card by its grip to move it; it keeps its spot while it's on the canvas.
 - **Cards**: the note panel, with the graph's own rendering: edit (text with errors isn't saved), hide (tags it `no-graph`) or delete, both with undo. A click on an edge label edits or deletes its relationships (with undo).
 - The toolbar: add note, unpin all, pin a random orphan, open a random note or search result, pin all search results (the first 100, without neighbors), zoom and fit.

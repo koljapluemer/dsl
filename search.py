@@ -451,9 +451,10 @@ def search(q: str = "", scope: str = "all", orphan: str = "any", page: int = 0, 
             "page": page, "pageSize": limit, "semantic": status}
 
 
-def filenames(q: str, scope: str = "all", orphan: str = "any", cap: int = PIN_ALL_CAP) -> dict:
+def filenames(q: str, scope: str = "all", orphan: str = "any", cap: int = PIN_ALL_CAP,
+              semantic_search: bool = False) -> dict:
     """The first `cap` matches, in `search`'s order, and how many there are."""
-    _, hits, _ = _matches(q, scope, orphan, True, False, ())
+    _, hits, _ = _matches(q, scope, orphan, True, semantic_search, ())
     return {"filenames": [n for n, _ in hits[: max(cap, 0)]], "total": len(hits)}
 
 

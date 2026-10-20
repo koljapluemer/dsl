@@ -126,7 +126,8 @@ def search():
 def search_filenames():
     args = request.args
     return jsonify(note_search.filenames(
-        args.get("q", ""), args.get("scope", "all"), args.get("orphan", "any"), args.get("cap", note_search.PIN_ALL_CAP, type=int)))
+        args.get("q", ""), args.get("scope", "all"), args.get("orphan", "any"), args.get("cap", note_search.PIN_ALL_CAP, type=int),
+        args.get("semantic") == "1"))
 
 
 @app.get("/api/questions/next")
