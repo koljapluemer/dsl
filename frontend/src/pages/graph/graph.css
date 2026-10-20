@@ -6,11 +6,6 @@
   width: 370px;
 }
 
-/* Lets the draft textarea grow with its content instead of scrolling internally. */
-.note-textarea {
-  field-sizing: content;
-}
-
 /* React Flow sets `user-select: none` (and a pointer cursor) on every node.
    Chromium doesn't let a contenteditable under that be focused or edited, so
    CodeMirror's content element needs selection back explicitly. */

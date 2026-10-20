@@ -36,8 +36,9 @@ export function CodeMirrorHost({ initial, extensions, autofocus = true, onChange
         ],
       }),
     });
-    if (autofocus) view.focus();
-    return () => view.destroy();
+    // a frame late: mounted mid-drag (a graph draft dropped on the canvas), React Flow is still settling focus
+    const frame = autofocus ? requestAnimationFrame(() => view.focus()) : 0;
+    return () => { cancelAnimationFrame(frame); view.destroy(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- mounted once, see `initial`
   }, []);
 
