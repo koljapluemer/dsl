@@ -96,7 +96,8 @@ function LoadedEditor({ item, initial, onAccept, onDiscard, header, extra, extra
         </div>
         <StagedSources rows={bib.staged} onChoice={bib.setChoice} onRemove={bib.remove} />
         {(error || media.error || bib.error) && <p className="mb-2 text-sm text-error">{error ?? media.error ?? bib.error}</p>}
-        <ItemTextEditor initial={text} autofocus saveOnBlur={false} onChange={setText} onSave={() => void accept()} onEscape={escape} onPasteFile={attach} />
+        <ItemTextEditor initial={text} autofocus saveOnBlur={false} onChange={setText} onSave={() => void accept()} onEscape={escape} onPasteFile={attach}
+                        currentFile={item?.file} />
         {problems.length > 0 && (
           <ul className="mt-2 space-y-0.5 text-xs">
             {problems.map((problem, index) => (

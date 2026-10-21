@@ -29,25 +29,32 @@ class _View:
     between them, from one locked look at the index."""
 
     def __init__(self, ix):
+        self.entries = dict(ix.entries)
         self.notes = {n: e for n, e in ix.entries.items() if e.valid and not views.GRAPH_HIDING.hides(e.primary, e.tags)}
-        self._incoming = dict(ix.incoming)
+        self._rels = {name: store.effective_graph_rels(entry) for name, entry in self.notes.items()}
+        self._incoming: dict[str, list[tuple[str, str, bool]]] = {}
+        for source, rels in self._rels.items():
+            for label, target, inline in rels:
+                self._incoming.setdefault(target, []).append((source, label, inline))
 
-    def outgoing(self, name: str) -> list[tuple[str, str]]:
-        """(label, target)s, by label then target."""
-        return sorted(((l, t) for l, t in self.notes[name].rels if t in self.notes), key=lambda r: (r[0].casefold(), r[1]))
+    def outgoing(self, name: str) -> list[tuple[str, str, bool]]:
+        """(label, target, inline)s, by kind, label, then target."""
+        return sorted(((l, t, i) for l, t, i in self._rels[name] if t in self.notes),
+                      key=lambda r: (r[2], r[0].casefold(), r[1]))
 
-    def incoming(self, name: str) -> list[tuple[str, str]]:
-        """(source, label)s, by label then source."""
-        return sorted(((s, l) for s, l in self._incoming.get(name, ()) if s in self.notes), key=lambda r: (r[1].casefold(), r[0]))
+    def incoming(self, name: str) -> list[tuple[str, str, bool]]:
+        """(source, label, inline)s, by kind, label, then source."""
+        return sorted(((s, l, i) for s, l, i in self._incoming.get(name, ()) if s in self.notes),
+                      key=lambda r: (r[2], r[1].casefold(), r[0]))
 
     def degree(self, name: str) -> int:
         """Relationships in and out."""
-        return (sum(t in self.notes for _, t in self.notes[name].rels)
-                + sum(s in self.notes for s, _ in self._incoming.get(name, ())))
+        return (sum(t in self.notes for _, t, _ in self._rels[name])
+                + sum(s in self.notes for s, _, _ in self._incoming.get(name, ())))
 
     def neighbors(self, name: str) -> set[str]:
-        return ({t for _, t in self.notes[name].rels if t in self.notes}
-                | {s for s, _ in self._incoming.get(name, ()) if s in self.notes})
+        return ({t for _, t, _ in self._rels[name] if t in self.notes}
+                | {s for s, _, _ in self._incoming.get(name, ()) if s in self.notes})
 
 
 def _view(max_age: float = 0) -> _View:
@@ -86,15 +93,15 @@ def build(pins: list[dict]) -> dict:
 
 
 def _expand(view: _View, b: _Build, name: str, depth: int, max_depth: int) -> None:
-    out = [(name, t, l, "outgoing") for l, t in view.outgoing(name)]
-    inc = [(s, name, l, "incoming") for s, l in view.incoming(name)]
+    out = [(name, t, l, inline, "outgoing") for l, t, inline in view.outgoing(name)]
+    inc = [(s, name, l, inline, "incoming") for s, l, inline in view.incoming(name)]
     for relations in (out, inc):
         limit = MAX_DIRECT_RELATIONS if depth == 0 else MAX_SECONDARY_RELATIONS
         b.skipped_relations += max(0, len(relations) - limit)
-        for source, target, label, direction in relations[:limit]:
-            edge_id = f"{source}__{target}__{label}"
+        for source, target, label, inline, direction in relations[:limit]:
+            edge_id = f"{source}__{target}__{'inline' if inline else label}"
             b.edges.setdefault(edge_id, {"id": edge_id, "source": source, "target": target, "label": label,
-                                         "direction": direction, "depth": depth + 1})
+                                         "inline": inline, "direction": direction, "depth": depth + 1})
             neighbor = target if source == name else source
             # a note at the depth budget is still expanded, for its edges to notes already shown
             if depth + 1 <= max_depth and _register(b, neighbor, depth + 1):
@@ -139,6 +146,8 @@ def _node(view: _View, name: str, depth: int, shown: dict) -> dict:
         "extraContent": e.extra,
         "sectionLines": list(e.section_lines),
         "dataText": e.data_text,
+        "refs": {target.removesuffix(".txt"): target_entry.heading if (target_entry := view.entries.get(target)) else None
+                 for _, target, _ in view._rels[name]},
         "depth": depth,
         "degree": view.degree(name),
         # what pinning it at depth 1 would bring in

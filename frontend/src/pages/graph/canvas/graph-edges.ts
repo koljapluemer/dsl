@@ -38,7 +38,7 @@ export function mergeRelationsIntoEdges(relations: GraphEdgePayload[], positions
 }
 
 function isReciprocalPair(a: GraphEdgePayload, b: GraphEdgePayload): boolean {
-  return a.source !== a.target && a.source === b.target && a.target === b.source;
+  return a.inline === b.inline && a.source !== a.target && a.source === b.target && a.target === b.source;
 }
 
 function edgeVisualWeight(edge: GraphEdgePayload): { strokeWidth: number; opacity: number } {
@@ -49,6 +49,7 @@ function edgeVisualWeight(edge: GraphEdgePayload): { strokeWidth: number; opacit
 }
 
 function buildDirectedEdge(edge: GraphEdgePayload): Edge {
+  const weight = edgeVisualWeight(edge);
   return {
     id: edge.id,
     source: edge.source,
@@ -59,7 +60,7 @@ function buildDirectedEdge(edge: GraphEdgePayload): Edge {
       width: 16,
       height: 16,
     },
-    style: edgeVisualWeight(edge),
+    style: { ...weight, ...(edge.inline ? { strokeDasharray: '5 4' } : {}) },
     data: { relations: [edge] },
   };
 }
@@ -70,6 +71,7 @@ function buildReciprocalEdge(a: GraphEdgePayload, b: GraphEdgePayload, positions
   const aGoesFirst = posA.x - posB.x || posA.y - posB.y;
   const [first, second] = aGoesFirst <= 0 ? [a, b] : [b, a];
 
+  const weight = edgeVisualWeight(first.depth <= second.depth ? first : second);
   return {
     id: `${first.id}__reciprocal__${second.id}`,
     source: first.source,
@@ -85,7 +87,7 @@ function buildReciprocalEdge(a: GraphEdgePayload, b: GraphEdgePayload, positions
       width: 16,
       height: 16,
     },
-    style: edgeVisualWeight(first.depth <= second.depth ? first : second),
+    style: { ...weight, ...(first.inline ? { strokeDasharray: '5 4' } : {}) },
     data: { relations: [first, second] },
   };
 }

@@ -272,6 +272,14 @@ export function useGraphInteraction({
     [qc, showUndo],
   );
 
+  const handleOpenInlineRelation = useCallback(
+    (relation: GraphEdgePayload) => {
+      markInteraction(relation.source);
+      setInteraction({ type: 'edit', filename: relation.source });
+    },
+    [markInteraction, setInteraction],
+  );
+
   const handlePinNote = useCallback(
     (filename: string) => {
       onPinNote(filename, MANUAL_PIN_DEPTH);
@@ -322,6 +330,7 @@ export function useGraphInteraction({
       onCancelInteraction: cancelInteraction,
       onConfirmConnection: handleConfirmConnection,
       onDeleteRelation: handleDeleteRelation,
+      onOpenInlineRelation: handleOpenInlineRelation,
       onPinNote: handlePinNote,
       onUnpinNote,
       onChangeDepth: onSetPinDepth,
@@ -336,6 +345,7 @@ export function useGraphInteraction({
       cancelInteraction,
       handleConfirmConnection,
       handleDeleteRelation,
+      handleOpenInlineRelation,
       handlePinNote,
       onUnpinNote,
       onSetPinDepth,

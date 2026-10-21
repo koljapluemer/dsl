@@ -76,7 +76,7 @@ function NoteCardInner({
                onDelete={async () => { await clearMedia(note.filename); await notesChanged(qc); }} />
       ) : null}
 
-      {note.body.trim() ? <NoteMarkdown markdown={note.body} /> : <p className="text-sm italic text-base-content/50">Empty note</p>}
+      {note.body.trim() ? <NoteMarkdown markdown={note.body} refs={note.refs} onRef={onPin} /> : <p className="text-sm italic text-base-content/50">Empty note</p>}
 
       {note.sectionLines.length > 0 || note.dataText !== null ? (
         <div className="mt-3 space-y-1 font-mono text-xs break-words whitespace-pre-wrap text-base-content/60">
@@ -89,7 +89,7 @@ function NoteCardInner({
 
       {hasExtra ? (
         <div className="mt-3 border-t border-base-300 pt-3 text-base-content/80">
-          <NoteMarkdown markdown={note.extraContent} small />
+          <NoteMarkdown markdown={note.extraContent} refs={note.refs} onRef={onPin} small />
         </div>
       ) : null}
     </>

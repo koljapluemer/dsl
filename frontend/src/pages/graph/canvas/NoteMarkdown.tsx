@@ -12,6 +12,14 @@ const PROSE_CLASS = [
 ].join(' ');
 
 /** A note's Markdown (body or extra), with links opening in a new tab. `small` sets it a size down. */
-export function NoteMarkdown({ markdown: source, small = false }: { markdown: string; small?: boolean }) {
-  return <div className={small ? `${PROSE_CLASS} text-xs!` : PROSE_CLASS} dangerouslySetInnerHTML={{ __html: markdown(source) }} />;
+export function NoteMarkdown({ markdown: source, refs, onRef, small = false }: {
+  markdown: string; refs: Record<string, string | null>; onRef: (file: string) => void; small?: boolean;
+}) {
+  return <div className={small ? `${PROSE_CLASS} text-xs!` : PROSE_CLASS} dangerouslySetInnerHTML={{ __html: markdown(source, refs) }} onClick={(event) => {
+    const link = (event.target as Element).closest<HTMLAnchorElement>('a[data-note]');
+    if (!link) return;
+    event.preventDefault();
+    event.stopPropagation();
+    onRef(`${link.dataset.note}.txt`);
+  }} />;
 }

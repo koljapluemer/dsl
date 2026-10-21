@@ -47,7 +47,7 @@ export type Projects = { projects: Project[]; orphans: ProjectIssue[] };
 export type FieldType = 'literal' | 'integer' | 'range' | 'name' | 'list' | 'date' | 'uri' | 'verbatim';
 /** `entryTypes`: the fields each entry type shows by default */
 /** a relationship line in note `file` pointing to some note; `label` as written, '' for none */
-export type Backlink = { file: string; label: string; heading: string };
+export type Backlink = { file: string; label: string; heading: string; inline: boolean };
 
 export type SourceSchema = { fields: Record<string, { type: FieldType }>; entryTypes: Record<string, string[]> };
 /** a source's fields (names and lists as string[], integers as numbers) */
@@ -69,13 +69,14 @@ export type CalendarEntry = { file: string; heading: string; details: string[]; 
 export type PinSpec = { filename: string; depth: number };
 export type GraphNodePayload = {
   filename: string; body: string; image: string | null; extraContent: string; sectionLines: string[]; dataText: string | null;
+  refs: Record<string, string | null>;
   /** hops from the nearest pin that discovered this node */
   depth: number;
   degree: number;
   /** related notes not on the canvas: what pinning it at depth 1 would bring in */
   hiddenNeighbors: number;
 };
-export type GraphEdgePayload = { id: string; source: string; target: string; label: string; depth: number; direction: 'incoming' | 'outgoing' };
+export type GraphEdgePayload = { id: string; source: string; target: string; label: string; inline: boolean; depth: number; direction: 'incoming' | 'outgoing' };
 export type NoteGraph = { nodes: GraphNodePayload[]; edges: GraphEdgePayload[]; truncated: boolean; warnings: string[] };
 /** a span of text, as UTF-16 offsets into the string it refers to */
 export type MatchRange = { start: number; length: number };
@@ -85,7 +86,7 @@ export type SearchExcerpt = { text: string; match: MatchRange };
  * when it isn't visible there. `problem`: whether the note has errors or only warnings.
  */
 export type SearchResult = {
-  filename: string; preview: string; previewMatch: MatchRange | null; excerpt: SearchExcerpt | null; problem: 'error' | 'warning' | null;
+  filename: string; heading: string; preview: string; previewMatch: MatchRange | null; excerpt: SearchExcerpt | null; problem: 'error' | 'warning' | null;
 };
 /** narrows search results by whether a note has any relationship, incoming or outgoing */
 export type OrphanFilter = 'any' | 'orphan' | 'connected';

@@ -1,9 +1,10 @@
 /** A JSON request to the Flask API; throws the server's `error` message on failure. */
-export async function api<T = unknown>(method: string, url: string, body?: unknown): Promise<T> {
+export async function api<T = unknown>(method: string, url: string, body?: unknown, signal?: AbortSignal): Promise<T> {
   const res = await fetch(url, {
     method,
     headers: { 'Content-Type': 'application/json' },
     body: body === undefined ? undefined : JSON.stringify(body),
+    signal,
   });
   if (res.status === 204) return null as T;
   const data = await res.json();

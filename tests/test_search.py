@@ -70,6 +70,15 @@ def test_exact_regex_and_orphans():
     assert search.filenames("fox", cap=1) == {"filenames": [search.filenames("fox")["filenames"][0]], "total": 3}
 
 
+def test_inline_relationships_count_as_connected_and_explicit_wins_for_degree():
+    note("a", "Fox [[b]] [[b|again]]")
+    note("b", "Fox")
+    assert sorted(hits("fox", orphan="connected")) == ["a.txt", "b.txt"]
+    assert graph._view().degree("a.txt") == 1
+    store.update("a.txt", {"text": "Fox [[b]]\n-> knows @b"})
+    assert graph._view().degree("a.txt") == 1
+
+
 def test_match_display_uses_utf16_offsets():
     note("a", "😀 x needle")
     r = search.search('"needle"')["results"][0]

@@ -28,14 +28,17 @@ class _Pool:
     """The notes searched (`notes`), and how many relationships each has
     within its scope - also with notes the search leaves out."""
 
-    def __init__(self, notes: dict, incoming: dict):
+    def __init__(self, notes: dict):
         self.notes = notes
         self._scope = notes
-        self._incoming = incoming
+        self._incoming: dict[str, list[tuple[str, str, bool]]] = {}
+        for source, entry in notes.items():
+            for label, target, inline in store.effective_graph_rels(entry):
+                self._incoming.setdefault(target, []).append((source, label, inline))
 
     def degree(self, name: str) -> int:
-        return (sum(t in self._scope for _, t in self._scope[name].rels)
-                + sum(s in self._scope for s, _ in self._incoming.get(name, ())))
+        return (sum(t in self._scope for _, t, _ in store.effective_graph_rels(self._scope[name]))
+                + sum(s in self._scope for s, _, _ in self._incoming.get(name, ())))
 
 
 # `graph` is the graph's notes (see graph._View)
@@ -50,7 +53,7 @@ SCOPES = {
 def _pool(ix, scope: str) -> _Pool:
     if scope not in SCOPES:
         raise store.ValidationError(f"invalid search scope '{scope}'")
-    return _Pool(dict(SCOPES[scope](ix)), dict(ix.incoming))
+    return _Pool(dict(SCOPES[scope](ix)))
 
 
 # --- query language -------------------------------------------------------------
@@ -476,7 +479,7 @@ def _result(pool: _Pool, name: str, hit: _Hit) -> dict:
     shows, else an excerpt around it."""
     e = pool.notes[name]
     preview = _preview(e)
-    out = {"filename": name, "preview": preview, "previewMatch": None, "excerpt": None,
+    out = {"filename": name, "heading": e.heading, "preview": preview, "previewMatch": None, "excerpt": None,
            "problem": "error" if not e.valid else "warning" if e.flagged else None}
     located = _locate(e, hit)
     if located is None:

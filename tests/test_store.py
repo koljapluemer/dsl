@@ -86,6 +86,16 @@ def test_refs_carry_target_headings(data_dir):
     assert item["refs"] == {"b": "Beta heading", "x": None}
 
 
+def test_inline_refs_carry_headings_and_backlinks_are_explicit(data_dir):
+    store.create({"file": "a.txt", "text": "Alpha [[b]] and [[gone|missing]]\nextra\nagain [[b]]"})
+    store.create({"file": "b.txt", "text": "Beta heading"})
+    item = store.get_with_refs("a.txt")
+    assert item["refs"] == {"b": "Beta heading", "gone": None}
+    assert store.backlinks("b.txt") == [
+        {"file": "a.txt", "label": "", "heading": "Alpha [[b]] and [[gone|missing]]", "inline": True}
+    ]
+
+
 def test_get(data_dir):
     store.create({"file": "a.txt", "text": "a"})
     assert store.get("a.txt")["text"] == "a\n"
@@ -190,9 +200,9 @@ def test_backlinks(data_dir):
     store.create({"file": "a.txt", "text": "A note\n-> knows @x\n-> @x\n"})
     store.create({"file": "b.txt", "text": "B note\n-> cites @x\n-> @other\n"})
     assert store.backlinks("x.txt") == [
-        {"file": "a.txt", "label": "", "heading": "A note"},
-        {"file": "b.txt", "label": "cites", "heading": "B note"},
-        {"file": "a.txt", "label": "knows", "heading": "A note"},
+        {"file": "a.txt", "label": "", "heading": "A note", "inline": False},
+        {"file": "b.txt", "label": "cites", "heading": "B note", "inline": False},
+        {"file": "a.txt", "label": "knows", "heading": "A note", "inline": False},
     ]
     with pytest.raises(store.NotFound):
         store.backlinks("missing.txt")
@@ -202,7 +212,7 @@ def test_backlink(data_dir):
     store.create({"file": "x.txt", "text": "X person"})
     store.create({"file": "a.txt", "text": "A note"})
     res = store.backlink("x.txt", {"label": " cites ", "source": "a.txt"})
-    assert res == [{"file": "a.txt", "label": "cites", "heading": "A note"}]
+    assert res == [{"file": "a.txt", "label": "cites", "heading": "A note", "inline": False}]
     assert (data_dir / "a.txt").read_text() == "A note\n-> cites @x\n"
     res = store.backlink("x.txt", {"label": "", "text": "New one"})
     new = next(b["file"] for b in res if b["heading"] == "New one")
@@ -290,6 +300,7 @@ def test_projects(data_dir):
     store.create({"file": "l.txt", "text": "Not a project\nissue\n-> project @n"})
     store.create({"file": "m.txt", "text": "Sketch it\nissue\n-> project @p\ntags suggest-think-and-sketch"})
     store.create({"file": "n.txt", "text": "plain"})
+    store.create({"file": "o.txt", "text": "Inline is not ownership [[p]]\nissue"})
     assert store.projects() == {
         "projects": [
             {"file": "q.txt", "heading": "Archive", "issues": [{"file": "j.txt", "heading": "Both", "think": False}]},
@@ -300,6 +311,7 @@ def test_projects(data_dir):
             ]},
         ],
         "orphans": [
+            {"file": "o.txt", "heading": "Inline is not ownership [[p]]", "think": False},
             {"file": "l.txt", "heading": "Not a project", "think": False},
             {"file": "k.txt", "heading": "Wrong label", "think": False},
         ],

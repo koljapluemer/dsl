@@ -32,7 +32,7 @@ export function ItemOverview({ item, onRef }: { item: Item; onRef: (file: string
       const content = lines.slice(line + 1, end).join('\n');
       if (!content.trim()) blocks.push(code(line));
       else if (schema.keywords[keyword].block === 'yaml') blocks.push(code(line, end));
-      else blocks.push(<Markdown key={line} className="ov-extra" source={content} />);
+      else blocks.push(<Markdown key={line} className="ov-extra" source={content} refs={item.refs} onRef={onRef} />);
       continue;
     }
     const trimmed = lines[line].trim();
@@ -43,7 +43,7 @@ export function ItemOverview({ item, onRef }: { item: Item; onRef: (file: string
 
   return (
     <>
-      {first >= 0 && <Markdown source={lines.slice(first, boundary).join('\n')} />}
+      {first >= 0 && <Markdown source={lines.slice(first, boundary).join('\n')} refs={item.refs} onRef={onRef} />}
       {section.length > 0 && <div className="ov-section">{section}</div>}
       {blocks}
     </>

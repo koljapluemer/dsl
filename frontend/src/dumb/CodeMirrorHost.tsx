@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, type MutableRefObject } from 'react';
 import { EditorState, type Extension } from '@codemirror/state';
 import { EditorView, drawSelection, keymap } from '@codemirror/view';
 import { defaultKeymap, history, historyKeymap } from '@codemirror/commands';
@@ -12,10 +12,11 @@ type Props = {
   onChange: (doc: string) => void;
   /** Mod-s */
   onSave: () => void;
+  editorRef?: MutableRefObject<EditorView | null>;
 };
 
 /** A CodeMirror editor with history, line wrapping and the app's theme. */
-export function CodeMirrorHost({ initial, extensions, autofocus = true, onChange, onSave }: Props) {
+export function CodeMirrorHost({ initial, extensions, autofocus = true, onChange, onSave, editorRef }: Props) {
   const host = useRef<HTMLDivElement>(null);
   const handlers = useRef({ onChange, onSave });
   useEffect(() => { handlers.current = { onChange, onSave }; });
@@ -36,9 +37,10 @@ export function CodeMirrorHost({ initial, extensions, autofocus = true, onChange
         ],
       }),
     });
+    if (editorRef) editorRef.current = view;
     // a frame late: mounted mid-drag (a graph draft dropped on the canvas), React Flow is still settling focus
     const frame = autofocus ? requestAnimationFrame(() => view.focus()) : 0;
-    return () => { cancelAnimationFrame(frame); view.destroy(); };
+    return () => { cancelAnimationFrame(frame); if (editorRef) editorRef.current = null; view.destroy(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- mounted once, see `initial`
   }, []);
 

@@ -41,6 +41,26 @@ An item has up to two parts, in this order:
 An item with only a body is valid: it is just a note. Primary keywords are
 optional.
 
+### Inline relationships
+
+Body and `extra` text may refer to another item inline:
+
+```
+This follows [[three-laws-a1b2c3]].
+Compare [[three-laws-a1b2c3|Newton's third law]].
+```
+
+The target is the other item's file name without `.txt`. It is non-empty and
+contains no whitespace, `|`, `[`, `]`, `/` or `\`. Text after `|` is an
+optional, non-empty display label; without it frontends show the target's
+current heading. Inline relationships are directional and unlabeled: display
+text is not a semantic relationship label.
+
+Inline relationships are recognized only in the body and `extra`, and not
+inside Markdown code spans or fenced code blocks. Escape the first `[` (`\[[`)
+to keep the syntax as text. Malformed references remain ordinary text, and a
+valid reference to a missing item does not make the item invalid.
+
 ### Boundary
 
 The boundary is the first line after the first body line that is a **section
@@ -147,6 +167,10 @@ state line.
 ```
 
 A directed relationship from this item to another one.
+
+Unlike an [inline relationship](#inline-relationships), a relationship line
+has an optional semantic label and lives in the keyword section. Both kinds
+are backlinks and graph connections; frontends distinguish them explicitly.
 
 - **target**: the last token, without its leading `@`: the other item's file
   name without extension (`@semester-plan-a1b2c3` for

@@ -16,6 +16,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import dsl
+import inline_refs
 import questions
 import views
 
@@ -150,7 +151,9 @@ class _Entry:
     when: dict | None
     # what the graph reads (see graph.py)
     valid: bool
-    rels: tuple[tuple[str, str], ...]
+    explicit_rels: tuple[tuple[str, str], ...]
+    # explicit and inline relationships used by graph/search; (label, target, inline)
+    graph_rels: tuple[tuple[str, str, bool], ...]
     media: str | None
     extra: str
     section_lines: tuple[str, ...]
@@ -165,6 +168,12 @@ UNLABELED_RELATION = "related"
 # keyword lines that would only repeat a card or don't matter on it
 _UNSHOWN_KEYWORDS = {views.MEDIA_KEYWORD, views.TAGS_KEYWORD}
 _SPACE_RE = re.compile(r"\s+")
+
+
+def effective_graph_rels(entry: _Entry) -> tuple[tuple[str, str, bool], ...]:
+    """Graph relationships after an explicit source→target suppresses inline."""
+    explicit_targets = {target for _, target, inline in entry.graph_rels if not inline}
+    return tuple(rel for rel in entry.graph_rels if not rel[2] or rel[1] not in explicit_targets)
 
 
 def _section_lines(doc: dsl.Document, lines: list[str]) -> tuple[str, ...]:
@@ -184,6 +193,8 @@ def _entry(mtime_ns: int, item: dict) -> "_Entry":
     doc = dsl.parse(SCHEMA, text)
     extra = "\n".join(doc.extra or [])
     body = "\n".join(doc.body)
+    inline = {r.target for text in (body, extra) for r in inline_refs.references(text)}
+    explicit = tuple((r.label or UNLABELED_RELATION, f"{r.target}.txt") for r in doc.relations)
     return _Entry(
         mtime_ns,
         text.lower(),
@@ -197,7 +208,9 @@ def _entry(mtime_ns: int, item: dict) -> "_Entry":
         frozenset(views.tags(doc)),
         views.when(doc),
         not item["errors"],
-        tuple((r.label or UNLABELED_RELATION, f"{r.target}.txt") for r in doc.relations),
+        explicit,
+        tuple((label, target, False) for label, target in explicit)
+        + tuple(("", f"{target}.txt", True) for target in sorted(inline)),
         views.media(doc),
         extra,
         _section_lines(doc, [l.replace("\r", "") for l in text.split("\n")]),
@@ -219,9 +232,9 @@ class _Index:
         self._dir: Path | None = None
         self._entries: dict[str, _Entry] = {}
         self._postings: dict[str, set[str]] = {}
-        # relationship target -> its (source, label)s; tuples, replaced rather
+        # relationship target -> its (source, label, inline)s; tuples, replaced rather
         # than mutated, so a shallow copy of the map is a consistent snapshot
-        self._incoming: dict[str, tuple[tuple[str, str], ...]] = {}
+        self._incoming: dict[str, tuple[tuple[str, str, bool], ...]] = {}
         self._vocab: list[str] = []
         self._vocab_dirty = False
         self._scanned = -math.inf
@@ -238,7 +251,7 @@ class _Index:
             if not names:
                 del self._postings[w]
                 self._vocab_dirty = True
-        for target in {t for _, t in entry.rels}:
+        for target in {t for _, t, _ in entry.graph_rels}:
             if kept := tuple(r for r in self._incoming[target] if r[0] != name):
                 self._incoming[target] = kept
             else:
@@ -251,8 +264,8 @@ class _Index:
                 self._postings[w] = set()
                 self._vocab_dirty = True
             self._postings[w].add(name)
-        for label, target in entry.rels:
-            self._incoming[target] = self._incoming.get(target, ()) + ((name, label),)
+        for label, target, inline in entry.graph_rels:
+            self._incoming[target] = self._incoming.get(target, ()) + ((name, label, inline),)
 
     @contextmanager
     def locked(self, max_age: float = 0):
@@ -266,7 +279,7 @@ class _Index:
         return self._entries
 
     @property
-    def incoming(self) -> dict[str, tuple[tuple[str, str], ...]]:
+    def incoming(self) -> dict[str, tuple[tuple[str, str, bool], ...]]:
         return self._incoming
 
     def names_with(self, word: str) -> set[str]:
@@ -341,9 +354,11 @@ def list_page(attention: bool | None = None, page: int = 0, seed: int = 0, tasks
 
 
 def _with_refs(item: dict, entries: dict[str, _Entry]) -> dict:
-    """Adds `refs`: each relationship target's heading, or None when there's no
-    such item."""
-    targets = {r.target for r in dsl.parse(SCHEMA, item["text"]).relations}
+    """Adds ``refs``: every explicit or inline target's current heading."""
+    doc = dsl.parse(SCHEMA, item["text"])
+    targets = ({r.target for r in doc.relations}
+               | {r.target for text in ("\n".join(doc.body), "\n".join(doc.extra or []))
+                  for r in inline_refs.references(text)})
     item["refs"] = {t: _heading(t) if f"{t}.txt" in entries else None for t in sorted(targets)}
     return item
 
@@ -494,16 +509,19 @@ def backlinks(name: str) -> list[dict]:
     get(name)
     target = name.removesuffix(".txt")
     with _INDEX.locked() as ix:
-        linkers = {s for s, _ in ix.incoming.get(name, ())}
+        incoming = tuple(ix.incoming.get(name, ()))
+        linkers = {s for s, _, _ in incoming}
     out = []
     for source in linkers:
         try:
             doc = dsl.parse(SCHEMA, get(source)["text"])
         except NotFound:
             continue
-        out += [{"file": source, "label": r.label or "", "heading": doc.heading}
+        out += [{"file": source, "label": r.label or "", "heading": doc.heading, "inline": False}
                 for r in doc.relations if r.target == target]
-    return sorted(out, key=lambda b: (b["label"].casefold(), b["heading"].casefold(), b["file"]))
+        if any(s == source and inline for s, _, inline in incoming):
+            out.append({"file": source, "label": "", "heading": doc.heading, "inline": True})
+    return sorted(out, key=lambda b: (b["inline"], b["label"].casefold(), b["heading"].casefold(), b["file"]))
 
 
 def backlink(name: str, body: dict) -> dict:
@@ -530,7 +548,7 @@ def disable(name: str) -> None:
 
 
 def _view(name: str) -> dict:
-    item = _read(_dir() / name)
+    item = _with_refs(_read(_dir() / name), _INDEX.refresh())
     return views.view(item, dsl.parse(SCHEMA, item["text"]))
 
 
@@ -605,7 +623,7 @@ def projects() -> dict:
     for name, e in entries.items():
         if e.primary != views.ISSUE_KEYWORD:
             continue
-        targets = {t for label, t in e.rels if label == views.PROJECT_RELATION and t in owned}
+        targets = {t for label, t in e.explicit_rels if label == views.PROJECT_RELATION and t in owned}
         for t in targets:
             owned[t].append(issue(name))
         if not targets:

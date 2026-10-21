@@ -22,6 +22,7 @@ export interface ViewCallbacks {
   onCancelInteraction: () => void;
   onConfirmConnection: (connecting: ConnectingInteraction, label: string) => Promise<void>;
   onDeleteRelation: (relation: GraphEdgePayload) => Promise<void>;
+  onOpenInlineRelation: (relation: GraphEdgePayload) => void;
   onPinNote: (filename: string) => void;
   onUnpinNote: (filename: string) => void;
   onChangeDepth: (filename: string, nextDepth: number) => void;
@@ -109,6 +110,7 @@ export function buildView(
     data: {
       ...(edge.data as Record<string, unknown> | undefined),
       onDeleteRelation: callbacks.onDeleteRelation,
+      onOpenInlineRelation: callbacks.onOpenInlineRelation,
     },
   }));
 

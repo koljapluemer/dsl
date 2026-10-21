@@ -20,7 +20,7 @@ export function ZeroPage() {
         <div key={i.file} className={`zero-card rounded-box p-2 cursor-pointer ${isDone.has(i.file) ? 'opacity-40' : ''}`}
              style={{ backgroundColor: cardColorFor(i.file) }}
              onClick={(e) => { if (!(e.target as Element).closest('a')) markDone(i.file); }}>
-          <Markdown source={i.body.trim() ? i.body : i.text} />
+          <Markdown source={i.body.trim() ? i.body : i.text} refs={i.refs} />
         </div>
       ))}
     </div>

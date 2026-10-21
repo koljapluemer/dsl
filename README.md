@@ -22,13 +22,13 @@ The Notes tab is a search on the left (with the semantic toggle and orphan filte
 
 The Tasks tab shows the notes needing attention, then the other notes with `tasks`, each in its own editor.
 
-A note shows rendered: body and `extra` content as markdown (marked + DOMPurify), its attachment, `data` blocks as highlighted code, relationships as links headed by the target's first line (a click opens the target too), and only keyword lines in monospace with the editor's highlighting.
+A note shows rendered: body and `extra` content as markdown (marked + DOMPurify), its attachment, `data` blocks as highlighted code, relationships as links headed by the target's first line (a click opens the target too), and only keyword lines in monospace with the editor's highlighting. Body and `extra` may use `[[target]]` or `[[target|display text]]` for inline note relationships; missing targets are visibly struck through.
 
 ## Editing
 
 Everywhere a note is shown it's the same panel (`meta/note-panel/NotePanel.tsx`): rendered, with Edit, delete and as the page needs hide and close. Edit swaps in an editor for the full text and the attachment; nothing is written until Accept (✓, Ctrl+Enter or Ctrl+S), Discard (↶) drops it; Escape does too while nothing was edited (see Keyboard). New notes start in the editor; the Graph's new-note card is that editor too, with the relation label and direction below. The Calendar, Projects and Float show it in a modal; `/edit/<file>` (and `/new`) on its own page, with the relationships below.
 
-The editor is [CodeMirror 6](https://codemirror.net). A single pass over the text (`analyze` in `frontend/src/entities/item/dsl/analyze.ts`, mirroring `dsl.py`; tested against `spec/examples`) provides the highlighting (keywords, options and values by type, relationships, `data` and `extra` blocks, unknown keyword lines muted; hover for meanings) and inline lint for the errors and warnings of `spec/language.md`, also listed below it.
+The editor is [CodeMirror 6](https://codemirror.net). Typing `[[` in the body or `extra` searches existing notes; choose one with arrows/Enter or a tap. Selecting text before using the editor's Reference button keeps it as the display text, which also makes insertion practical on phone keyboards. A single pass over the text (`analyze` in `frontend/src/entities/item/dsl/analyze.ts`, mirroring `dsl.py`; tested against `spec/examples`) provides the highlighting (keywords, options and values by type, relationships, `data` and `extra` blocks, unknown keyword lines muted; hover for meanings) and inline lint for the errors and warnings of `spec/language.md`, also listed below it.
 
 ## Search
 
@@ -36,7 +36,7 @@ Every list of notes to pick from is one search (`search.py`, `GET /api/search`; 
 
 The query syntax is behind the `?`: words match as prefixes (case and accents folded), `"exact phrase"`, `/regex/ims`, `-exclude`, `OR`, parentheses, `file:`, `body:`, `extra:`. The relationship field takes words and phrases only (a slash is part of a word there). ↑/↓ choose a result, Enter opens it (the first one when none is chosen).
 
-New files are named `<slug of the first line>-<6 hex>.txt`; the name doesn't change when the text does. Other items refer to it by that name without `.txt` (`-> label @name`).
+New files are named `<slug of the first line>-<6 hex>.txt`; the name doesn't change when the text does. Other items refer to it by that name without `.txt` (`-> label @name` or `[[name]]`).
 
 ## Keyboard
 
@@ -113,7 +113,7 @@ A port of `../dsl-graph`: notes as cards on a [React Flow](https://reactflow.dev
 - **Pins**: a pinned note shows the notes up to its depth (the chevrons beside the pin) relationships away, in either direction. Picking a search result pins it at depth 2. The badge under a card counts its related notes not on the canvas; a click shows them. Pins are kept under `graph` in the config file.
 - **Sidebar**: the same search sidebar as the Notes tab (`meta/note-search-sidebar`), over the graph's notes (the newest without a query): optionally ranked semantically, optionally only orphans or connected notes.
 - **Canvas**: right-click opens a quick search at the cursor; each pick pins a note, and it stays open for several picks. Double-click adds a note. Drag from a card's edge dot onto another card to relate them, or onto empty canvas for a new related note. Drag a card by its grip to move it; it keeps its spot while it's on the canvas.
-- **Cards**: the note panel, with the graph's own rendering: edit (text with errors isn't saved), hide (tags it `no-graph`) or delete, both with undo. A click on an edge label edits or deletes its relationships (with undo).
+- **Cards**: the note panel, with the graph's own rendering: edit (text with errors isn't saved), hide (tags it `no-graph`) or delete, both with undo. A click on a solid edge label edits or deletes its explicit relationships (with undo). Inline relationships are unlabeled dashed arrows; clicking one edits its source note. An explicit relationship suppresses an inline graph edge in the same direction.
 - The toolbar: add note, unpin all, pin a random orphan, open a random note or search result, pin all search results (the first 100, without neighbors), zoom and fit.
 
 The note panel's editor and the Graph's new-note card accept one image (downscaled to WebP) or short video by paste or upload; on touch devices they also take a photo with the camera. Attachments go into `images/` in the data folder as `<note>-<ms>.<ext>`; an attachment the app wrote is deleted when it is replaced or removed and no other note names it.

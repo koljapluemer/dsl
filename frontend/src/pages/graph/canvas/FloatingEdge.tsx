@@ -11,6 +11,7 @@ import type { GraphEdgePayload } from '@/api/types';
 export interface FloatingEdgeData extends Record<string, unknown> {
   relations: GraphEdgePayload[];
   onDeleteRelation?: (relation: GraphEdgePayload) => Promise<void>;
+  onOpenInlineRelation?: (relation: GraphEdgePayload) => void;
 }
 
 // Memoized so a node drag only re-renders the edges actually touching the moved
@@ -29,7 +30,8 @@ function FloatingEdgeInner({ id, source, target, style, markerStart, markerEnd, 
     return null;
   }
 
-  const { relations = [], onDeleteRelation } = (data ?? {}) as Partial<FloatingEdgeData>;
+  const { relations = [], onDeleteRelation, onOpenInlineRelation } = (data ?? {}) as Partial<FloatingEdgeData>;
+  const inline = relations.length > 0 && relations.every((relation) => relation.inline);
   const { sx, sy, tx, ty, sourcePos, targetPos } = getEdgeParams(sourceNode, targetNode);
 
   const [path, labelX, labelY] = getBezierPath({
@@ -91,8 +93,9 @@ function FloatingEdgeInner({ id, source, target, style, markerStart, markerEnd, 
 
   return (
     <>
-      <BaseEdge id={id} path={path} style={style} markerStart={markerStart} markerEnd={markerEnd} />
-      {relations.length > 0 ? (
+      <BaseEdge id={id} path={path} style={{ ...style, ...(inline ? { cursor: 'pointer' } : {}) }} markerStart={markerStart} markerEnd={markerEnd}
+                interactionWidth={inline ? 20 : 0} onClick={inline ? () => onOpenInlineRelation?.(relations[0]) : undefined} />
+      {relations.length > 0 && !inline ? (
         <EdgeLabelRenderer>
           <div
             className="nodrag nopan"

@@ -345,7 +345,7 @@ export async function computeLayout(
           id: edge.id,
           sources: [edge.source],
           targets: [edge.target],
-          labels: [{ text: edge.label, ...estimateEdgeLabelSize() }],
+          labels: edge.inline ? [] : [{ text: edge.label, ...estimateEdgeLabelSize() }],
         }),
       ),
   };

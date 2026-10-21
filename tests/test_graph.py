@@ -33,7 +33,7 @@ def test_pin_brings_in_neighbors_to_its_depth():
     g = graph.build([{"filename": "a.txt", "depth": 1}])
     assert names(g) == ["a.txt", "b.txt"]
     assert g["edges"] == [{"id": "a.txt__b.txt__knows", "source": "a.txt", "target": "b.txt", "label": "knows",
-                           "direction": "outgoing", "depth": 1}]
+                           "inline": False, "direction": "outgoing", "depth": 1}]
     b = next(n for n in g["nodes"] if n["filename"] == "b.txt")
     assert (b["depth"], b["degree"], b["hiddenNeighbors"]) == (1, 2, 1)
     assert names(graph.build([{"filename": "c.txt", "depth": 2}])) == ["c.txt", "b.txt", "a.txt"]
@@ -43,6 +43,18 @@ def test_unlabeled_relation_is_related():
     note("a", "A\n-> @b")
     note("b", "B")
     assert graph.build([{"filename": "a.txt", "depth": 1}])["edges"][0]["label"] == "related"
+
+
+def test_inline_relationships_are_flagged_deduplicated_and_explicit_wins():
+    note("a", "A [[b]] and again [[b|B]]\nextra\nalso [[c]]")
+    note("b", "B")
+    note("c", "C")
+    g = graph.build([{"filename": "a.txt", "depth": 1}])
+    assert [(e["target"], e["label"], e["inline"]) for e in g["edges"]] == [
+        ("b.txt", "", True), ("c.txt", "", True)]
+    store.update("a.txt", {"text": "A [[b]]\n-> explains @b"})
+    edge = graph.build([{"filename": "a.txt", "depth": 1}])["edges"][0]
+    assert (edge["label"], edge["inline"]) == ("explains", False)
 
 
 def test_invalid_and_missing_notes_are_left_out_until_fixed(data_dir):

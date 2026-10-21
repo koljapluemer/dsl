@@ -55,7 +55,7 @@ export function Backlinks({ file, deleteItem, compact }: Props) {
       {!compact && <p className="font-medium mb-1">Backlinks</p>}
       {data && !links.length && <p className="ov-muted text-xs">No notes link here.</p>}
       {links.map((b, i) => (
-        <RelationRow key={`${b.file} ${b.label} ${i}`} direction="in" label={b.label} file={b.file} heading={b.heading}
+        <RelationRow key={`${b.file} ${b.label} ${b.inline} ${i}`} direction="in" label={b.label} file={b.file} heading={b.heading} inline={b.inline}
                      busy={busy} onDetach={() => unlink(b)} onDelete={() => remove(b)} compact={compact} />
       ))}
       <RelationAdder exclude={[file, ...links.map((b) => b.file)]} busy={busy} onAdd={add} compact={compact} />

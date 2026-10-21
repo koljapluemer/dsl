@@ -9,7 +9,7 @@ import './item.css';
  * type; keyword lines and relationships aren't shown. An invalid item shows
  * its raw text, marked invalid.
  */
-export function ItemView({ item }: { item: View }) {
+export function ItemView({ item, onRef }: { item: View; onRef?: (file: string) => void }) {
   if (item.errors.length) {
     return (
       <div>
@@ -20,9 +20,9 @@ export function ItemView({ item }: { item: View }) {
   }
   return (
     <div className="space-y-3">
-      <Markdown source={item.body} />
+      <Markdown source={item.body} refs={item.refs} onRef={onRef} />
       {item.media && <Media src={mediaUrl(item.media)} kind={isVideoFilename(item.media) ? 'video' : 'image'} path={item.media} />}
-      {item.extra && <Markdown className="rounded-box bg-base-200 p-3 text-xs" source={item.extra} />}
+      {item.extra && <Markdown className="rounded-box bg-base-200 p-3 text-xs" source={item.extra} refs={item.refs} onRef={onRef} />}
     </div>
   );
 }
