@@ -58,6 +58,12 @@ spots such as a table row:
   from the server. Used in the sources list (a row's chevron, collapsed by
   default, `compact`) and at the bottom of the source form.
 
+In the item editor, `referenceLinks` (`entities/item/dsl/referenceLinks.ts`)
+marks inline references as targets and opens a Ctrl/Cmd-clicked inline
+reference or `@target` in a new tab. `itemInlineReferences` (`inlineRefs.ts`)
+finds the inline references that count, in the body and `extra`; the editor
+and `Relationships` both use it.
+
 Features can't import each other, so deleting a note is passed in as
 `deleteItem` (a page's `useDeleteItem()`), which also gives undo.
 

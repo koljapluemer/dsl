@@ -5,6 +5,7 @@ import { Link2 } from 'lucide-react';
 import { CodeMirrorHost } from '@/dumb/CodeMirrorHost';
 import { dslExtensions } from '@/entities/item/dslExtensions';
 import { insertReference, referenceCompletion } from '@/entities/item/dsl/referenceCompletion';
+import { referenceLinks } from '@/entities/item/dsl/referenceLinks';
 import { pastedMedia } from '@/entities/item/media';
 import { useSchema } from '@/entities/item/schema';
 
@@ -30,6 +31,7 @@ export function ItemTextEditor({ initial, autofocus, onChange, onSave, saveOnBlu
   const extensions = useMemo(() => [
     ...dslExtensions(schema),
     referenceCompletion(schema, currentFile),
+    ...referenceLinks(schema),
     // Mod-Enter saves (see onKeyDown) instead of the default keymap's blank line
     Prec.high(keymap.of([{ key: 'Mod-Enter', run: () => true }])),
     ...(hasPaste ? [EditorView.domEventHandlers({ paste: (event) => pastedMedia(event.clipboardData) !== undefined })] : []),

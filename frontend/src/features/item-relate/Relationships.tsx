@@ -2,12 +2,12 @@ import { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import type { Item } from '@/api/types';
 import { showError } from '@/dumb/errorBanner';
+import { itemInlineReferences } from '@/entities/item/dsl/inlineRefs';
 import { outline } from '@/entities/item/dsl/outline';
 import { isRelationLine, relation } from '@/entities/item/dsl/relation';
 import { detachItem, itemsChanged, relateItem } from '@/entities/item/mutations';
 import { itemQuery } from '@/entities/item/queries';
 import { useSchema } from '@/entities/item/schema';
-import { inlineReferences } from '@/dumb/inlineReference';
 import type { Pick } from './NotePicker';
 import { RelationAdder } from './RelationAdder';
 import { RelationRow } from './RelationRow';
@@ -33,17 +33,14 @@ export function Relationships({ item, flush, onChanged, deleteItem, onRef }: Pro
   const schema = useSchema();
   const [busy, setBusy] = useState(false);
 
-  const { lines, first, boundary, parts } = outline(schema, (item?.text ?? '').trimEnd());
+  const text = (item?.text ?? '').trimEnd();
+  const { lines, parts } = outline(schema, text);
   const relations = parts.flatMap(({ line, keyword }) => {
     const trimmed = lines[line].trim();
     const rel = !keyword && isRelationLine(trimmed) && relation(trimmed);
     return rel ? [{ line, ...rel }] : [];
   });
-  const inlineTargets = new Set<string>();
-  if (first >= 0) for (const ref of inlineReferences(lines.slice(first, boundary).join('\n'))) inlineTargets.add(ref.target);
-  for (const { line, end, keyword } of parts) {
-    if (keyword === 'extra') for (const ref of inlineReferences(lines.slice(line + 1, end).join('\n'))) inlineTargets.add(ref.target);
-  }
+  const inlineTargets = new Set(itemInlineReferences(schema, text).map((ref) => ref.target));
 
   /** Runs `write` on the saved note's file; resolves to whether it succeeded. */
   async function run(write: (file: string) => Promise<Item>) {
