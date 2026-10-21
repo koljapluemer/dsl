@@ -22,7 +22,7 @@ The Notes tab is a search on the left (with the semantic toggle and orphan filte
 
 ## Explorations
 
-The Explorations tab lists the notes tagged `exploration` (`GET /api/explorations`), the last edited first; they're left out of the Graph and the Queue ([`docs/hiding.md`](docs/hiding.md)). The field above the list starts a new one: what's typed becomes the start of its body, followed by `tags exploration`. The exploration picked (in the URL) fills the pane, always in the note editor: Accept writes and stays there, Discard starts over from the file. On a phone the list and the editor take turns.
+The Explorations tab lists the notes tagged `exploration` (`GET /api/explorations`), the last edited first; they're left out of the Graph and the Queue ([`docs/hiding.md`](docs/hiding.md)). The field above the list starts a new one: what's typed becomes the start of its body, followed by `tags exploration`. The exploration picked (in the URL) fills the pane, always in the note editor, which writes the edits when focus leaves it (or on Ctrl+Enter, Ctrl+S); there's no Accept or Discard. On a phone the list and the editor take turns.
 
 The Tasks tab shows the notes needing attention, then the other notes with `tasks`, each in its own editor.
 

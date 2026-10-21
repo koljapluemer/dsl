@@ -12,7 +12,7 @@ import './explorations.css';
 
 /**
  * The notes tagged `exploration` beside the one open, always in the editor;
- * the field above the list starts a new one.
+ * saved as focus leaves it; the field above the list starts a new one.
  */
 export function ExplorationsPage() {
   const qc = useQueryClient();
@@ -26,8 +26,6 @@ export function ExplorationsPage() {
   const [start, setStart] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  /** bumped on Discard: the editor starts over from the file */
-  const [round, setRound] = useState(0);
   const input = useSlashFocus();
 
   const show = (file: string | undefined) => {
@@ -80,7 +78,7 @@ export function ExplorationsPage() {
       </aside>
       <section className={`min-h-0 flex-1 ${listing ? 'max-md:hidden' : ''}`}>
         {open ? (
-          <NotePanel key={`${open}:${round}`} file={open} fill editing onDiscard={() => setRound(round + 1)}
+          <NotePanel key={open} file={open} fill editing autosave
                      className="exploration h-full rounded-box border border-base-300 bg-base-100 p-3"
                      toolbar={item.data && (
                        <button type="button" className="btn btn-ghost btn-xs btn-square hover:text-error" title="delete"

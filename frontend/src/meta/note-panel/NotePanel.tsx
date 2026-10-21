@@ -27,6 +27,8 @@ type Props = {
   /** whether the editor is open, when the caller keeps that */
   editing?: boolean;
   onEditingChange?: (editing: boolean) => void;
+  /** the editor writes edits as focus leaves it, and stays open (see NoteEditor) */
+  autosave?: boolean;
   /** Discard in the editor, instead of leaving it */
   onDiscard?: () => void;
   /** writes the edit instead of the items API; rejects to stay in the editor */
@@ -55,10 +57,11 @@ type Props = {
 
 /**
  * A note, rendered, and an editor for it behind Edit: what is written there is
- * kept on Accept or dropped on Discard. Hide, delete and close as asked for.
+ * kept on Accept or dropped on Discard (or, with `autosave`, kept as focus
+ * leaves it). Hide, delete and close as asked for.
  */
 export function NotePanel({
-  file, initial = '', item: given, view, toolbar, editing: shownEditing, onEditingChange, onDiscard, onAccept, onSaved,
+  file, initial = '', item: given, view, toolbar, editing: shownEditing, onEditingChange, autosave = false, onDiscard, onAccept, onSaved,
   onCreated, onClose, hide, deletable = true, onDelete, onDeleted, relationships = false, onRef, fill = false, id, className = '',
 }: Props) {
   const qc = useQueryClient();
@@ -148,7 +151,7 @@ export function NotePanel({
     <div id={id} className={`${fill ? 'flex h-full min-h-0 flex-col' : ''} ${className}`}>
       {editing ? (
         <div className={fill ? 'min-h-0 flex-1 overflow-y-auto' : ''}>
-          <NoteEditor file={item?.file ?? file} initial={initial} onAccept={accept} onDiscard={discard} header={header} />
+          <NoteEditor file={item?.file ?? file} initial={initial} onAccept={accept} onDiscard={discard} header={header} autosave={autosave} />
         </div>
       ) : (
         <>
