@@ -196,3 +196,9 @@ def test_hidden_notes_leave_the_graph_and_hide_undoes(data_dir):
     graph.undo()
     assert (data_dir / "b.txt").read_text() == text
     assert names(graph.build(pins)) == ["a.txt", "b.txt"]
+
+
+def test_explorations_leave_the_graph():
+    note("a", "A\n-> knows @b")
+    note("b", "B\ntags exploration")
+    assert names(graph.build([{"filename": "a.txt", "depth": 1}])) == ["a.txt"]

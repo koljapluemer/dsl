@@ -1,0 +1,2 @@
+/* an exploration is worked on at length: its editor takes most of the window's height to begin with */
+.exploration .cm-content { min-height: 60vh; }

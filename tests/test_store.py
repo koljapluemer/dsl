@@ -270,6 +270,16 @@ def test_zero_items(data_dir):
     assert [i["file"] for i in store.zero_items()] == ["a.txt"]
 
 
+def test_explorations_last_edited_first_and_not_in_queue(data_dir):
+    store.create({"file": "a.txt", "text": "A\ntags exploration"})
+    store.create({"file": "b.txt", "text": "B\ntags x exploration"})
+    store.create({"file": "c.txt", "text": "C\ntags explorations"})
+    os.utime(data_dir / "a.txt", ns=(2_000_000_000, 2_000_000_000))
+    os.utime(data_dir / "b.txt", ns=(1_000_000_000, 1_000_000_000))
+    assert store.explorations() == [{"file": "a.txt", "heading": "A"}, {"file": "b.txt", "heading": "B"}]
+    assert [i["file"] for i in store.queue_draw()["items"]] == ["c.txt"]
+
+
 def test_suggest_random_excludes_unless_only_one(data_dir):
     store.create({"file": "a.txt", "text": "a\ntags suggest-idea"})
     store.create({"file": "b.txt", "text": "b\ntags x suggest-idea"})

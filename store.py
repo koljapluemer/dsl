@@ -586,6 +586,13 @@ def zero_items() -> list[dict]:
     return [_view(n) for n, e in sorted(_INDEX.refresh().items()) if views.ZERO_TAG in e.tags]
 
 
+def explorations() -> list[dict]:
+    """Every item tagged views.EXPLORATION_TAG, as `{file, heading}`, the last edited first."""
+    entries = _INDEX.refresh()
+    names = sorted((n for n, e in entries.items() if views.EXPLORATION_TAG in e.tags), key=lambda n: (-entries[n].mtime_ns, n))
+    return [{"file": n, "heading": entries[n].heading} for n in names]
+
+
 def suggest_tags() -> list[str]:
     """Every tag starting with views.SUGGEST_PREFIX."""
     return sorted({t for e in _INDEX.refresh().values() for t in e.tags if t.startswith(views.SUGGEST_PREFIX)})

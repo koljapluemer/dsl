@@ -10,6 +10,7 @@ import { UndoToast } from './dumb/UndoToast';
 const TABS = [
   { to: '/', label: 'Notes', key: 'n' },
   { to: '/new', label: 'New', key: 'w' },
+  { to: '/explorations', label: 'Explorations', key: 'e' },
   { to: '/graph', label: 'Graph', key: 'g' },
   { to: '/tasks', label: 'Tasks', key: 't' },
   { to: '/projects', label: 'Projects', key: 'p' },
@@ -58,8 +59,8 @@ export function App() {
   for (const t of TABS) keys[`g ${t.key}`] = () => void navigate({ to: t.to });
   useHotkeys(keys);
 
-  // the notes, the graph's canvas and the float stage take the whole window; the other pages a readable column
-  const full = ['/', '/graph', '/float'].includes(path);
+  // the notes, explorations, the graph's canvas and the float stage take the whole window; the other pages a readable column
+  const full = ['/', '/explorations', '/graph', '/float'].includes(path);
 
   return (
     <div className={full ? 'flex h-screen flex-col px-4 pt-4' : 'max-w-5xl mx-auto p-4'}>

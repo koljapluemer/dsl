@@ -216,6 +216,11 @@ def zero_items():
     return jsonify(store.zero_items())
 
 
+@app.get("/api/explorations")
+def explorations():
+    return jsonify(store.explorations())
+
+
 @app.get("/api/suggest/tags")
 def suggest_tags():
     return jsonify(store.suggest_tags())

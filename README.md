@@ -20,6 +20,10 @@ Vite + React + TypeScript in `frontend/`, with TanStack Router (the Notes tab's 
 
 The Notes tab is a search on the left (with the semantic toggle and orphan filter, shared with the Graph's sidebar) and the notes opened from it on the right, in a grid filling the pane: one note takes it all, two sit side by side, more add rows (3–4 in 2 columns, 5–9 in 3, at most 2 on a narrower pane; the columns follow from the number of notes and the pane's width in CSS, `pages/notes/notes.css`). Each scrolls on its own; a note's ✕ closes it. On a phone the search and the notes take turns, one column of notes.
 
+## Explorations
+
+The Explorations tab lists the notes tagged `exploration` (`GET /api/explorations`), the last edited first; they're left out of the Graph and the Queue ([`docs/hiding.md`](docs/hiding.md)). The field above the list starts a new one: what's typed becomes the start of its body, followed by `tags exploration`. The exploration picked (in the URL) fills the pane, always in the note editor: Accept writes and stays there, Discard starts over from the file. On a phone the list and the editor take turns.
+
 The Tasks tab shows the notes needing attention, then the other notes with `tasks`, each in its own editor.
 
 A note shows rendered: body and `extra` content as markdown (marked + DOMPurify), its attachment, `data` blocks as highlighted code, relationships as links headed by the target's first line (a click opens the target too), and only keyword lines in monospace with the editor's highlighting. Body and `extra` may use `[[target]]` or `[[target|display text]]` for inline note relationships; missing targets are visibly struck through.
@@ -65,7 +69,7 @@ The server's URL is the only LLM setting (Settings, stored under `llm` in the co
 Ports of the `../dsl-mobile` apps calendar, queue and zero, of `../floating-notes` and of `../suggest`, one route each; what an item means to them is in `views.py`.
 
 - **Calendar**: `appointment` and `recurring` items by day or over a From..To range (this week, Sunday to Saturday, by default), toggled at the top; view, day and range are in the URL. A click on an item opens it in a modal; `+` adds one, prefilled with `appointment <that day>`.
-- **Queue**: 3 random items, Next draws others. An item's hide button tags it `no-q`; what it hides is set in code, see [`docs/hiding.md`](docs/hiding.md).
+- **Queue**: 3 random items (not explorations), Next draws others. An item's hide button tags it `no-q`; what it hides is set in code, see [`docs/hiding.md`](docs/hiding.md).
 - **Float**: random items drifting across the window, a new one every few seconds, drawn in batches of 20 (`store.float_draw`); the filter below keeps those containing its text. A card stops under the pointer; a click opens it in a modal, which holds the stage still (clicks on its links, buttons and media do their own thing instead). The hide button tags it `no-float`, see [`docs/hiding.md`](docs/hiding.md).
 - **Zero**: a card per item tagged `zero`, in a random order per page load and colored by file name; a click greys it out and moves it last until reload.
 - **Suggest**: a dropdown of the `suggest-` tags (`tags suggest-book`), a random one selected on load, and a random note carrying the selected one; hold "Hold for next" for another.
@@ -108,7 +112,7 @@ Settings → "bibtex export" takes any number of `.bib` paths (a directory gets 
 
 ## Graph
 
-A port of `../dsl-graph`: notes as cards on a [React Flow](https://reactflow.dev) canvas, laid out by [ELK](https://eclipse.dev/elk/), their relationships as labeled edges (`graph.py` on the server, `frontend/src/pages/graph`). Only notes without errors and not hidden from it ([`docs/hiding.md`](docs/hiding.md)) are part of it; a relationship to anything else is left out until it's fixed.
+A port of `../dsl-graph`: notes as cards on a [React Flow](https://reactflow.dev) canvas, laid out by [ELK](https://eclipse.dev/elk/), their relationships as labeled edges (`graph.py` on the server, `frontend/src/pages/graph`). Only notes without errors and not hidden from it (explorations among them, [`docs/hiding.md`](docs/hiding.md)) are part of it; a relationship to anything else is left out until it's fixed.
 
 - **Pins**: a pinned note shows the notes up to its depth (the chevrons beside the pin) relationships away, in either direction. Picking a search result pins it at depth 2. The badge under a card counts its related notes not on the canvas; a click shows them. Pins are kept under `graph` in the config file.
 - **Sidebar**: the same search sidebar as the Notes tab (`meta/note-search-sidebar`), over the graph's notes (the newest without a query): optionally ranked semantically, optionally only orphans or connected notes.

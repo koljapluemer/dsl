@@ -1,4 +1,4 @@
-"""What the queue, float, zero, suggest, calendar and projects views read from an item."""
+"""What the queue, float, zero, suggest, explorations, calendar and projects views read from an item."""
 
 import calendar as _calendar
 from dataclasses import dataclass
@@ -19,6 +19,8 @@ ZERO_TAG = "zero"
 THINK_TAG = "suggest-think-and-sketch"
 # the tags suggest offers
 SUGGEST_PREFIX = "suggest-"
+# a note worked on in the explorations tab, left out of the queue and the graph
+EXPLORATION_TAG = "exploration"
 
 
 @dataclass(frozen=True)
@@ -35,9 +37,9 @@ class Hiding:
 
 
 # What each view hides - edit here.
-QUEUE_HIDING = Hiding("no-q", frozenset({APPOINTMENT_KEYWORD, RECURRING_KEYWORD, "source"}))
+QUEUE_HIDING = Hiding("no-q", frozenset({APPOINTMENT_KEYWORD, RECURRING_KEYWORD, "source"}), frozenset({EXPLORATION_TAG}))
 FLOAT_HIDING = Hiding("no-float", frozenset({APPOINTMENT_KEYWORD, RECURRING_KEYWORD, "source"}))
-GRAPH_HIDING = Hiding("no-graph", frozenset({APPOINTMENT_KEYWORD, RECURRING_KEYWORD}))
+GRAPH_HIDING = Hiding("no-graph", frozenset({APPOINTMENT_KEYWORD, RECURRING_KEYWORD}), frozenset({EXPLORATION_TAG}))
 
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp"}
 VIDEO_EXTENSIONS = {".mp4", ".webm", ".mov"}

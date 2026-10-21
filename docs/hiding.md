@@ -9,16 +9,16 @@ it hides is fixed in code, not set by the user.
 
 - `tag` — the view's own tag; the view's hide button adds it to a note
 - `types` — primary keywords whose notes the view leaves out
-- `tags` — further tags that hide a note (none used yet)
+- `tags` — further tags that hide a note (`views.EXPLORATION_TAG`, the Explorations tab's notes)
 
 `hiding.hides(primary, tags)` says whether a note is out. The per-view
 instances sit right below the class; **edit them there**:
 
-| View  | Instance        | Tag        | Hidden types                          |
-|-------|-----------------|------------|---------------------------------------|
-| Queue | `QUEUE_HIDING`  | `no-q`     | `appointment`, `recurring`, `source`  |
-| Float | `FLOAT_HIDING`  | `no-float` | `appointment`, `recurring`, `source`  |
-| Graph | `GRAPH_HIDING`  | `no-graph` | `appointment`, `recurring`            |
+| View  | Instance        | Tag        | Hidden types                          | Hidden tags   |
+|-------|-----------------|------------|---------------------------------------|---------------|
+| Queue | `QUEUE_HIDING`  | `no-q`     | `appointment`, `recurring`, `source`  | `exploration` |
+| Float | `FLOAT_HIDING`  | `no-float` | `appointment`, `recurring`, `source`  |               |
+| Graph | `GRAPH_HIDING`  | `no-graph` | `appointment`, `recurring`            | `exploration` |
 
 `tests/test_views.py` checks that every listed type is a primary keyword and
 every tag is a valid tag.

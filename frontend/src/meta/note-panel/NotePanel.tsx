@@ -27,6 +27,8 @@ type Props = {
   /** whether the editor is open, when the caller keeps that */
   editing?: boolean;
   onEditingChange?: (editing: boolean) => void;
+  /** Discard in the editor, instead of leaving it */
+  onDiscard?: () => void;
   /** writes the edit instead of the items API; rejects to stay in the editor */
   onAccept?: (text: string, media: MediaAttachment, item: Item | null) => Promise<unknown>;
   onSaved?: (item: Item) => void;
@@ -56,7 +58,7 @@ type Props = {
  * kept on Accept or dropped on Discard. Hide, delete and close as asked for.
  */
 export function NotePanel({
-  file, initial = '', item: given, view, toolbar, editing: shownEditing, onEditingChange, onAccept, onSaved,
+  file, initial = '', item: given, view, toolbar, editing: shownEditing, onEditingChange, onDiscard, onAccept, onSaved,
   onCreated, onClose, hide, deletable = true, onDelete, onDeleted, relationships = false, onRef, fill = false, id, className = '',
 }: Props) {
   const qc = useQueryClient();
@@ -106,7 +108,8 @@ export function NotePanel({
   }
 
   function discard() {
-    if (!item && !view) onClose?.();
+    if (onDiscard) onDiscard();
+    else if (!item && !view) onClose?.();
     else setEditing(false);
   }
 

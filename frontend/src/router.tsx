@@ -5,6 +5,8 @@ import { schemaQuery } from './entities/item/schema';
 import { settingsQuery } from './entities/settings/queries';
 import { CalendarPage } from './pages/calendar/CalendarPage';
 import { validateCalendarSearch } from './pages/calendar/search';
+import { ExplorationsPage } from './pages/explorations/ExplorationsPage';
+import { validateExplorationsSearch } from './pages/explorations/explorations';
 import { EditPage } from './pages/edit/EditPage';
 import { FloatPage } from './pages/float/FloatPage';
 import { GraphPage } from './pages/graph/GraphPage';
@@ -45,6 +47,7 @@ const tree = root.addChildren([
     createRoute({ getParentRoute: () => editor, path: '/new' }),
     createRoute({ getParentRoute: () => editor, path: '/edit/$file' }),
   ]),
+  createRoute({ getParentRoute: () => root, path: '/explorations', validateSearch: validateExplorationsSearch, component: ExplorationsPage }),
   createRoute({ getParentRoute: () => root, path: '/graph', component: GraphPage }),
   createRoute({ getParentRoute: () => root, path: '/tasks', component: TasksPage }),
   createRoute({ getParentRoute: () => root, path: '/projects', component: ProjectsPage }),
