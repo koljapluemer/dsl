@@ -138,16 +138,9 @@ def _finalize(view: _View, b: _Build) -> dict:
 
 
 def _node(view: _View, name: str, depth: int, shown: dict) -> dict:
-    e = view.notes[name]
     return {
         "filename": name,
-        "body": e.body,
-        "image": e.media,
-        "extraContent": e.extra,
-        "sectionLines": list(e.section_lines),
-        "dataText": e.data_text,
-        "refs": {target.removesuffix(".txt"): target_entry.heading if (target_entry := view.entries.get(target)) else None
-                 for _, target, _ in view._rels[name]},
+        "item": store._note(name, view.entries),
         "depth": depth,
         "degree": view.degree(name),
         # what pinning it at depth 1 would bring in
@@ -231,24 +224,6 @@ def _relation_index(doc: dsl.Document, label: str, target: str) -> int:
         if (r.label or UNLABELED_RELATION) == label and f"{r.target}.txt" == target:
             return r.line - 1
     raise store.NotFound("relationship")
-
-
-def create(body: dict) -> dict:
-    """A note with the text `body`, related to `related` (`related -> new`, or
-    `new -> related` when `reverse`) unless that's omitted."""
-    text, related = body.get("body"), body.get("related")
-    if not isinstance(text, str) or not text.strip():
-        raise store.ValidationError("body required")
-    if not related:
-        return {"filename": store.create({"text": text})["file"]}
-    _require(related)
-    label = _label(body.get("label"))
-    if body.get("reverse"):
-        name = store.create({"text": questions.add_relation(text, label, _stem(related))})["file"]
-    else:
-        name = store.create({"text": text})["file"]
-        _mutate(related, lambda lines, doc: _append(lines, label, name))
-    return {"filename": name, "label": label}
 
 
 def _append(lines: list[str], label: str, target: str) -> None:

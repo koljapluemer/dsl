@@ -1,32 +1,29 @@
-import { useMemo, useRef } from 'react';
+import { useMemo, type MutableRefObject } from 'react';
 import { Prec } from '@codemirror/state';
 import { EditorView, keymap } from '@codemirror/view';
-import { Link2 } from 'lucide-react';
 import { CodeMirrorHost } from '@/dumb/CodeMirrorHost';
 import { dslExtensions } from '@/entities/item/dslExtensions';
-import { insertReference, referenceCompletion } from '@/entities/item/dsl/referenceCompletion';
+import { referenceCompletion } from '@/entities/item/dsl/referenceCompletion';
 import { referenceLinks } from '@/entities/item/dsl/referenceLinks';
 import { pastedMedia } from '@/entities/item/media';
 import { useSchema } from '@/entities/item/schema';
 
 type Props = {
-  /** the text when mounted; remount (key) to replace it */
-  initial: string;
+  /** the text; a change from outside replaces the editor's (see CodeMirrorHost) */
+  value: string;
   autofocus?: boolean;
   onChange: (text: string) => void;
-  /** on Mod-s and Mod-Enter, and on blur unless `saveOnBlur` is false */
+  /** Mod-s and Mod-Enter */
   onSave: () => void;
-  saveOnBlur?: boolean;
-  /** Escape */
-  onEscape?: () => void;
   onPasteFile?: (file: File) => void;
   currentFile?: string | null;
+  /** the CodeMirror view, for tools acting on it (see insertReference) */
+  editorRef?: MutableRefObject<EditorView | null>;
 };
 
 /** An editor for item text, highlighted and linted as the item language. */
-export function ItemTextEditor({ initial, autofocus, onChange, onSave, saveOnBlur = true, onEscape, onPasteFile, currentFile }: Props) {
+export function ItemTextEditor({ value, autofocus, onChange, onSave, onPasteFile, currentFile, editorRef }: Props) {
   const schema = useSchema();
-  const editorRef = useRef<EditorView | null>(null);
   const hasPaste = !!onPasteFile;
   const extensions = useMemo(() => [
     ...dslExtensions(schema),
@@ -38,23 +35,13 @@ export function ItemTextEditor({ initial, autofocus, onChange, onSave, saveOnBlu
   ], [schema, hasPaste, currentFile]);
   return (
     <div
-      onBlur={saveOnBlur ? onSave : undefined}
-      onKeyDown={(event) => {
-        if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) onSave();
-        else if (event.key === 'Escape') onEscape?.();
-      }}
+      onKeyDown={(event) => { if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) onSave(); }}
       onPaste={onPasteFile ? (event) => {
         const file = pastedMedia(event.clipboardData);
         if (file) { event.preventDefault(); onPasteFile(file); }
       } : undefined}
     >
-      <div className="mb-1 flex justify-end">
-        <button type="button" className="btn btn-ghost btn-xs" title="insert note reference" onMouseDown={(event) => event.preventDefault()}
-                onClick={() => editorRef.current && insertReference(editorRef.current)}>
-          <Link2 size={14} /> <span className="hidden sm:inline">Reference</span>
-        </button>
-      </div>
-      <CodeMirrorHost initial={initial} extensions={extensions} autofocus={autofocus} onChange={onChange} onSave={onSave} editorRef={editorRef} />
+      <CodeMirrorHost value={value} extensions={extensions} autofocus={autofocus} onChange={onChange} onSave={onSave} editorRef={editorRef} />
     </div>
   );
 }

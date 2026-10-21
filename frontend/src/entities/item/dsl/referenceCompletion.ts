@@ -2,6 +2,7 @@ import { autocompletion, startCompletion, type CompletionResult } from '@codemir
 import type { EditorView } from '@codemirror/view';
 import { api } from '@/api/client';
 import type { NoteSearchPage, Schema } from '@/api/types';
+import { firstLine } from './firstLine';
 import { outline } from './outline';
 
 const LIMIT = 8;
@@ -21,10 +22,10 @@ export const referenceCompletion = (schema: Schema, currentFile?: string | null)
       from: before.from + 2,
       validFor: /^[^\]|]*$/,
       options: found.results.map((result) => ({
-        label: result.heading,
-        detail: result.filename,
+        label: firstLine(schema, result.text).line || result.file,
+        detail: result.file,
         apply: (view: EditorView, _completion: unknown, from: number, to: number) => {
-          const target = result.filename.replace(/\.txt$/, '');
+          const target = result.file.replace(/\.txt$/, '');
           const suffix = view.state.sliceDoc(to, to + 2);
           view.dispatch({ changes: { from, to, insert: target + (suffix.startsWith(']]') || suffix.startsWith('|') ? '' : ']]') },
                           selection: { anchor: from + target.length } });

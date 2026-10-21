@@ -12,8 +12,15 @@ export type KeywordDef = {
 };
 export type Schema = { version: number; keywords: Record<string, KeywordDef> };
 export type Diagnostic = { code: string; line: number | null; detail: string | null };
-/** `refs` maps relationship targets to their headings; null for a missing target */
-export type Item = { file: string; text: string; media: string | null; errors: Diagnostic[]; warnings: Diagnostic[]; refs?: Record<string, string | null> };
+/**
+ * A note as the API sends it, wherever it's shown: `refs` maps its relationship and inline
+ * reference targets to their headings (null for a missing one); `media` is its attachment's
+ * path in the data folder; `sourceKey` a source's BibTeX key, null for any other note.
+ */
+export type Item = {
+  file: string; text: string; media: string | null; errors: Diagnostic[]; warnings: Diagnostic[];
+  refs: Record<string, string | null>; sourceKey: string | null;
+};
 export type ItemPage = { items: Item[]; total: number; page: number; page_size: number };
 
 export type Pull = { status: string; completed: number; total: number; error: string | null };
@@ -29,47 +36,39 @@ export type Answered = Item & { target: Suggestion };
 /** `bibtex`: the .bib export targets, each with its last export's error */
 export type Settings = { path: string | null; bibtex: { path: string; error: string | null }[] };
 /** what Settings → maintenance would delete */
-export type Maintenance = { pastAppointments: { file: string; heading: string; date: string }[]; orphanedMedia: string[] };
+export type Maintenance = { pastAppointments: Item[]; orphanedMedia: string[] };
 export type LlmInfo ={ available: boolean; reason: string | null; url: string; default_url: string };
 
-/** an item with what the queue, zero and suggest views show of it; `media` is a path in the data folder */
-export type ItemView = Item & { heading: string; body: string; extra: string | null; media: string | null };
-export type QueueDraw = { items: ItemView[]; total: number };
-export type SuggestPick = { item: ItemView | null };
+export type QueueDraw = { items: Item[]; total: number };
+export type SuggestPick = { item: Item | null };
 /** when an item falls: on one ISO date, or every weekday (1 = Mon .. 7 = Sun) up to `until` inclusive */
 export type When = { appointment: string } | { recurring: number; until: string | null };
-/** `think`: to think about (and sketch) rather than build, tagged `suggest-think-and-sketch` */
-export type ProjectIssue = { file: string; heading: string; think: boolean };
-export type Project = { file: string; heading: string; issues: ProjectIssue[] };
+/** issues to think about (tagged `suggest-think-and-sketch`) come first */
+export type Project = Item & { issues: Item[] };
 /** `orphans`: issues without a `project` relationship to a project */
-export type Projects = { projects: Project[]; orphans: ProjectIssue[] };
-/** names are `family, given`, `family, suffix, given` or, without a comma, one unsplit name */
-export type FieldType = 'literal' | 'integer' | 'range' | 'name' | 'list' | 'date' | 'uri' | 'verbatim';
-/** `entryTypes`: the fields each entry type shows by default */
+export type Projects = { projects: Project[]; orphans: Item[] };
 /** a relationship line in note `file` pointing to some note; `label` as written, '' for none */
 export type Backlink = { file: string; label: string; heading: string; inline: boolean };
 
-export type SourceSchema = { fields: Record<string, { type: FieldType }>; entryTypes: Record<string, string[]> };
 /** a source's fields (names and lists as string[], integers as numbers) */
 export type SourceFields = { key: string; entrytype: string; title: string; extra?: string; [field: string]: string | number | string[] | undefined };
 /** a `source` item: `file` is the item's, the rest its fields */
 export type Source = SourceFields & { file: string };
-/** `recent`: the files of the most recently modified sources, newest first; `backlinks`: how many relationships point to a source */
-export type SourceList = { sources: (Source & { backlinks: number })[]; recent: string[] };
+/** a source note with its fields; the API lists them the most recently edited first */
+export type SourceItem = Item & { fields: Source };
 /** how sure it is that an existing source is the one being added */
 export type MatchLevel = 'same' | 'likely' | 'possible';
-export type SourceCandidate = { file: string; key: string; title: string; level: MatchLevel; reasons: string[] };
+export type SourceCandidate = { file: string; key: string; title: string; level: MatchLevel; reasons: string[]; item: Item };
 /** a source about to be added (as parsed, without `file`) and the existing ones it may be, best first */
 export type SourceMatch = { source: SourceFields; candidates: SourceCandidate[] };
 /** an existing source by file, or a new one */
 export type SourceChoice = { file: string } | { source: SourceFields };
-export type CalendarEntry = { file: string; heading: string; details: string[]; when: When };
+export type CalendarEntry = Item & { when: When };
 
 /** a pinned note, rendered with the notes up to `depth` relationships away */
 export type PinSpec = { filename: string; depth: number };
 export type GraphNodePayload = {
-  filename: string; body: string; image: string | null; extraContent: string; sectionLines: string[]; dataText: string | null;
-  refs: Record<string, string | null>;
+  filename: string; item: Item;
   /** hops from the nearest pin that discovered this node */
   depth: number;
   degree: number;
@@ -81,13 +80,8 @@ export type NoteGraph = { nodes: GraphNodePayload[]; edges: GraphEdgePayload[]; 
 /** a span of text, as UTF-16 offsets into the string it refers to */
 export type MatchRange = { start: number; length: number };
 export type SearchExcerpt = { text: string; match: MatchRange };
-/**
- * A note a search found: `previewMatch` is where the match sits in `preview`; `excerpt` is set exactly
- * when it isn't visible there. `problem`: whether the note has errors or only warnings.
- */
-export type SearchResult = {
-  filename: string; heading: string; preview: string; previewMatch: MatchRange | null; excerpt: SearchExcerpt | null; problem: 'error' | 'warning' | null;
-};
+/** A note a search found: `match` is the matched text when it shows in the first line; else `excerpt` holds it. */
+export type SearchResult = Item & { match: string | null; excerpt: SearchExcerpt | null };
 /** narrows search results by whether a note has any relationship, incoming or outgoing */
 export type OrphanFilter = 'any' | 'orphan' | 'connected';
 /** the notes a search looks at: `graph` the graph's, `attention` those with problems, `tasks` those with tasks */

@@ -1,12 +1,11 @@
 """`source` items: bibliographic sources, their fields in the `data` block (see fields.py).
 
-A source is read from and written to its file's `data` and `extra` blocks and
-first line; lines this module doesn't own (relationships, other keywords,
-unknown `data` keys) are kept as they are when it's saved.
+A source is read from its file's `data` and `extra` blocks and first line, and
+edited as text like any other note; this module only writes new ones (from
+BibTeX, see `resolve`).
 """
 
 import re
-from dataclasses import dataclass, field
 
 import yaml
 
@@ -17,7 +16,6 @@ import store
 from fields import ENTRY_TYPES, FIELDS, ValidationError, join_name, normalise
 
 SOURCE_KEYWORD = "source"
-RECENT = 3
 
 
 class _CoreDumper(yaml.SafeDumper):
@@ -66,86 +64,6 @@ def _dump_data(data: dict) -> list[str]:
         width=10**6,
     )
     return text.rstrip("\n").split("\n")
-
-
-@dataclass
-class _Block:
-    keyword: str
-    lines: list[str]
-
-
-@dataclass
-class _Layout:
-    """A file as its body lines plus the keyword section, in order, as plain
-    lines and blocks: just enough to rewrite some of it and keep the rest."""
-
-    body: list[str] = field(default_factory=list)
-    section: list[str | _Block] = field(default_factory=list)
-
-    def has_keyword(self, keyword: str) -> bool:
-        return any(isinstance(e, str) and e.split()[:1] == [keyword] for e in self.section)
-
-    def block(self, keyword: str) -> _Block | None:
-        return next((e for e in self.section if isinstance(e, _Block) and e.keyword == keyword), None)
-
-    def set_block(self, keyword: str, lines: list[str]) -> None:
-        """Replaces the block's content (or removes the block when `lines` is empty);
-        a new block goes before `extra`, or last."""
-        block = self.block(keyword)
-        if block is not None:
-            if lines:
-                block.lines = lines
-            else:
-                self.section.remove(block)
-        elif lines:
-            extra = self.block("extra")
-            at = self.section.index(extra) if extra is not None and keyword != "extra" else len(self.section)
-            self.section.insert(at, _Block(keyword, lines))
-
-
-def _trim(lines: list[str]) -> list[str]:
-    start, end = 0, len(lines)
-    while start < end and not lines[start].strip():
-        start += 1
-    while end > start and not lines[end - 1].strip():
-        end -= 1
-    return lines[start:end]
-
-
-def _layout(text: str) -> _Layout:
-    schema = store.SCHEMA
-    lines = text.replace("\r", "").split("\n")
-    first = next((i for i, l in enumerate(lines) if l.strip()), None)
-    if first is None:
-        return _Layout()
-    boundary = next((i for i in range(first + 1, len(lines)) if dsl.is_section_opener(schema, lines[i])), len(lines))
-    out = _Layout(body=_trim(lines[first:boundary]))
-    i = boundary
-    while i < len(lines):
-        keyword = dsl.block_keyword(schema, lines[i])
-        if keyword is None:
-            if lines[i].strip():
-                out.section.append(lines[i].strip())
-            i += 1
-            continue
-        end = next((j for j in range(i + 1, len(lines)) if dsl.ends_block(schema, lines[j])), len(lines))
-        out.section.append(_Block(keyword, _trim(lines[i + 1 : end])))
-        i = end
-    return out
-
-
-def _render(layout: _Layout) -> str:
-    out = list(layout.body)
-    if layout.section:
-        out.append("")
-    for entry in layout.section:
-        if isinstance(entry, str):
-            out.append(entry)
-            continue
-        out.append(entry.keyword)
-        # a line that would end the block is indented to stay in it
-        out.extend(f" {l}" if dsl.ends_block(store.SCHEMA, l) else l for l in entry.lines)
-    return "\n".join(out) + "\n"
 
 
 def _load_data(text: str | None) -> dict:
@@ -199,31 +117,28 @@ def list_sources() -> list[dict]:
     return list(_sources().values())
 
 
-def listing() -> dict:
-    """Every source, with `backlinks`, the number of relationships pointing to
-    it, and the files of the RECENT most recently modified, newest first."""
-    listed = list_sources()
-    with store._INDEX.locked() as ix:
-        names = [n for n, e in ix.entries.items() if e.primary == SOURCE_KEYWORD]
-        recent = sorted(names, key=lambda n: ix.entries[n].mtime_ns, reverse=True)[:RECENT]
-        counts = {s["file"]: len(ix.incoming.get(s["file"], ())) for s in listed}
-    return {"sources": [{**s, "backlinks": counts[s["file"]]} for s in listed], "recent": recent}
+def listing() -> list[dict]:
+    """Every source as an item (see store.payload), with its `fields`; the most
+    recently edited first."""
+    by_file = _sources()
+    entries = store._INDEX.refresh()
+    names = sorted(by_file, key=lambda n: (-entries[n].mtime_ns, n))
+    return [store._note(n, entries) | {"fields": by_file[n]} for n in names]
 
 
-def _text(source: dict, base: str | None) -> str:
-    """The file text for `source`, keeping what `base` (the file's current text) holds beyond it."""
-    layout = _layout(base) if base else _Layout()
-    layout.body = [source.get("title") or source["key"], *layout.body[1:]]
-    if not layout.has_keyword(SOURCE_KEYWORD):
-        layout.section.insert(0, SOURCE_KEYWORD)
+def _block(keyword: str, lines: list[str]) -> list[str]:
+    """A block: its keyword, then its lines, those that would end it indented to stay in it."""
+    return [keyword, *(f" {l}" if dsl.ends_block(store.SCHEMA, l) else l for l in lines)]
+
+
+def _text(source: dict) -> str:
+    """A new source's file text."""
     data = {"key": source["key"], "entrytype": source["entrytype"]}
     data.update({n: source[n] for n in FIELDS if n in source})
-    # keys the app doesn't know stay as they are
-    old = _load_data("\n".join(b.lines)) if (b := layout.block("data")) else {}
-    data.update({k: v for k, v in old.items() if k not in data and k not in FIELDS})
-    layout.set_block("data", _dump_data(data))
-    layout.set_block("extra", source["extra"].split("\n") if source.get("extra") else [])
-    return _render(layout)
+    lines = [source.get("title") or source["key"], "", SOURCE_KEYWORD, *_block("data", _dump_data(data))]
+    if source.get("extra"):
+        lines += _block("extra", source["extra"].split("\n"))
+    return "\n".join(lines) + "\n"
 
 
 def _slug(s: str) -> str:
@@ -248,17 +163,8 @@ def _check_key(key: str, file: str | None) -> None:
 def create(body) -> dict:
     source = _normalise(body)
     _check_key(source["key"], None)
-    item = store.create({"text": _text(source, None)})
+    item = store.create({"text": _text(source)})
     return _sources()[item["file"]]
-
-
-def update(file: str, body) -> dict:
-    """Rewrites the source in `file`; the file keeps its name when the key changes."""
-    source = _normalise(body)
-    base = store.get(file)["text"]
-    _check_key(source["key"], file)
-    store.update(file, {"text": _text(source, base)})
-    return _sources()[file]
 
 
 def unique_key(key: str, taken: set[str]) -> str:
@@ -271,9 +177,12 @@ def unique_key(key: str, taken: set[str]) -> str:
 
 
 def match(entries: list[dict]) -> list[dict]:
-    """Each source in `entries` as `{source, candidates}`: the existing sources it may be."""
+    """Each source in `entries` as `{source, candidates}`: the existing sources it
+    may be, each with its `item` (see store.payload)."""
     existing = list_sources()
-    return [{"source": e, "candidates": source_match.match(e, existing)} for e in entries]
+    index = store._INDEX.refresh()
+    with_item = lambda c: c | {"item": store._note(c["file"], index)}
+    return [{"source": e, "candidates": [with_item(c) for c in source_match.match(e, existing)]} for e in entries]
 
 
 def resolve(entries) -> list[dict]:

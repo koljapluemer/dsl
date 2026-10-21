@@ -48,25 +48,6 @@ def test_title_falls_back_to_key_and_key_to_title(data_dir):
     assert sources.create({"key": "", "title": "Attention Is All You Need"})["key"] == "attention-is-all-you-need"
 
 
-def test_rewrite_keeps_foreign_lines(data_dir):
-    (data_dir / "a.txt").write_text(
-        "Old\nsecond body line\n\nsource\n-> see @other-123456\ntasks fix\n"
-        "data\nentrytype: book\nwhatever: 1\nextra\nnotes\n"
-    )
-    sources.update("a.txt", {"key": "a", "entrytype": "book", "title": "New", "extra": "notes"})
-    assert (data_dir / "a.txt").read_text() == (
-        "New\nsecond body line\n\nsource\n-> see @other-123456\ntasks fix\n"
-        "data\nkey: a\nentrytype: book\nwhatever: 1\nextra\nnotes\n"
-    )
-
-
-def test_tags_line_after_data_survives_a_save(data_dir):
-    (data_dir / "a.txt").write_text("Old\nsource\ndata\nentrytype: book\ntags read-later 2026\n")
-    assert sources.list_sources()[0]["entrytype"] == "book"
-    sources.update("a.txt", {"key": "a", "entrytype": "book", "title": "New"})
-    assert (data_dir / "a.txt").read_text() == "New\n\nsource\ndata\nkey: a\nentrytype: book\ntags read-later 2026\n"
-
-
 def test_key_defaults_to_file_stem(data_dir):
     (data_dir / "vaswani2017.txt").write_text("T\nsource\ndata\nentrytype: article\n")
     assert sources.list_sources()[0]["key"] == "vaswani2017"
@@ -84,20 +65,7 @@ def test_notes_are_not_sources(data_dir):
     (data_dir / "n.txt").write_text("Just a note\nrecurring mo\n")
     a = sources.create({"key": "a"})
     assert [s["key"] for s in sources.list_sources()] == ["a"]
-    assert sources.listing()["recent"] == [a["file"]]
-
-
-def test_key_change_keeps_file_and_conflicts(data_dir):
-    a = sources.create({"key": "a"})
-    sources.create({"key": "b"})
-    with pytest.raises(store.Conflict):
-        sources.create({"key": "b"})
-    with pytest.raises(store.Conflict):
-        sources.update(a["file"], {"key": "b"})
-    assert sources.update(a["file"], {"key": "c"})["file"] == a["file"]
-    assert sorted(s["key"] for s in sources.list_sources()) == ["b", "c"]
-    with pytest.raises(store.NotFound):
-        sources.update("nope.txt", {"key": "d"})
+    assert [s["file"] for s in sources.listing()] == [a["file"]]
 
 
 def test_resolve_renames_taken_keys_and_keeps_existing(data_dir):
@@ -137,31 +105,24 @@ def test_endpoints(data_dir):
     assert r.get_json()["text"] == f"N\n-> source @{created['file'][:-4]}\n"
     [m] = client.post("/api/sources/match", json={"text": bib.replace("{h,", "{other,")}).get_json()
     assert [(c["file"], c["level"]) for c in m["candidates"]] == [(created["file"], "same")]
-    assert client.post("/api/sources/match", json={"source": {"title": "Gödel, Escher, Bach", "date": "19"}}).get_json() == []
-    [m] = client.post("/api/sources/match", json={"source": {"key": "", "title": "Gödel, Escher, Bach"}}).get_json()
-    assert m["candidates"][0]["file"] == created["file"]
     assert client.post("/api/sources/match", json={"text": "nothing"}).status_code == 400
 
 
-def test_backlink_counts(data_dir):
-    a = sources.create({"key": "a"})["file"]
-    b = sources.create({"key": "b"})["file"]
-    store.create({"text": f"N\n-> cites @{a[:-4]}\n-> @{a[:-4]}\n"})
-    counts = {s["file"]: s["backlinks"] for s in sources.listing()["sources"]}
-    assert counts == {a: 2, b: 0}
+def test_key_conflicts(data_dir):
+    sources.create({"key": "b"})
+    with pytest.raises(store.Conflict):
+        sources.create({"key": "b"})
 
 
-def test_recent(data_dir):
+def test_listing_items_with_fields_last_edited_first(data_dir):
     files = []
-    for i, k in enumerate("abcd"):
+    for i, k in enumerate("abc"):
         files.append(sources.create({"key": k})["file"])
         os.utime(data_dir / files[-1], ns=(i * 10**9, i * 10**9))
-    a, b, c, d = files
-    assert sources.listing()["recent"] == [d, c, b]
-    sources.update(a, {"key": "a"})  # unchanged content: no rewrite
-    assert sources.listing()["recent"] == [d, c, b]
-    sources.update(a, {"key": "a", "title": "T"})
-    assert sources.listing()["recent"] == [a, d, c]
+    store.create({"text": "a note"})
+    listed = sources.listing()
+    assert [s["file"] for s in listed] == files[::-1]
+    assert (listed[0]["fields"]["key"], listed[0]["sourceKey"], listed[0]["text"]) == ("c", "c", "c\n\nsource\ndata\nkey: c\nentrytype: misc\n")
 
 
 @pytest.mark.parametrize("name, parts", [

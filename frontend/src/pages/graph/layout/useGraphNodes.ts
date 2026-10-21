@@ -1,7 +1,7 @@
 import { useNodesState, type Edge, type OnNodeDrag, type OnNodesChange, type XYPosition } from '@xyflow/react';
 import { useCallback, useEffect, useRef, useState, type RefObject } from 'react';
 import type { GraphFlowNode } from '../canvas/graph-flow-node';
-import { DRAFT_ID_PREFIX, type Interaction } from '../canvas/graph-interaction';
+import type { Interaction } from '../canvas/graph-interaction';
 import { buildView, type ViewCallbacks } from '../canvas/graph-view-model';
 import type { GraphLayout } from './graph-layout';
 import { replaceEqualDeep } from '@tanstack/react-query';
@@ -107,7 +107,7 @@ export function useGraphNodes({
 
   const onNodeDragStop = useCallback<OnNodeDrag<GraphFlowNode>>(
     (_event, node) => {
-      if (node.type === 'note' && !node.id.startsWith(DRAFT_ID_PREFIX)) {
+      if (node.type === 'note') {
         // Whole pixels: a card on a sub-pixel x re-measures its height and
         // retriggers the layout (see separateOverlaps).
         manualPositionsRef.current.set(node.id, {

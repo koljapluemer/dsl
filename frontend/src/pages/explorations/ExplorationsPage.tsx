@@ -1,26 +1,24 @@
 import { useState, type FormEvent } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useSearch } from '@tanstack/react-router';
-import { PanelLeft, Plus, Trash2 } from 'lucide-react';
+import { PanelLeft, Plus } from 'lucide-react';
 import { useSlashFocus } from '@/dumb/keys';
 import { itemsChanged, saveItem } from '@/entities/item/mutations';
+import { NoteLine } from '@/entities/item/NoteLine';
 import { itemQuery } from '@/entities/item/queries';
-import { useDeleteItem } from '@/features/item-delete/useDeleteItem';
-import { NotePanel } from '@/meta/note-panel/NotePanel';
+import { Note } from '@/meta/note/Note';
 import { explorationsQuery, explorationText, type ExplorationsSearch } from './explorations';
 import './explorations.css';
 
 /**
- * The notes tagged `exploration` beside the one open, always in the editor;
- * saved as focus leaves it; the field above the list starts a new one.
+ * The notes tagged `exploration`, inline, beside the one open, in the editor
+ * to begin with and saved as focus leaves it; the field above the list starts a new one.
  */
 export function ExplorationsPage() {
   const qc = useQueryClient();
   const navigate = useNavigate();
   const { open } = useSearch({ strict: false }) as ExplorationsSearch;
   const list = useQuery(explorationsQuery);
-  const item = useQuery({ ...itemQuery(open ?? ''), enabled: !!open });
-  const remove = useDeleteItem();
   /** on a narrow screen the list takes the place of the editor */
   const [listing, setListing] = useState(!open);
   const [start, setStart] = useState('');
@@ -65,27 +63,20 @@ export function ExplorationsPage() {
           </button>
         </form>
         {error && <p className="p-2 text-sm text-error">{error}</p>}
-        <ul className="menu w-full min-h-0 flex-1 flex-nowrap overflow-y-auto">
+        <ul className="min-h-0 flex-1 space-y-1 overflow-y-auto p-2 text-sm">
           {list.data?.map((e) => (
             <li key={e.file}>
-              <button type="button" className={e.file === open ? 'menu-active' : ''} onClick={() => show(e.file)}>
-                <span className="truncate">{e.heading || e.file}</span>
-              </button>
+              <NoteLine item={e} onClick={() => show(e.file)}
+                        className={`rounded-field px-2 py-1.5 hover:bg-base-200 ${e.file === open ? 'bg-base-300' : ''}`} />
             </li>
           ))}
-          {list.data?.length === 0 && <li className="menu-disabled"><span>No explorations yet.</span></li>}
+          {list.data?.length === 0 && <li className="px-2 text-base-content/50">No explorations yet.</li>}
         </ul>
       </aside>
       <section className={`min-h-0 flex-1 ${listing ? 'max-md:hidden' : ''}`}>
         {open ? (
-          <NotePanel key={open} file={open} fill editing autosave
-                     className="exploration h-full rounded-box border border-base-300 bg-base-100 p-3"
-                     toolbar={item.data && (
-                       <button type="button" className="btn btn-ghost btn-xs btn-square hover:text-error" title="delete"
-                               onClick={() => void remove(item.data!).then((deleted) => { if (deleted) show(undefined); })}>
-                         <Trash2 size={14} />
-                       </button>
-                     )} />
+          <Note key={open} file={open} fill commit="blur" defaultMode="edit" persist="explorations"
+                className="exploration h-full rounded-box border border-base-300 bg-base-100 p-3" onDeleted={() => show(undefined)} />
         ) : <p className="text-sm text-base-content/50">Pick or start an exploration.</p>}
       </section>
     </div>

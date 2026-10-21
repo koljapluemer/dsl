@@ -156,7 +156,6 @@ class _Entry:
     graph_rels: tuple[tuple[str, str, bool], ...]
     media: str | None
     extra: str
-    section_lines: tuple[str, ...]
     data_text: str | None
     body_compact: str
     extra_compact: str
@@ -165,8 +164,6 @@ class _Entry:
 
 
 UNLABELED_RELATION = "related"
-# keyword lines that would only repeat a card or don't matter on it
-_UNSHOWN_KEYWORDS = {views.MEDIA_KEYWORD, views.TAGS_KEYWORD}
 _SPACE_RE = re.compile(r"\s+")
 
 
@@ -174,18 +171,6 @@ def effective_graph_rels(entry: _Entry) -> tuple[tuple[str, str, bool], ...]:
     """Graph relationships after an explicit source→target suppresses inline."""
     explicit_targets = {target for _, target, inline in entry.graph_rels if not inline}
     return tuple(rel for rel in entry.graph_rels if not rel[2] or rel[1] not in explicit_targets)
-
-
-def _section_lines(doc: dsl.Document, lines: list[str]) -> tuple[str, ...]:
-    """Keyword lines, verbatim, but not those holding only `media` and `tags`;
-    unknown keyword lines are kept."""
-    by_line: dict[int, list[str]] = {}
-    for c in doc.clauses:
-        by_line.setdefault(c.line, []).append(c.keyword)
-    for d in doc.diagnostics:
-        if d.code == "unknown_keyword" and not lines[d.line - 1].lstrip().startswith("("):
-            by_line.setdefault(d.line, []).append("")
-    return tuple(lines[n - 1].strip() for n, kws in sorted(by_line.items()) if not set(kws) <= _UNSHOWN_KEYWORDS)
 
 
 def _entry(mtime_ns: int, item: dict) -> "_Entry":
@@ -213,7 +198,6 @@ def _entry(mtime_ns: int, item: dict) -> "_Entry":
         + tuple(("", f"{target}.txt", True) for target in sorted(inline)),
         views.media(doc),
         extra,
-        _section_lines(doc, [l.replace("\r", "") for l in text.split("\n")]),
         "\n".join(doc.blocks["data"]) if "data" in doc.blocks else None,
         _SPACE_RE.sub(" ", body).strip(),
         _SPACE_RE.sub(" ", extra).strip(),
@@ -344,7 +328,7 @@ def list_page(attention: bool | None = None, page: int = 0, seed: int = 0, tasks
     page = max(page, 0)
     start = page * PAGE_SIZE
     return {
-        "items": [_with_refs(_read(_dir() / n), entries) for n in names[start : start + PAGE_SIZE]],
+        "items": [_note(n, entries) for n in names[start : start + PAGE_SIZE]],
         "total": len(names),
         "flagged": sum(e.flagged for e in entries.values()),
         "tasks": sum(e.has_tasks for e in entries.values()),
@@ -353,21 +337,22 @@ def list_page(attention: bool | None = None, page: int = 0, seed: int = 0, tasks
     }
 
 
-def _with_refs(item: dict, entries: dict[str, _Entry]) -> dict:
-    """Adds ``refs``: every explicit or inline target's current heading."""
+def _payload(item: dict, entries: dict[str, _Entry]) -> dict:
+    """The item as the API sends it, with ``refs``: every explicit or inline
+    target's current heading, None for a missing one; and ``sourceKey``
+    (see views.source_key)."""
     doc = dsl.parse(SCHEMA, item["text"])
     targets = ({r.target for r in doc.relations}
                | {r.target for text in ("\n".join(doc.body), "\n".join(doc.extra or []))
                   for r in inline_refs.references(text)})
-    item["refs"] = {t: _heading(t) if f"{t}.txt" in entries else None for t in sorted(targets)}
+    item["refs"] = {t: e.heading if (e := entries.get(f"{t}.txt")) else None for t in sorted(targets)}
+    item["sourceKey"] = views.source_key(SCHEMA, doc, item["file"])
     return item
 
 
-def _heading(name: str) -> str | None:
-    try:
-        return dsl.parse(SCHEMA, (_dir() / f"{name}.txt").read_text(encoding="utf-8")).heading
-    except (OSError, UnicodeDecodeError):
-        return None
+def _note(name: str, entries: dict[str, _Entry]) -> dict:
+    """The item in `name`, read now, as the API sends it."""
+    return _payload(_read(_dir() / name), entries)
 
 
 def get(name: str) -> dict:
@@ -441,17 +426,17 @@ def random_candidate(exclude: list[str] = ()) -> dict:
     entries = _INDEX.refresh()
     names = sorted(n for n, e in entries.items() if e.candidate)
     pool = [n for n in names if n not in set(exclude)] or names
-    item = _with_refs(_read(_dir() / random.choice(pool)), entries) if pool else None
+    item = _note(random.choice(pool), entries) if pool else None
     return {"item": item, "total": len(names)}
 
 
-def with_refs(item: dict) -> dict:
-    """The item with `refs` (see _with_refs)."""
-    return _with_refs(item, _INDEX.refresh())
+def payload(item: dict) -> dict:
+    """The item as the API sends it (see _payload)."""
+    return _payload(item, _INDEX.refresh())
 
 
-def get_with_refs(name: str) -> dict:
-    return with_refs(get(name))
+def get_payload(name: str) -> dict:
+    return payload(get(name))
 
 
 def answer(name: str, body: dict) -> dict:
@@ -483,23 +468,52 @@ def _relate(name: str, label: str, body: dict) -> dict:
         target = create({"text": body.get("text")})
     updated = update(name, {"text": questions.add_relation(note["text"], label, target["file"].removesuffix(".txt"))})
     return {
-        **_with_refs(updated, _INDEX.refresh()),
+        **payload(updated),
         "target": {"file": target["file"], "heading": dsl.parse(SCHEMA, target["text"]).heading},
     }
 
 
-def detach(name: str, body: dict) -> dict:
-    """Removes the note's first relationship with `label` ("" for none) to
-    `target` (a name without .txt). Returns the updated note with refs."""
-    body = body if isinstance(body, dict) else {}
+def _relation_line(name: str, body: dict) -> tuple[dict, list[str], int]:
+    """The note, its lines, and the index of its first relationship line with
+    `label` ("" for none) to `target` (a name without .txt)."""
     note = get(name)
     rel = next((r for r in dsl.parse(SCHEMA, note["text"]).relations
                 if (r.label or "") == body.get("label") and r.target == body.get("target")), None)
     if rel is None:
         raise NotFound("relationship")
-    lines = note["text"].split("\n")
-    del lines[rel.line - 1]
-    return _with_refs(update(name, {"text": "\n".join(lines)}), _INDEX.refresh())
+    return note, note["text"].split("\n"), rel.line - 1
+
+
+def detach(name: str, body: dict) -> dict:
+    """Removes the note's first relationship with `label` ("" for none) to
+    `target` (a name without .txt). Returns the updated note."""
+    body = body if isinstance(body, dict) else {}
+    _, lines, i = _relation_line(name, body)
+    del lines[i]
+    return payload(update(name, {"text": "\n".join(lines)}))
+
+
+def relabel(name: str, body: dict) -> dict:
+    """Gives the note's first relationship with `label` to `target` (as for
+    `detach`) the label `nextLabel`, possibly empty. Returns the updated note."""
+    body = body if isinstance(body, dict) else {}
+    next_label = body.get("nextLabel")
+    if not isinstance(next_label, str) or "\n" in next_label:
+        raise ValidationError("invalid relationship label")
+    _, lines, i = _relation_line(name, body)
+    next_label = next_label.strip()
+    lines[i] = f"-> {next_label} @{body['target']}" if next_label else f"-> @{body['target']}"
+    return payload(update(name, {"text": "\n".join(lines)}))
+
+
+def set_tag(name: str, body: dict) -> dict:
+    """Adds the tag `tag` to the note (`on`) or removes it. Returns the updated note."""
+    body = body if isinstance(body, dict) else {}
+    tag = body.get("tag")
+    if not isinstance(tag, str) or not dsl.is_tag(tag):
+        raise ValidationError("invalid tag")
+    change = questions.add_tag if body.get("on") else questions.remove_tag
+    return payload(update(name, {"text": change(SCHEMA, get(name)["text"], tag)}))
 
 
 def backlinks(name: str) -> list[dict]:
@@ -547,11 +561,6 @@ def disable(name: str) -> None:
     update(name, {"text": questions.add_tag(SCHEMA, note["text"], questions.NO_QUESTIONS_TAG)})
 
 
-def _view(name: str) -> dict:
-    item = _with_refs(_read(_dir() / name), _INDEX.refresh())
-    return views.view(item, dsl.parse(SCHEMA, item["text"]))
-
-
 QUEUE_SIZE = 3
 FLOAT_BATCH = 20
 
@@ -568,7 +577,8 @@ def _draw(hiding: views.Hiding, size: int, q: str = "") -> dict:
     needle = q.strip().lower()
     names = sorted(n for n, e in _INDEX.refresh().items()
                    if not hiding.hides(e.primary, e.tags) and needle in e.lower)
-    return {"items": [_view(n) for n in random.sample(names, min(size, len(names)))], "total": len(names)}
+    entries = _INDEX.refresh()
+    return {"items": [_note(n, entries) for n in random.sample(names, min(size, len(names)))], "total": len(names)}
 
 
 def queue_draw() -> dict:
@@ -583,14 +593,15 @@ def float_draw(q: str = "") -> dict:
 
 def zero_items() -> list[dict]:
     """Every item tagged `zero`."""
-    return [_view(n) for n, e in sorted(_INDEX.refresh().items()) if views.ZERO_TAG in e.tags]
+    entries = _INDEX.refresh()
+    return [_note(n, entries) for n, e in sorted(entries.items()) if views.ZERO_TAG in e.tags]
 
 
 def explorations() -> list[dict]:
-    """Every item tagged views.EXPLORATION_TAG, as `{file, heading}`, the last edited first."""
+    """Every item tagged views.EXPLORATION_TAG, the last edited first."""
     entries = _INDEX.refresh()
     names = sorted((n for n, e in entries.items() if views.EXPLORATION_TAG in e.tags), key=lambda n: (-entries[n].mtime_ns, n))
-    return [{"file": n, "heading": entries[n].heading} for n in names]
+    return [_note(n, entries) for n in names]
 
 
 def suggest_tags() -> list[str]:
@@ -603,50 +614,37 @@ def suggest_random(tag: str, exclude: list[str] = ()) -> dict | None:
     - or, when that leaves none, any; None when none carries it."""
     names = sorted(n for n, e in _INDEX.refresh().items() if tag in e.tags)
     pool = [n for n in names if n not in set(exclude)] or names
-    return _view(random.choice(pool)) if pool else None
+    return _note(random.choice(pool), _INDEX.refresh()) if pool else None
 
 
 def calendar_items() -> list[dict]:
-    """Every item that falls on some day (see views.when), with its heading
-    and the rest of its body as `details`."""
-    out = []
-    for name, e in sorted(_INDEX.refresh().items()):
-        if e.when:
-            body = e.body.split("\n")
-            out.append({"file": name, "heading": e.heading, "details": body[1:], "when": e.when})
-    return out
+    """Every item that falls on some day, with `when` (see views.when)."""
+    entries = _INDEX.refresh()
+    return [_note(name, entries) | {"when": e.when} for name, e in sorted(entries.items()) if e.when]
 
 
 def projects() -> dict:
-    """Every project with the issues belonging to it, by heading, and the
-    issues belonging to none (see views.PROJECT_RELATION)."""
+    """Every project with the issues belonging to it, and the issues belonging
+    to none (see views.PROJECT_RELATION); by heading, issues to think about
+    (views.THINK_TAG) first."""
     entries = _INDEX.refresh()
-    ref = lambda name: {"file": name, "heading": entries[name].heading}
-    issue = lambda name: ref(name) | {"think": views.THINK_TAG in entries[name].tags}
-    by_heading = lambda r: (r["heading"].lower(), r["file"])
-    thinks_first = lambda r: (not r["think"], *by_heading(r))
-    owned: dict[str, list[dict]] = {n: [] for n, e in entries.items() if e.primary == views.PROJECT_KEYWORD}
+    by_heading = lambda n: (entries[n].heading.lower(), n)
+    thinks_first = lambda n: (views.THINK_TAG not in entries[n].tags, *by_heading(n))
+    owned: dict[str, list[str]] = {n: [] for n, e in entries.items() if e.primary == views.PROJECT_KEYWORD}
     orphans = []
     for name, e in entries.items():
         if e.primary != views.ISSUE_KEYWORD:
             continue
         targets = {t for label, t in e.explicit_rels if label == views.PROJECT_RELATION and t in owned}
         for t in targets:
-            owned[t].append(issue(name))
+            owned[t].append(name)
         if not targets:
-            orphans.append(issue(name))
+            orphans.append(name)
+    issues = lambda names: [_note(n, entries) for n in sorted(names, key=thinks_first)]
     return {
-        "projects": sorted(
-            (ref(n) | {"issues": sorted(issues, key=thinks_first)} for n, issues in owned.items()), key=by_heading),
-        "orphans": sorted(orphans, key=thinks_first),
+        "projects": [_note(n, entries) | {"issues": issues(owned[n])} for n in sorted(owned, key=by_heading)],
+        "orphans": issues(orphans),
     }
-
-
-def set_think(name: str, think: bool) -> None:
-    """Tags the issue views.THINK_TAG, or untags it."""
-    text = get(name)["text"]
-    change = questions.add_tag if think else questions.remove_tag
-    update(name, {"text": change(SCHEMA, text, views.THINK_TAG)})
 
 
 def media_path(rel: str) -> Path:

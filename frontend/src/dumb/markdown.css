@@ -7,3 +7,7 @@
 .md pre { white-space: pre-wrap; padding: 0.4em 0.6em; }
 .md pre code { padding: 0; }
 .md blockquote { border-left: 2px solid var(--color-base-300); padding-left: 0.75rem; }
+/* one line of Markdown (inlineMarkdown) */
+.md-inline a { text-decoration: underline; }
+.md-inline code { background: var(--color-base-300); border-radius: 0.25rem; padding: 0 0.2em; }
+.md-inline mark { background: color-mix(in oklab, var(--color-primary) 30%, transparent); color: inherit; }

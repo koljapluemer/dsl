@@ -1,5 +1,5 @@
 import { queryOptions } from '@tanstack/react-query';
-import { api, enc } from '@/api/client';
+import { api } from '@/api/client';
 import type { QueueDraw } from '@/api/types';
 import { store } from '@/dumb/store';
 
@@ -13,5 +13,5 @@ export const drawQuery = (n: number) => queryOptions({
   gcTime: Infinity,
 });
 
-/** Tags the item so the queue leaves it out (see docs/hiding.md). */
-export const hideFromQueue = (file: string) => api<null>('POST', `/api/queue/hide/${enc(file)}`);
+/** The tag the queue leaves a note out by (see docs/hiding.md); keep in line with views.QUEUE_HIDING. */
+export const QUEUE_HIDE_TAG = 'no-q';

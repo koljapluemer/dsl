@@ -84,11 +84,13 @@ def test_pins_are_kept():
     assert graph.pins() == [{"filename": "a.txt", "depth": 2}]
 
 
-def test_section_lines_and_data_on_nodes():
-    note("a", "A\nproject\nmedia images/x.png\ntags t\nzap something\n(done)\ndata\nk: v\nextra\nmore")
+def test_nodes_carry_the_item():
+    note("a", "A\nmedia images/x.png\n-> @b\n-> @gone")
+    note("b", "B line\nmore")
     n = graph.build([{"filename": "a.txt", "depth": 0}])["nodes"][0]
-    assert n["sectionLines"] == ["project", "zap something"]
-    assert (n["dataText"], n["extraContent"], n["image"]) == ("k: v", "more", "images/x.png")
+    item = n["item"]
+    assert (item["file"], item["media"], item["refs"]) == ("a.txt", "images/x.png", {"b": "B line", "gone": None})
+    assert item["text"].startswith("A\nmedia")
 
 
 def test_random():
@@ -99,17 +101,6 @@ def test_random():
 
 
 # --- edits ---
-
-
-def test_create_related_and_reverse(data_dir):
-    note("a", "A\nappointment 26-01-01")
-    made = graph.create({"body": "New one", "related": "a.txt", "label": " "})
-    assert made["label"] == "related"
-    assert (data_dir / "a.txt").read_text() == f"A\nappointment 26-01-01\n-> related @{made['filename'][:-4]}\n"
-    back = graph.create({"body": "Other", "related": "a.txt", "label": "for", "reverse": True})
-    assert (data_dir / back["filename"]).read_text() == "Other\n-> for @a\n"
-    with pytest.raises(store.NotFound):
-        graph.create({"body": "x", "related": "missing.txt"})
 
 
 def test_relabel_and_delete_keep_other_lines(data_dir):

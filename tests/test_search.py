@@ -20,7 +20,7 @@ def note(name: str, text: str) -> str:
 
 
 def hits(q: str, **kw) -> list[str]:
-    return [r["filename"] for r in search.search(q, **kw)["results"]]
+    return [r["file"] for r in search.search(q, **kw)["results"]]
 
 
 def test_query_parser():
@@ -79,14 +79,13 @@ def test_inline_relationships_count_as_connected_and_explicit_wins_for_degree():
     assert graph._view().degree("a.txt") == 1
 
 
-def test_match_display_uses_utf16_offsets():
-    note("a", "😀 x needle")
+def test_match_in_the_first_line_or_an_excerpt():
+    note("a", "😀 x  needle\nmore")
     r = search.search('"needle"')["results"][0]
-    assert r["preview"] == "😀 x needle"
-    assert r["previewMatch"] == {"start": 5, "length": 6}
+    assert (r["file"], r["text"], r["match"], r["excerpt"]) == ("a.txt", "😀 x  needle\nmore\n", "needle", None)
     note("b", "Body\nextra\n" + "w " * 40 + "deep needle")
     r = search.search('"deep"')["results"][0]
-    assert r["previewMatch"] is None and r["excerpt"]["text"].startswith("…")
+    assert r["match"] is None and r["excerpt"]["text"].startswith("…")
     ex = r["excerpt"]
     assert ex["text"][ex["match"]["start"] : ex["match"]["start"] + ex["match"]["length"]] == "deep"
 
@@ -100,8 +99,8 @@ def test_scopes_and_problems(data_dir):
     assert hits("note", scope="attention") == ["bad.txt"]
     assert hits("note", scope="tasks") == ["task.txt"]
     assert sorted(hits("note", scope="graph")) == ["ok.txt", "task.txt"]
-    problems = {r["filename"]: r["problem"] for r in search.search("note")["results"]}
-    assert problems["bad.txt"] == "error" and problems["ok.txt"] is None
+    errors = {r["file"]: bool(r["errors"]) for r in search.search("note")["results"]}
+    assert errors["bad.txt"] and not errors["ok.txt"]
     with pytest.raises(store.ValidationError):
         search.search("note", scope="nope")
 
@@ -113,7 +112,7 @@ def test_exclude_limit_and_pages():
     pages = [search.search("fox", limit=2, page=p) for p in range(3)]
     assert [len(p["results"]) for p in pages] == [2, 2, 1]
     assert pages[0]["total"] == 5 and pages[1]["pageSize"] == 2 and pages[1]["page"] == 1
-    assert sorted(f for p in pages for f in (r["filename"] for r in p["results"])) == [f"{k}.txt" for k in "abcde"]
+    assert sorted(f for p in pages for f in (r["file"] for r in p["results"])) == [f"{k}.txt" for k in "abcde"]
 
 
 def test_empty_query_lists_newest_first(data_dir):

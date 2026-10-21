@@ -21,10 +21,13 @@ Conventions:
 - Something two features need goes down a layer, usually into `dumb` when it
   has no app logic. That's why the undo toast's store is `dumb/undo.ts` and not
   part of `item-delete`.
-- Use `meta` only for real feature composition. For example, `note-panel`
-  shows a note and composes `item-edit`, `item-media`, `item-delete` and
-  `item-relate` into its editor and actions; each feature remains usable
-  on its own.
+- Use `meta` only for real feature composition. For example, `note` is the
+  note component every page shows notes with
+  ([`note-component.md`](note-component.md)); it composes `item-edit`,
+  `item-media`, `item-delete`, `item-relate` and `source-bibtex` into its
+  editor, tools and relationships; each feature remains usable on its own.
+  The pieces it renders with that need no feature, `NoteContent` and
+  `NoteLine`, are in `entities/item`, so features can show notes too.
 - Don't make a feature that only one page uses. Put it in the page's folder,
   split into files rather than one big page file.
 - No `index.ts` re-exports. Import from the defining file.

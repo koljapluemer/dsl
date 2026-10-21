@@ -18,7 +18,6 @@ import search as note_search
 import semantic
 import sources
 import store
-import views
 
 PORT = 8766
 ROOT = Path(__file__).parent
@@ -194,21 +193,9 @@ def queue_draw():
     return jsonify(store.queue_draw())
 
 
-@app.post("/api/queue/hide/<name>")
-def queue_hide(name):
-    store.hide(name, views.QUEUE_HIDING)
-    return "", 204
-
-
 @app.get("/api/float")
 def float_draw():
     return jsonify(store.float_draw(request.args.get("q", "")))
-
-
-@app.post("/api/float/hide/<name>")
-def float_hide(name):
-    store.hide(name, views.FLOAT_HIDING)
-    return "", 204
 
 
 @app.get("/api/zero")
@@ -241,58 +228,28 @@ def projects():
     return jsonify(store.projects())
 
 
-@app.put("/api/projects/think/<name>")
-def projects_think(name):
-    store.set_think(name, bool((request.get_json(silent=True) or {}).get("think")))
-    return "", 204
-
-
 @app.get("/api/sources")
 def list_sources():
     return jsonify(sources.listing())
 
 
-@app.get("/api/sources/schema")
-def source_schema():
-    return jsonify(fields.schema())
-
-
-@app.post("/api/sources")
-def create_source():
-    return jsonify(sources.create(request.get_json(silent=True))), 201
-
-
-@app.put("/api/sources/<name>")
-def update_source(name):
-    return jsonify(sources.update(name, request.get_json(silent=True)))
-
-
 @app.post("/api/sources/match")
 def match_sources():
-    """`{text}` BibTeX, or `{source}` a form's values (nothing while they're
-    invalid): each source with the existing ones it may be."""
-    body = _json()
-    if "source" in body:
-        try:
-            # the key isn't compared, so a half-typed one doesn't matter
-            entries = [sources._normalise({**body["source"], "key": "x"})]
-        except fields.ValidationError:
-            return jsonify([])
-    else:
-        try:
-            entries = bibtex_import.parse(str(body.get("text", "")))
-        except ValueError as e:
-            raise fields.ValidationError(str(e)) from None
+    """`{text}` BibTeX: each source in it with the existing ones it may be."""
+    try:
+        entries = bibtex_import.parse(str(_json().get("text", "")))
+    except ValueError as e:
+        raise fields.ValidationError(str(e)) from None
     return jsonify(sources.match(entries))
 
 
 @app.post("/api/sources/resolve")
 def resolve_sources():
     """`{entries, text?, label?}`: the entries' sources, existing or created
-    (see sources.resolve), and `text` with a relationship to each."""
+    (see sources.resolve), each with its `item`, and `text` with a relationship to each."""
     body = _json()
     resolved = sources.resolve(body.get("entries"))
-    out: dict = {"sources": resolved}
+    out: dict = {"sources": [s | {"item": store.get_payload(s["file"])} for s in resolved]}
     if isinstance(body.get("text"), str):
         out["text"] = sources.link(body["text"], [s["file"] for s in resolved], str(body.get("label") or ""))
     return jsonify(out), 201
@@ -316,11 +273,6 @@ def graph_open():
 @app.get("/api/graph/random")
 def graph_random():
     return jsonify(filename=graph.random_note(_excluded(), request.args.get("orphan") == "1"))
-
-
-@app.post("/api/graph/notes")
-def graph_create():
-    return jsonify(graph.create(_json())), 201
 
 
 @app.put("/api/graph/notes/<name>")
@@ -401,17 +353,17 @@ def list_items():
 
 @app.get("/api/items/<name>")
 def get_item(name):
-    return jsonify(store.get_with_refs(name))
+    return jsonify(store.get_payload(name))
 
 
 @app.post("/api/items")
 def create_item():
-    return jsonify(store.with_refs(store.create(request.get_json()))), 201
+    return jsonify(store.payload(store.create(request.get_json()))), 201
 
 
 @app.put("/api/items/<name>")
 def update_item(name):
-    return jsonify(store.with_refs(store.update(name, request.get_json())))
+    return jsonify(store.payload(store.update(name, request.get_json())))
 
 
 @app.put("/api/items/<name>/media")
@@ -432,6 +384,16 @@ def relate_item(name):
 @app.post("/api/items/<name>/detach")
 def detach_item(name):
     return jsonify(store.detach(name, request.get_json(silent=True)))
+
+
+@app.post("/api/items/<name>/relabel")
+def relabel_item(name):
+    return jsonify(store.relabel(name, request.get_json(silent=True)))
+
+
+@app.put("/api/items/<name>/tags")
+def tag_item(name):
+    return jsonify(store.set_tag(name, request.get_json(silent=True)))
 
 
 @app.get("/api/items/<name>/backlinks")

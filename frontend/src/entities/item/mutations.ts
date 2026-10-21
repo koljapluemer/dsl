@@ -30,6 +30,13 @@ export const relateItem = (file: string, body: { label: string } & ({ target: st
 export const detachItem = (file: string, rel: { label: string; target: string }) =>
   api<Item>('POST', `/api/items/${enc(file)}/detach`, { label: rel.label, target: rel.target });
 
+/** Gives the item's first relationship with `label` ('' for none) to `target` (a name without .txt) the label `nextLabel`. */
+export const relabelItem = (file: string, rel: { label: string; target: string; nextLabel: string }) =>
+  api<Item>('POST', `/api/items/${enc(file)}/relabel`, rel);
+
+/** Adds the tag to the item (`on`) or removes it. */
+export const setTag = (file: string, tag: string, on: boolean) => api<Item>('PUT', `/api/items/${enc(file)}/tags`, { tag, on });
+
 /** Links the note `source` (a file), or a new note with `text`, to `file` under any `label` ('' for none). */
 export const addBacklink = (file: string, body: { label: string } & ({ source: string } | { text: string })) =>
   api<Backlink[]>('POST', `/api/items/${enc(file)}/backlinks`, body);

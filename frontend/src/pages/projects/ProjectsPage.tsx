@@ -1,49 +1,32 @@
 import { useState } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Hammer, Lightbulb, Pencil, Plus, Trash2 } from 'lucide-react';
-import type { ProjectIssue, Projects } from '@/api/types';
-import { showError } from '@/dumb/errorBanner';
-import { itemsChanged } from '@/entities/item/mutations';
-import { itemQuery } from '@/entities/item/queries';
-import { useDeleteItem } from '@/features/item-delete/useDeleteItem';
-import { Modal } from '@/dumb/Modal';
-import { NotePanel } from '@/meta/note-panel/NotePanel';
-import { NEW_PROJECT, newIssue, projectsQuery, setThink } from './projects';
+import { useQuery } from '@tanstack/react-query';
+import { Hammer, Lightbulb, Plus } from 'lucide-react';
+import type { Item, Projects } from '@/api/types';
+import { Note } from '@/meta/note/Note';
+import { NoteModal } from '@/meta/note/NoteModal';
+import type { TagToggle } from '@/meta/note/tools';
+import { NEW_PROJECT, newIssue, projectsQuery, THINK_TAG } from './projects';
 
-/** The modal: an item, or a new one starting as `initial`, closing once written if `closeOnCreate`. */
-type Editing = { file: string | null; initial: string; key: number; closeOnCreate?: boolean };
+/** A new note's modal, starting as `initial`. */
+type Adding = { initial: string; key: number };
 
-/** Projects, each collapsible with its issues, and the issues without a project; items open in a modal to read, edit or delete; new ones too. */
+const THINK: TagToggle = {
+  tag: THINK_TAG, icon: Hammer, activeIcon: Lightbulb, title: 'to build (click: to think about)', activeTitle: 'to think about (click: to build)',
+};
+
+/** Projects, each expandable to its issues, and the issues without a project; all inline, edited in a modal; new ones too. */
 export function ProjectsPage() {
   const { data } = useQuery(projectsQuery);
-  const [editing, setEditing] = useState<Editing | null>(null);
-  const open = (file: string) => setEditing({ file, initial: '', key: Date.now() });
-  const add = (initial: string, closeOnCreate = false) => setEditing({ file: null, initial, key: Date.now(), closeOnCreate });
-  const del = useDelete();
+  const [adding, setAdding] = useState<Adding | null>(null);
+  const add = (initial: string) => setAdding({ initial, key: Date.now() });
 
   return (
     <div>
       <button className="btn btn-sm mb-4" onClick={() => add(NEW_PROJECT)}><Plus size={16} />Project</button>
-      {data && <Lists projects={data} onOpen={open} onAdd={add} onDelete={del} />}
-      {editing && (
-        <Modal wide onClose={() => setEditing(null)}>
-          <NotePanel key={editing.key} file={editing.file} initial={editing.initial} onClose={() => setEditing(null)} onDeleted={() => setEditing(null)}
-                     onCreated={editing.closeOnCreate ? () => setEditing(null) : undefined} />
-        </Modal>
-      )}
+      {data && <Lists projects={data} onAdd={add} />}
+      {adding && <NoteModal key={adding.key} file={null} initial={adding.initial} onClose={() => setAdding(null)} />}
     </div>
   );
-}
-
-/** Deletes the item `file`, offering to undo it. */
-function useDelete() {
-  const qc = useQueryClient();
-  const remove = useDeleteItem();
-  return async (file: string) => {
-    try {
-      await remove(await qc.fetchQuery({ ...itemQuery(file), staleTime: 0 }));
-    } catch (e) { showError(e); }
-  };
 }
 
 const OPEN_KEY = 'projects-open';
@@ -71,9 +54,7 @@ function useOpenProjects() {
   return { openFiles, toggle };
 }
 
-type Handlers = { onOpen: (file: string) => void; onAdd: (initial: string, closeOnCreate?: boolean) => void; onDelete: (file: string) => void };
-
-function Lists({ projects: data, onOpen: open, onAdd: add, onDelete: del }: { projects: Projects } & Handlers) {
+function Lists({ projects: data, onAdd }: { projects: Projects; onAdd: (initial: string) => void }) {
   const { openFiles, toggle } = useOpenProjects();
   return (
     <>
@@ -82,15 +63,13 @@ function Lists({ projects: data, onOpen: open, onAdd: add, onDelete: del }: { pr
         <details key={p.file} className="collapse collapse-arrow border border-base-300 mb-2"
                  open={openFiles.has(p.file)} onToggle={(e) => toggle(p.file, e.currentTarget.open)}>
           <summary className="collapse-title font-semibold">
-            {p.heading || 'untitled'} <span className="text-base-content/50 font-normal">({p.issues.length})</span>
+            <Note file={p.file} item={p} render="inline" extraTools={[
+              { key: 'count', node: <span className="badge badge-ghost badge-sm font-normal" title="issues">{p.issues.length}</span> },
+              { key: 'issue', title: 'add an issue', icon: <Plus size={14} />, onClick: () => onAdd(newIssue(p.file)) },
+            ]} />
           </summary>
           <div className="collapse-content">
-            <div className="flex gap-1 mb-2">
-              <button className="btn btn-xs" onClick={() => open(p.file)}><Pencil size={14} />Edit project</button>
-              <button className="btn btn-xs" onClick={() => add(newIssue(p.file), true)}><Plus size={14} />Issue</button>
-              <button className="btn btn-xs btn-ghost text-error ml-auto" onClick={() => del(p.file)}><Trash2 size={14} />Delete project</button>
-            </div>
-            <IssueList issues={p.issues} onOpen={open} onDelete={del} />
+            <IssueList issues={p.issues} />
           </div>
         </details>
       ))}
@@ -98,34 +77,20 @@ function Lists({ projects: data, onOpen: open, onAdd: add, onDelete: del }: { pr
         <div className="mt-6">
           <h2 className="font-semibold mb-1">Issues without a project</h2>
           <p className="text-sm text-base-content/50 mb-2">An issue needs a relationship <code>-&gt; project @&lt;project&gt;</code> to a project.</p>
-          <IssueList issues={data.orphans} onOpen={open} onDelete={del} />
+          <IssueList issues={data.orphans} />
         </div>
       )}
     </>
   );
 }
 
-/** Issues to think about come first (the backend's order), tinted; the bulb/hammer flips an issue between think and build. */
-function IssueList({ issues, onOpen, onDelete }: { issues: ProjectIssue[] } & Omit<Handlers, 'onAdd'>) {
-  const qc = useQueryClient();
-  const flip = async (i: ProjectIssue) => {
-    try {
-      await setThink(i.file, !i.think);
-      await itemsChanged(qc);
-    } catch (e) { showError(e); }
-  };
+/** Issues to think about come first (the backend's order). */
+function IssueList({ issues }: { issues: Item[] }) {
   if (!issues.length) return <p className="text-sm text-base-content/50">No issues.</p>;
   return (
-    <ul className="list">
+    <ul className="space-y-1">
       {issues.map((i) => (
-        <li key={i.file} className={`list-row py-1 items-center cursor-pointer hover:bg-base-200 ${i.think ? 'bg-info/10' : ''}`} onClick={() => onOpen(i.file)}>
-          <span className="list-col-grow">{i.heading || 'untitled'}</span>
-          <button className={`btn btn-ghost btn-xs btn-square ${i.think ? 'text-info' : 'text-base-content/40'}`}
-                  title={i.think ? 'think about this' : 'build this'}
-                  onClick={(e) => { e.stopPropagation(); void flip(i); }}>{i.think ? <Lightbulb size={14} /> : <Hammer size={14} />}</button>
-          <button className="btn btn-ghost btn-xs btn-square text-error" title="delete"
-                  onClick={(e) => { e.stopPropagation(); onDelete(i.file); }}><Trash2 size={14} /></button>
-        </li>
+        <li key={i.file}><Note file={i.file} item={i} render="inline" tagToggles={[THINK]} className="px-2 py-1" /></li>
       ))}
     </ul>
   );

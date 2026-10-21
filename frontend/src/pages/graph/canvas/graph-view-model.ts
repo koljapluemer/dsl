@@ -3,12 +3,12 @@ import type { MediaAttachment } from '@/features/item-media/useMediaAttachment';
 import type { GraphFlowNode } from './graph-flow-node';
 import { mergeRelationsIntoEdges } from './graph-edges';
 import { buildHiddenRelations } from './graph-hidden-relations';
-import type { ConnectingInteraction, DraftInteraction, Interaction } from './graph-interaction';
+import type { ConnectingInteraction, Interaction } from './graph-interaction';
 import { NODE_CLASS_NAME } from './graph-node-style';
 import { NODE_WIDTH, seedPosition, type GraphLayout } from '../layout/graph-layout';
-import type { GraphEdgePayload, NoteGraph } from '@/api/types';
+import type { GraphEdgePayload, Item, NoteGraph } from '@/api/types';
 
-// Draft/edit cards can grow past their layout slot while their content changes -
+// Edited cards can grow past their layout slot while their content changes -
 // keep them above everything else instead of trying to keep the layout from ever
 // overlapping them.
 const EDITING_NODE_Z_INDEX = 1000;
@@ -17,8 +17,7 @@ export interface ViewCallbacks {
   onDeleteNote: (filename: string, pinDepth: number | null) => Promise<void>;
   onHideNote: (filename: string, pinDepth: number | null) => Promise<void>;
   onStartEdit: (filename: string) => void;
-  onSaveEdit: (filename: string, text: string, image: MediaAttachment, previousImage: string | null) => Promise<void>;
-  onSaveDraft: (draft: DraftInteraction, body: string, label: string, reverse: boolean, image: MediaAttachment) => Promise<void>;
+  onSaveEdit: (filename: string, text: string, image: MediaAttachment, previous: Item) => Promise<void>;
   onCancelInteraction: () => void;
   onConfirmConnection: (connecting: ConnectingInteraction, label: string) => Promise<void>;
   onDeleteRelation: (relation: GraphEdgePayload) => Promise<void>;
@@ -79,7 +78,6 @@ export function buildView(
       dragHandle: '.note-drag-handle',
       ...(editing ? { zIndex: EDITING_NODE_Z_INDEX } : {}),
       data: {
-        kind: 'note',
         note,
         pinDepth: pins.get(note.filename) ?? null,
         isAnchor: note.filename === anchorFilename,
@@ -113,37 +111,6 @@ export function buildView(
       onOpenInlineRelation: callbacks.onOpenInlineRelation,
     },
   }));
-
-  if (interaction.type === 'draft') {
-    nodes.push({
-      id: interaction.clientId,
-      type: 'note',
-      position: interaction.position,
-      width: NODE_WIDTH,
-      draggable: false,
-      className: NODE_CLASS_NAME,
-      zIndex: EDITING_NODE_Z_INDEX,
-      data: {
-        kind: 'draft',
-        showRelation: interaction.sourceFilename !== null,
-        onSave: (body, label, reverse, image) => callbacks.onSaveDraft(interaction, body, label, reverse, image),
-        onCancel: callbacks.onCancelInteraction,
-      },
-    });
-
-    // The source note may have been deleted while this draft was still open - the
-    // draft card itself still works (it just won't create a relation on save), but
-    // don't draw a preview line to a node that no longer exists.
-    if (interaction.sourceFilename && placedFilenames.has(interaction.sourceFilename)) {
-      edges.push({
-        id: `${interaction.clientId}__preview`,
-        source: interaction.sourceFilename,
-        target: interaction.clientId,
-        type: 'floating',
-        style: { strokeWidth: 1.4, strokeDasharray: '4 4' },
-      });
-    }
-  }
 
   if (interaction.type === 'connecting') {
     // Same defensive check: either note may have been deleted while this

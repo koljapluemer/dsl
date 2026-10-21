@@ -6,7 +6,8 @@ itself is the reference for the details. Setup, running and a per-view tour
 are in the top-level [`README.md`](../README.md).
 
 - [`frontend-architecture.md`](frontend-architecture.md) — the frontend's layers and what may import what
-- [`relationships.md`](relationships.md) — outgoing relationships and backlinks: endpoints and the reusable `item-relate` components
+- [`note-component.md`](note-component.md) — the one component every note is shown with: its parameters, relationships widget, modes, and each page's configuration
+- [`relationships.md`](relationships.md) — outgoing relationships and backlinks: endpoints and the `item-relate` widget
 - [`hiding.md`](hiding.md) — which notes a view leaves out, the hide button, and its undo
 
 Elsewhere:

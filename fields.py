@@ -68,13 +68,6 @@ DATE_RE = re.compile(
 KEY_RE = re.compile(r"^[A-Za-z0-9_:.\-/+]+$")
 
 
-def schema() -> dict:
-    return {
-        "fields": FIELDS,
-        "entryTypes": ENTRY_TYPES,
-    }
-
-
 class ValidationError(ValueError):
     pass
 

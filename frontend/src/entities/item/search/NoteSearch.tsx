@@ -84,9 +84,9 @@ export function NoteSearch({
       setActive({ query, index: at <= 0 ? n - 1 : at - 1 });
     } else if (event.key === 'Enter') {
       event.preventDefault();
-      if (at >= 0 && at < n && !(action && isSubmit(event))) pick(shown[at].filename);
+      if (at >= 0 && at < n && !(action && isSubmit(event))) pick(shown[at].file);
       else if (action) { if (query) action.run(query); }
-      else if (shown[0]) pick(shown[0].filename);
+      else if (shown[0]) pick(shown[0].file);
     } else if (event.key === 'Escape') {
       if (onEscape) onEscape();
       else if (suggest) setDismissed(query);
@@ -158,8 +158,8 @@ export function NoteSearch({
   );
 
   const list = shown.map((result, i) => (
-    <NoteResult key={result.filename} result={result} marked={!!marked?.has(result.filename)} active={i === at} compact={compact || suggest}
-                onSelect={() => pick(result.filename)} />
+    <NoteResult key={result.file} result={result} marked={!!marked?.has(result.file)} active={i === at} compact={compact || suggest}
+                onSelect={() => pick(result.file)} onRef={pick} />
   ));
 
   if (suggest) {

@@ -1,25 +1,24 @@
-import { useEffect, useRef, useState, type MouseEvent } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { EyeOff } from 'lucide-react';
-import type { ItemView as View } from '@/api/types';
-import { showError } from '@/dumb/errorBanner';
+import type { Item } from '@/api/types';
 import { blurOnEscape, useSlashFocus } from '@/dumb/keys';
-import { offerUndo } from '@/dumb/undo';
 import { useDebounced } from '@/dumb/useDebounced';
-import { ItemView } from '@/entities/item/ItemView';
-import { itemsChanged, saveItem } from '@/entities/item/mutations';
-import { Modal } from '@/dumb/Modal';
-import { NotePanel } from '@/meta/note-panel/NotePanel';
-import { MAX_S, MIN_S, SPAWN_MS, floatQuery, hideFromFloat } from './float';
+import { Note } from '@/meta/note/Note';
+import { NoteModal } from '@/meta/note/NoteModal';
+import type { TagToggle } from '@/meta/note/tools';
+import { FLOAT_HIDE_TAG, MAX_S, MIN_S, SPAWN_MS, floatQuery } from './float';
 import './float.css';
 
-type Card = { id: number; item: View; top: string; duration: number };
+type Card = { id: number; item: Item; top: string; duration: number };
+
+const HIDE: TagToggle = { tag: FLOAT_HIDE_TAG, icon: EyeOff, title: 'hide from float', activeTitle: 'hidden from float (click: back in it)' };
 
 let nextId = 0;
 
 /**
- * Random items, minus those the float view hides (see docs/hiding.md), drifting across the stage one after another.
- * A card stops under the pointer; clicking it opens the item in a modal, which holds everything still.
+ * Random items, minus those the float view hides (see docs/hiding.md), drifting across the stage one after another,
+ * shown simply. A card stops under the pointer; its edit button opens the item in a modal, which holds everything still.
  */
 export function FloatPage() {
   const qc = useQueryClient();
@@ -32,7 +31,7 @@ export function FloatPage() {
   const [editing, setEditing] = useState<Card | null>(null);
 
   // the drawn items not yet sent off; a new batch replaces them
-  const pending = useRef<View[]>([]);
+  const pending = useRef<Item[]>([]);
   useEffect(() => { pending.current = [...(data?.items ?? [])]; }, [data]);
 
   useEffect(() => {
@@ -51,32 +50,14 @@ export function FloatPage() {
     return () => { clearTimeout(first); clearInterval(timer); };
   }, [editing, data]);
 
-  const drop = (file: string) => setCards((cs) => cs.filter((c) => c.item.file !== file));
-
-  async function hide(item: View) {
-    await hideFromFloat(item.file);
-    drop(item.file);
-    pending.current = pending.current.filter((i) => i.file !== item.file);
-    offerUndo('note hidden from float', async () => {
-      await saveItem(item.file, item.text);
-      await itemsChanged(qc);
-    });
-    await itemsChanged(qc);
-  }
+  const drop = (card: Card) => setCards((cs) => cs.filter((c) => c.id !== card.id));
 
   // the stage moves on with what's drawn next, and the card is gone
   function close() {
-    if (editing) drop(editing.item.file);
+    if (editing) drop(editing);
     setEditing(null);
     void qc.invalidateQueries({ queryKey: ['float'] });
   }
-
-  // links, buttons and media in a card do their own thing rather than opening the editor,
-  // as do clicks in modals portaled from it (React bubbles those here too)
-  const open = (e: MouseEvent, card: Card) => {
-    const target = e.target as Element;
-    if (e.currentTarget.contains(target) && !target.closest('a, button, img, video')) setEditing(card);
-  };
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -85,27 +66,17 @@ export function FloatPage() {
         {cards.map((c) => (
           <div
             key={c.id}
-            className="float-card card bg-base-200 shadow-lg w-64 cursor-pointer"
+            className="float-card card bg-base-200 shadow-lg w-64"
             style={{ top: c.top, animationDuration: `${c.duration}s` }}
-            onAnimationEnd={() => setCards((cs) => cs.filter((x) => x.id !== c.id))}
-            onClick={(e) => open(e, c)}
+            onAnimationEnd={() => drop(c)}
           >
-            <div className="card-body flex-row items-start gap-1 p-3">
-              <div className="overview min-w-0 flex-1"><ItemView item={c.item} /></div>
-              <button className="btn btn-ghost btn-xs btn-square" title="Hide from float" onClick={(e) => { e.stopPropagation(); hide(c.item).catch(showError); }}>
-                <EyeOff size={14} />
-              </button>
-            </div>
+            <Note file={c.item.file} item={c.item} render="simple" tagToggles={[HIDE]} onEdit={() => setEditing(c)} onDeleted={() => drop(c)}
+                  className="card-body p-3" />
           </div>
         ))}
       </div>
       <input ref={filter} onKeyDown={blurOnEscape} className="input w-full my-4" placeholder="Filter" value={q} onChange={(e) => setQ(e.target.value)} />
-      {editing && (
-        <Modal wide onClose={close}>
-          <NotePanel key={editing.id} file={editing.item.file} onClose={close} onDeleted={close}
-                     hide={{ title: 'Hide from float', run: async () => { await hide(editing.item); close(); } }} />
-        </Modal>
-      )}
+      {editing && <NoteModal key={editing.id} file={editing.item.file} tagToggles={[HIDE]} onClose={close} />}
     </div>
   );
 }

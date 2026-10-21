@@ -47,7 +47,7 @@ export function useBibtexSources() {
     setStaged(rows.map((r, i) => {
       const s = result.sources[i];
       const known = r.candidates.some((c) => c.file === s.file);
-      return { ...r, choice: s.file, candidates: known ? r.candidates : [{ file: s.file, key: s.key, title: s.title, level: 'same', reasons: [] }, ...r.candidates] };
+      return { ...r, choice: s.file, candidates: known ? r.candidates : [{ file: s.file, key: s.key, title: s.title, level: 'same', reasons: [], item: s.item }, ...r.candidates] };
     }));
     await itemsChanged(qc);
     return result;

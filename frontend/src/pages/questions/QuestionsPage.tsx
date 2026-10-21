@@ -4,8 +4,10 @@ import { Ban, SkipForward } from 'lucide-react';
 import type { Item } from '@/api/types';
 import { showError } from '@/dumb/errorBanner';
 import { useHotkeys } from '@/dumb/keys';
+import { useSessionState } from '@/dumb/useSessionState';
 import { ModelDownload } from '@/features/model-download/ModelDownload';
-import { NotePanel } from '@/meta/note-panel/NotePanel';
+import { isMode, type NoteMode } from '@/meta/note/mode';
+import { Note } from '@/meta/note/Note';
 import { QuestionAnswer } from './QuestionAnswer';
 import { disable, nextNote, pickQuery } from './questions';
 
@@ -17,10 +19,10 @@ export function QuestionsPage() {
   /** skipped this session, so Skip doesn't bring them right back */
   const skipped = useRef<string[]>([]);
   const shownFile = useRef<string | null>(null);
-  const [editing, setEditing] = useState(false);
+  /** kept here for `e`; the same for every note asked about */
+  const [mode, setMode] = useSessionState<NoteMode>('note-mode:questions', 'view', isMode);
 
   function show(i: Item | null, total?: number) {
-    if (i?.file !== shownFile.current) setEditing(false);
     shownFile.current = i?.file ?? null;
     setNote((n) => ({ item: i, total: total ?? n?.total ?? 0 }));
   }
@@ -57,7 +59,7 @@ export function QuestionsPage() {
     } catch (e) { showError(e); }
   }
 
-  useHotkeys({ s: skip, e: () => setEditing(true), d: () => void disableNote() }, !!item);
+  useHotkeys({ s: skip, e: () => setMode('edit'), d: () => void disableNote() }, !!item);
 
   if (!note) return null;
   if (!item) return <p className="text-base-content/50">No notes to ask about.</p>;
@@ -68,9 +70,8 @@ export function QuestionsPage() {
         <button className="btn" title="never ask about this note, tag no-questions (d)" onClick={disableNote}><Ban size={20} />Disable</button>
         <span className="ml-auto font-mono text-xs text-base-content/50">{note.total}</span>
       </div>
-      <NotePanel key={item.file} file={item.file} item={item} relationships className="rounded-box border border-base-300 p-4"
-                 editing={editing} onEditingChange={setEditing}
-                 onSaved={(saved) => show(saved)} onDeleted={() => void next()} />
+      <Note key={item.file} file={item.file} item={item} className="rounded-box border border-base-300 p-4"
+            mode={mode} onModeChange={setMode} onSaved={(saved) => show(saved)} onDeleted={() => void next()} />
       <div className="mt-6 space-y-6">
         {pick.isFetching && <span className="loading loading-dots loading-sm" />}
         {pickNote && (

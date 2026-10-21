@@ -7,7 +7,6 @@ import { CalendarPage } from './pages/calendar/CalendarPage';
 import { validateCalendarSearch } from './pages/calendar/search';
 import { ExplorationsPage } from './pages/explorations/ExplorationsPage';
 import { validateExplorationsSearch } from './pages/explorations/explorations';
-import { EditPage } from './pages/edit/EditPage';
 import { FloatPage } from './pages/float/FloatPage';
 import { GraphPage } from './pages/graph/GraphPage';
 import { NotesPage } from './pages/notes/NotesPage';
@@ -16,7 +15,6 @@ import { ProjectsPage } from './pages/projects/ProjectsPage';
 import { QuestionsPage } from './pages/questions/QuestionsPage';
 import { QueuePage } from './pages/queue/QueuePage';
 import { SettingsPage } from './pages/settings/SettingsPage';
-import { SourceEditPage } from './pages/sources/SourceEditPage';
 import { SourcesPage } from './pages/sources/SourcesPage';
 import { validateSourcesSearch } from './pages/sources/sources';
 import { SuggestPage } from './pages/suggest/SuggestPage';
@@ -34,28 +32,16 @@ const root = createRootRouteWithContext<{ queryClient: QueryClient }>()({
   },
 });
 
-/** /new and /edit/$file share one editor, so a new item keeps it when it moves to its URL */
-const editor = createRoute({ getParentRoute: () => root, id: 'editor', component: EditPage });
-
-/** like `editor`, for the sources' form */
-const sourceEditor = createRoute({ getParentRoute: () => root, id: 'source-editor', component: SourceEditPage });
-
 const tree = root.addChildren([
   createRoute({ getParentRoute: () => root, path: '/', validateSearch: validateNotesSearch, component: () => <NotesPage /> }),
   createRoute({ getParentRoute: () => root, path: '/broken', beforeLoad: () => { throw redirect({ to: '/tasks' }); } }),
-  editor.addChildren([
-    createRoute({ getParentRoute: () => editor, path: '/new' }),
-    createRoute({ getParentRoute: () => editor, path: '/edit/$file' }),
-  ]),
+  // a note on its own is one open in the Notes tab; the older address of its editor leads there
+  createRoute({ getParentRoute: () => root, path: '/edit/$file', beforeLoad: ({ params }) => { throw redirect({ to: '/', search: { open: [params.file] } }); } }),
   createRoute({ getParentRoute: () => root, path: '/explorations', validateSearch: validateExplorationsSearch, component: ExplorationsPage }),
   createRoute({ getParentRoute: () => root, path: '/graph', component: GraphPage }),
   createRoute({ getParentRoute: () => root, path: '/tasks', component: TasksPage }),
   createRoute({ getParentRoute: () => root, path: '/projects', component: ProjectsPage }),
   createRoute({ getParentRoute: () => root, path: '/sources', validateSearch: validateSourcesSearch, component: SourcesPage }),
-  sourceEditor.addChildren([
-    createRoute({ getParentRoute: () => sourceEditor, path: '/sources/new' }),
-    createRoute({ getParentRoute: () => sourceEditor, path: '/sources/edit/$file' }),
-  ]),
   createRoute({ getParentRoute: () => root, path: '/questions', component: QuestionsPage }),
   createRoute({ getParentRoute: () => root, path: '/calendar', validateSearch: validateCalendarSearch, component: CalendarPage }),
   createRoute({ getParentRoute: () => root, path: '/queue', component: QueuePage }),

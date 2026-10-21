@@ -2,12 +2,12 @@ import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 import type { CalendarEntry } from '@/api/types';
 import { entriesOn } from './calendar';
 import { addDays, formatDayHeading, isDay, today, type Day } from './dates';
-import { EntryRow } from './EntryRow';
+import { Entry } from './Entry';
 
-type Props = { entries: CalendarEntry[]; day: Day; onDay: (day: Day) => void; onOpen: (file: string) => void; onAdd: (day: Day) => void };
+type Props = { entries: CalendarEntry[]; day: Day; onDay: (day: Day) => void; onAdd: (day: Day) => void };
 
 /** The items of one day; the bar steps a day back or forward, picks a date, or jumps back to today. */
-export function DayView({ entries, day, onDay, onOpen, onAdd }: Props) {
+export function DayView({ entries, day, onDay, onAdd }: Props) {
   const now = today();
   const items = entriesOn(entries, day);
   return (
@@ -23,7 +23,7 @@ export function DayView({ entries, day, onDay, onOpen, onAdd }: Props) {
         {day === now ? `Today — ${formatDayHeading(day)}` : formatDayHeading(day)}
       </h3>
       {!items.length && <p className="text-base-content/50 text-center my-8">Nothing on this day</p>}
-      {items.map((e) => <EntryRow key={e.file} entry={e} onOpen={onOpen} />)}
+      {items.map((e) => <Entry key={e.file} entry={e} />)}
     </div>
   );
 }

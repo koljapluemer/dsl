@@ -53,7 +53,7 @@ export function GraphPage() {
 
   const handleOpenRandomSearchResult = () => {
     if (!searching || results.length === 0) return;
-    pinNote(results[Math.floor(Math.random() * results.length)].filename, SEARCH_RESULT_PIN_DEPTH);
+    pinNote(results[Math.floor(Math.random() * results.length)].file, SEARCH_RESULT_PIN_DEPTH);
   };
 
   return (

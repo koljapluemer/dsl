@@ -14,10 +14,10 @@ def _past(entries: dict) -> list[str]:
 
 
 def past_appointments() -> list[dict]:
-    """`{file, heading, date}` of every valid appointment before today, by date."""
+    """Every valid appointment before today (see store.payload), by date."""
     entries = store._INDEX.refresh()
-    out = [{"file": n, "heading": entries[n].heading, "date": entries[n].when["appointment"]} for n in _past(entries)]
-    return sorted(out, key=lambda r: (r["date"], r["file"]))
+    names = sorted(_past(entries), key=lambda n: (entries[n].when["appointment"], n))
+    return [store._note(n, entries) for n in names]
 
 
 def delete_past_appointments() -> int:

@@ -7,7 +7,7 @@ it hides is fixed in code, not set by the user.
 
 `views.Hiding` (in `views.py`) describes one view:
 
-- `tag` — the view's own tag; the view's hide button adds it to a note
+- `tag` — the view's own tag; the view's hide toggle adds it to a note
 - `types` — primary keywords whose notes the view leaves out
 - `tags` — further tags that hide a note (`views.EXPLORATION_TAG`, the Explorations tab's notes)
 
@@ -34,18 +34,20 @@ needs to know:
   (`search.py`'s `graph` scope) and random alike, and relationships to them are
   left out like those to notes with errors. The Notes tab's search still finds them.
 
-## Hide button and undo
+## Hide toggle, hide button and undo
 
-`store.hide(name, hiding)` adds `hiding.tag` to the note's `tags` line (or
-appends one). Each view undoes it the way it undoes deletes:
+Queue and Float hide through the note component's tag toggle
+([`note-component.md`](note-component.md)): `PUT /api/items/<name>/tags`
+(`{tag, on}`, `store.set_tag`) adds `hiding.tag` to the note's `tags` line (or
+appends one), and the toggle then shows it's on. Toggling it again is the undo.
+The note stays where it is on screen until the view draws again.
 
-- Queue: `POST /api/queue/hide/<name>`. The page drops the item from the batch
-  on screen and offers the app-wide undo toast (`dumb/undo.ts`), which writes
-  back the note's previous text and puts the item back in its place.
-- Float: `POST /api/float/hide/<name>`, from a card or its modal. The page drops
-  the card and offers the same undo toast, which writes back the previous text
-  (the card stays gone).
-- Graph: `POST /api/graph/notes/<name>/hide` → `graph.hide`, which keeps the
+- Queue: the toggle on each note, simple or in full; the tag is
+  `QUEUE_HIDE_TAG` in `pages/queue/queue.ts`.
+- Float: the toggle on each card and in its modal; `FLOAT_HIDE_TAG` in
+  `pages/float/float.ts`.
+- Graph: a hide button among the card's tools.
+  `POST /api/graph/notes/<name>/hide` → `graph.hide` (`store.hide`) keeps the
   previous text in the graph's single undo slot (shared with deletes);
   `POST /api/graph/undo` writes it back. The canvas unpins the note and re-pins
   it on undo, as for a delete.
@@ -54,9 +56,8 @@ appends one). Each view undoes it the way it undoes deletes:
 
 1. Add an instance next to the others in `views.py`.
 2. Filter that view's reads with `instance.hides(e.primary, e.tags)`.
-3. For a button: an endpoint calling `store.hide(name, instance)`, and an undo
-   that writes back the previous text; the note panel shows it given `hide`
-   (`meta/note-panel/NotePanel.tsx`).
+3. For a toggle: pass `tagToggles={[{ tag: instance.tag, icon, title }]}` to the
+   note component; the tag needs no endpoint of its own.
 
 The questions view's `no-questions` tag (`questions.NO_QUESTIONS_TAG`) predates
 this and works separately.

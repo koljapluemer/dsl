@@ -1,5 +1,6 @@
 import { Decoration, type DecorationSet, EditorView, ViewPlugin, type ViewUpdate } from '@codemirror/view';
 import type { Schema } from '@/api/types';
+import { noteHref } from '@/dumb/markdown';
 import { analyze } from './analyze';
 import { itemInlineReferences } from './inlineRefs';
 
@@ -31,7 +32,7 @@ export function referenceLinks(schema: Schema) {
       const target = pos === null ? undefined : targetAt(view, pos);
       if (!target) return false;
       event.preventDefault();
-      window.open(`/edit/${encodeURIComponent(`${target}.txt`)}`, '_blank', 'noopener');
+      window.open(noteHref(`${target}.txt`), '_blank', 'noopener');
       return true;
     },
   });

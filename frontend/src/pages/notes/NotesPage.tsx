@@ -4,7 +4,7 @@ import { PanelLeft } from 'lucide-react';
 import { useHotkeys, useSlashFocus } from '@/dumb/keys';
 import type { SearchState } from '@/entities/item/search/search';
 import { useNoteSearch } from '@/entities/item/search/useNoteSearch';
-import { NotePanel } from '@/meta/note-panel/NotePanel';
+import { Note } from '@/meta/note/Note';
 import { NoteSearchSidebar } from '@/meta/note-search-sidebar/NoteSearchSidebar';
 import type { NotesSearch } from './search';
 import './notes.css';
@@ -58,7 +58,7 @@ export function NotesPage() {
           : (
             <div className="note-grid">
               {open.map((file) => (
-                <NotePanel key={file} id={'note:' + file} file={file} fill
+                <Note key={file} id={'note:' + file} file={file} fill persist={`notes:${file}`}
                            className="rounded-box border border-base-300 bg-base-100 p-3"
                            onClose={() => setOpen(open.filter((f) => f !== file))}
                            onDeleted={() => setOpen(open.filter((f) => f !== file))}

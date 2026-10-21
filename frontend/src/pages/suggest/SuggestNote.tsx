@@ -1,17 +1,20 @@
 import { useEffect, useRef, useState } from 'react';
 import { Shuffle } from 'lucide-react';
-import type { ItemView } from '@/api/types';
+import type { Item } from '@/api/types';
 import { showError } from '@/dumb/errorBanner';
 import { useHotkeys } from '@/dumb/keys';
-import { NotePanel } from '@/meta/note-panel/NotePanel';
+import { useSessionState } from '@/dumb/useSessionState';
+import { Note } from '@/meta/note/Note';
+import { SimpleToggle } from '@/meta/note/SimpleToggle';
 import { pickNote } from './suggest';
 
 const HOLD_MS = 500;
 
-/** A random note carrying `tag`; hold the button for another. */
+/** A random note carrying `tag`, shown simply or in full, as toggled; hold the button for another. */
 export function SuggestNote({ tag }: { tag: string }) {
   /** undefined while the first one loads */
-  const [note, setNote] = useState<ItemView | null | undefined>(undefined);
+  const [note, setNote] = useState<Item | null | undefined>(undefined);
+  const [simple, setSimple] = useSessionState('suggest-simple', true, (v) => typeof v === 'boolean');
   const hold = useRef(0);
 
   async function draw(exclude: string[]) {
@@ -35,13 +38,17 @@ export function SuggestNote({ tag }: { tag: string }) {
   return (
     <div>
       {note === null && <p className="text-base-content/50">No more notes tagged {tag}</p>}
-      {note && <NotePanel key={note.file} file={note.file} item={note} onDeleted={() => void draw([note.file])} />}
-      <div className="flex gap-3 mt-4">
+      {note && (
+        <Note key={note.file} file={note.file} item={note} render={simple ? 'simple' : 'full'} persist="suggest"
+              onSaved={setNote} onDeleted={() => void draw([note.file])} />
+      )}
+      <div className="flex gap-2 mt-4">
         <button className="btn btn-primary flex-1 select-none" title="Shift+N" disabled={!note}
                 onPointerDown={startHold} onPointerUp={cancelHold} onPointerCancel={cancelHold} onPointerLeave={cancelHold}
                 onContextMenu={(e) => e.preventDefault()}>
           <Shuffle size={20} />Hold for next
         </button>
+        <SimpleToggle simple={simple} onChange={setSimple} />
       </div>
     </div>
   );

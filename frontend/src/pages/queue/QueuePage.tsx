@@ -1,35 +1,31 @@
 import { Fragment } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { SkipForward } from 'lucide-react';
-import type { ItemView as View, QueueDraw } from '@/api/types';
+import { EyeOff, SkipForward } from 'lucide-react';
+import type { Item } from '@/api/types';
 import { useHotkeys } from '@/dumb/keys';
-import { offerUndo } from '@/dumb/undo';
-import { itemsChanged, saveItem } from '@/entities/item/mutations';
-import { NotePanel } from '@/meta/note-panel/NotePanel';
-import { drawCount, drawQuery, hideFromQueue } from './queue';
+import { useSessionState } from '@/dumb/useSessionState';
+import { Note } from '@/meta/note/Note';
+import { SimpleToggle } from '@/meta/note/SimpleToggle';
+import type { TagToggle } from '@/meta/note/tools';
+import { drawCount, drawQuery, QUEUE_HIDE_TAG } from './queue';
 
-/** A few random items from the whole folder, minus those the queue hides (see docs/hiding.md), and Next to draw others. */
+const HIDE: TagToggle = { tag: QUEUE_HIDE_TAG, icon: EyeOff, title: 'hide from the queue', activeTitle: 'hidden from the queue (click: back in it)' };
+
+/**
+ * A few random items from the whole folder, minus those the queue hides (see docs/hiding.md), and Next to draw others;
+ * shown simply or in full, as toggled.
+ */
 export function QueuePage() {
   const qc = useQueryClient();
   const n = drawCount.use();
   const { data, isFetching } = useQuery(drawQuery(n));
+  const [simple, setSimple] = useSessionState('queue-simple', false, (v) => typeof v === 'boolean');
   const next = () => drawCount.set(n + 1);
   useHotkeys({ n: () => { if (!isFetching && data?.total) next(); } });
 
-  const update = (f: (d: QueueDraw) => QueueDraw) => qc.setQueryData(drawQuery(n).queryKey, (d) => d && f(d));
-  const without = (file: string) => update((d) => ({ items: d.items.filter((i) => i.file !== file), total: d.total - 1 }));
-
-  // the batch on screen loses the item, and gets it back in its place on undo
-  async function hide(item: View, index: number) {
-    await hideFromQueue(item.file);
-    without(item.file);
-    offerUndo('note hidden from queue', async () => {
-      await saveItem(item.file, item.text);
-      update((d) => ({ items: d.items.toSpliced(index, 0, item), total: d.total + 1 }));
-      await itemsChanged(qc);
-    });
-    await itemsChanged(qc);
-  }
+  // the batch keeps what was written to its notes, so they show it when toggled
+  const written = (item: Item) => qc.setQueryData(drawQuery(n).queryKey, (d) => d && { ...d, items: d.items.map((i) => (i.file === item.file ? item : i)) });
+  const without = (file: string) => qc.setQueryData(drawQuery(n).queryKey, (d) => d && { items: d.items.filter((i) => i.file !== file), total: d.total - 1 });
 
   return (
     <div>
@@ -37,13 +33,16 @@ export function QueuePage() {
       {data?.items.map((i, k) => (
         <Fragment key={i.file}>
           {k > 0 && <div className="divider" />}
-          <NotePanel file={i.file} item={i} hide={{ title: 'Hide from queue', run: () => hide(i, k) }}
-                     onDeleted={() => without(i.file)} />
+          <Note file={i.file} item={i} render={simple ? 'simple' : 'full'} persist="queue" tagToggles={[HIDE]}
+                onSaved={written} onDeleted={() => without(i.file)} />
         </Fragment>
       ))}
-      <button className="btn btn-primary w-full mt-6" title="n" disabled={isFetching || !data?.total} onClick={next}>
-        <SkipForward size={20} />Next
-      </button>
+      <div className="mt-6 flex gap-2">
+        <button className="btn btn-primary flex-1" title="n" disabled={isFetching || !data?.total} onClick={next}>
+          <SkipForward size={20} />Next
+        </button>
+        <SimpleToggle simple={simple} onChange={setSimple} />
+      </div>
     </div>
   );
 }

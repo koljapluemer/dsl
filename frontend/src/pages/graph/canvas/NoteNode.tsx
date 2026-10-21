@@ -1,36 +1,26 @@
 import { Handle, Position, type Node, type NodeProps } from '@xyflow/react';
 import { memo } from 'react';
-import { DraftNoteCard } from './DraftNoteCard';
 import type { MediaAttachment } from '@/features/item-media/useMediaAttachment';
 import { NoteCard } from './NoteCard';
-import type { GraphNodePayload } from '@/api/types';
+import type { GraphNodePayload, Item } from '@/api/types';
 
-export type NoteNodeData =
-  | {
-      kind: 'note';
-      note: GraphNodePayload;
-      /** How many hops of relations to render from this note, or null if it isn't pinned. */
-      pinDepth: number | null;
-      /** Whether this note is the current session's soft anchor for placing new notes. */
-      isAnchor: boolean;
-      onDelete: (filename: string, pinDepth: number | null) => Promise<void>;
-      onHide: (filename: string, pinDepth: number | null) => Promise<void>;
-      /** Whether the card shows its editor. */
-      editing: boolean;
-      onEdit: (filename: string) => void;
-      onSaveEdit: (filename: string, text: string, image: MediaAttachment, previousImage: string | null) => Promise<void>;
-      onCancelEdit: () => void;
-      onPin: (filename: string) => void;
-      onUnpin: (filename: string) => void;
-      onChangeDepth: (filename: string, nextDepth: number) => void;
-    }
-  | {
-      kind: 'draft';
-      /** Whether to show the relation-label/reverse fields - false for a freestanding note with no related note. */
-      showRelation: boolean;
-      onSave: (body: string, label: string, reverse: boolean, image: MediaAttachment) => Promise<void>;
-      onCancel: () => void;
-    };
+export type NoteNodeData = {
+  note: GraphNodePayload;
+  /** How many hops of relations to render from this note, or null if it isn't pinned. */
+  pinDepth: number | null;
+  /** Whether this note is the current session's soft anchor for placing new notes. */
+  isAnchor: boolean;
+  onDelete: (filename: string, pinDepth: number | null) => Promise<void>;
+  onHide: (filename: string, pinDepth: number | null) => Promise<void>;
+  /** Whether the card shows its editor. */
+  editing: boolean;
+  onEdit: (filename: string) => void;
+  onSaveEdit: (filename: string, text: string, image: MediaAttachment, previous: Item) => Promise<void>;
+  onCancelEdit: () => void;
+  onPin: (filename: string) => void;
+  onUnpin: (filename: string) => void;
+  onChangeDepth: (filename: string, nextDepth: number) => void;
+};
 
 export type NoteFlowNode = Node<NoteNodeData, 'note'>;
 
@@ -61,12 +51,11 @@ function NoteNodeInner({ data }: NodeProps<NoteFlowNode>) {
       />
 
       {/*
-        Always mounted, regardless of kind - React Flow derives edge geometry from
-        handle bounds even for a custom edge type that recomputes its own path
-        (see FloatingEdge/getEdgeParams), so unmounting these while editing/drafting
-        would drop that node's outgoing edges. Hidden by default (opacity-0
-        pointer-events-none); 'note' kind additionally reveals a small dot on
-        hover of the node (`group` class set on the node wrapper in GraphCanvas'
+        Always mounted - React Flow derives edge geometry from handle bounds
+        even for a custom edge type that recomputes its own path (see
+        FloatingEdge/getEdgeParams), so unmounting these while editing would
+        drop that node's outgoing edges. Hidden (opacity-0 pointer-events-none)
+        but for a small dot on hover of the node (`group` class set on the node wrapper in
         buildView) - see https://reactflow.dev/learn/customization/handles.
       */}
       {CONNECT_HANDLE_POSITIONS.map((position) => (
@@ -75,32 +64,24 @@ function NoteNodeInner({ data }: NodeProps<NoteFlowNode>) {
           id={position}
           type="source"
           position={position}
-          className={
-            data.kind === 'note'
-              ? 'size-3.5 rounded-full border-2 border-base-100 bg-primary opacity-0 pointer-events-none transition-opacity group-hover:opacity-90 group-hover:pointer-events-auto'
-              : 'opacity-0 pointer-events-none'
-          }
+          className="size-3.5 rounded-full border-2 border-base-100 bg-primary opacity-0 pointer-events-none transition-opacity group-hover:opacity-90 group-hover:pointer-events-auto"
         />
       ))}
 
-      {data.kind === 'note' ? (
-        <NoteCard
-          note={data.note}
-          pinDepth={data.pinDepth}
-          isAnchor={data.isAnchor}
-          onDelete={data.onDelete}
-          onHide={data.onHide}
-          editing={data.editing}
-          onEdit={data.onEdit}
-          onSaveEdit={data.onSaveEdit}
-          onCancelEdit={data.onCancelEdit}
-          onPin={data.onPin}
-          onUnpin={data.onUnpin}
-          onChangeDepth={data.onChangeDepth}
-        />
-      ) : (
-        <DraftNoteCard showRelation={data.showRelation} onSave={data.onSave} onCancel={data.onCancel} />
-      )}
+      <NoteCard
+        note={data.note}
+        pinDepth={data.pinDepth}
+        isAnchor={data.isAnchor}
+        onDelete={data.onDelete}
+        onHide={data.onHide}
+        editing={data.editing}
+        onEdit={data.onEdit}
+        onSaveEdit={data.onSaveEdit}
+        onCancelEdit={data.onCancelEdit}
+        onPin={data.onPin}
+        onUnpin={data.onUnpin}
+        onChangeDepth={data.onChangeDepth}
+      />
     </>
   );
 }

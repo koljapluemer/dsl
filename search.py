@@ -206,7 +206,8 @@ def parse_query(source: str, regex_terms: bool = True):
 RERANKED_HEAD_SIZE = 120
 # Sinks every hit only in a note's extra content below every body hit.
 EXTRA_ONLY_RANK_PENALTY = 100_000
-PREVIEW_LENGTH = 180
+# How much of a note's first line a result shows (the client's NoteLine `chars`).
+FIRST_LINE_LENGTH = 120
 EXCERPT_CONTEXT = 40
 EXCERPT_MAX_MATCH = 60
 ELLIPSIS = "…"
@@ -450,7 +451,8 @@ def search(q: str = "", scope: str = "all", orphan: str = "any", page: int = 0, 
     pool, hits, status = _matches(q, scope, orphan, regex_terms, semantic_search, exclude)
     limit, page = max(limit, 1), max(page, 0)
     start = page * limit
-    return {"results": [_result(pool, n, h) for n, h in hits[start : start + limit]], "total": len(hits),
+    entries = store._INDEX.refresh(SEARCH_MAX_AGE)
+    return {"results": [_result(pool, entries, n, h) for n, h in hits[start : start + limit]], "total": len(hits),
             "page": page, "pageSize": limit, "semantic": status}
 
 
@@ -470,23 +472,18 @@ def _u16(text: str, start: int, length: int) -> dict:
     return {"start": start + astral(text[:start]), "length": length + astral(text[start : start + length])}
 
 
-def _preview(e) -> str:
-    return e.body_compact[:PREVIEW_LENGTH] or "Empty note"
-
-
-def _result(pool: _Pool, name: str, hit: _Hit) -> dict:
-    """The note's opening text, with the match highlighted there when it
-    shows, else an excerpt around it."""
+def _result(pool: _Pool, entries: dict, name: str, hit: _Hit) -> dict:
+    """The note (see store.payload) with where the query matched: `match`, the
+    matched text, when it shows in the first line; else `excerpt`, the text around it."""
     e = pool.notes[name]
-    preview = _preview(e)
-    out = {"filename": name, "heading": e.heading, "preview": preview, "previewMatch": None, "excerpt": None,
-           "problem": "error" if not e.valid else "warning" if e.flagged else None}
+    out = store._note(name, entries) | {"match": None, "excerpt": None}
     located = _locate(e, hit)
     if located is None:
         return out
     field, (start, length) = located
-    if field == "body" and start + length <= PREVIEW_LENGTH:
-        out["previewMatch"] = _u16(preview, start, length)
+    first_line = min(len(store._SPACE_RE.sub(" ", e.heading)), FIRST_LINE_LENGTH)
+    if field == "body" and start + length <= first_line:
+        out["match"] = e.body_compact[start : start + length]
         return out
     source = e.body_compact if field == "body" else e.extra_compact
     length = min(length, EXCERPT_MAX_MATCH)

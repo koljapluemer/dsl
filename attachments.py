@@ -107,7 +107,7 @@ def attach(name: str, data: bytes, content_type: str) -> dict:
     updated = store.update(name, {"text": "\n".join(lines)})
     if previous and previous != rel:
         release(name, previous)
-    return store.with_refs(updated)
+    return store.payload(updated)
 
 
 def clear(name: str) -> dict:
@@ -116,9 +116,9 @@ def clear(name: str) -> dict:
     doc = dsl.parse(store.SCHEMA, item["text"])
     previous = views.media(doc)
     if not previous:
-        return store.with_refs(item)
+        return store.payload(item)
     lines = item["text"].replace("\r", "").split("\n")
     _set_media(lines, doc, None)
     updated = store.update(name, {"text": "\n".join(lines)})
     release(name, previous)
-    return store.with_refs(updated)
+    return store.payload(updated)

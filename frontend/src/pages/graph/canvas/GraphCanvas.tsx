@@ -14,6 +14,7 @@ import { useGraphInteraction } from './useGraphInteraction';
 import { useGraphNodes } from '../layout/useGraphNodes';
 import { useFitViewOnReframe } from '../layout/useFitViewOnReframe';
 import type { NoteGraph } from '@/api/types';
+import { NoteModal } from '@/meta/note/NoteModal';
 
 const edgeTypes = { floating: FloatingEdge, pendingConnection: PendingConnectionEdge };
 const nodeTypes = { note: NoteNode, hiddenRelations: HiddenRelationsNode };
@@ -59,7 +60,7 @@ interface FlowSceneProps {
 
 /**
  * Wires the graph together: `useElkLayout` computes positions, `useGraphInteraction`
- * owns the draft/connect/edit/search gestures, and `useGraphNodes` bridges the
+ * owns the new-note/connect/edit/search gestures, and `useGraphNodes` bridges the
  * derived view into React Flow's own node state (so dragging is React Flow's job,
  * not a re-render of the whole graph). This component just renders the result.
  */
@@ -108,7 +109,8 @@ function FlowScene({
     onPaneDoubleClick,
     onPaneContextMenu,
     cancelInteraction,
-    addNoteAtCenter,
+    addNote,
+    onCreated,
     selectSearchNote,
     performUndo,
     dismissUndo,
@@ -136,7 +138,7 @@ function FlowScene({
   });
 
   const toolbarGroups = useGraphToolbarGroups({
-    onAddNote: addNoteAtCenter,
+    onAddNote: addNote,
     onUnpinAll: onClearPins,
     onPinOrphan: onPinRandomOrphan,
     onOpenRandomNote,
@@ -162,7 +164,7 @@ function FlowScene({
       nodesDraggable
       // Selection stays enabled on purpose: React Flow gives a node wrapper
       // `pointer-events: none` unless it is selectable or draggable, which would
-      // make the (non-draggable) draft/edit cards unclickable. Nothing renders
+      // make the (non-draggable) edited card unclickable. Nothing renders
       // selection, so the only visible effect to switch off is the z-raise.
       nodesFocusable={false}
       elevateNodesOnSelect={false}
@@ -214,6 +216,11 @@ function FlowScene({
             </button>
           </div>
         </Panel>
+      ) : null}
+      {interaction.type === 'create' ? (
+        // a related one starts with the relationship from its note staged, to label, turn or drop like any other
+        <NoteModal file={null} onClose={cancelInteraction} onCreated={onCreated}
+                   initialPending={interaction.sourceFilename ? [{ kind: 'backlink', label: '', source: interaction.sourceFilename }] : undefined} />
       ) : null}
       {interaction.type === 'search' ? (
         <PaneSearchMenu screenPosition={interaction.screenPosition} pins={pins} onSelectNote={selectSearchNote} onClose={cancelInteraction} />

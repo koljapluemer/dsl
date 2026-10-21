@@ -27,9 +27,9 @@ def test_primary_and_tags():
     assert views.primary(store.SCHEMA, parse("note")) is None
 
 
-def test_view_media_only_images_and_videos():
-    assert views.view({}, parse("x\nmedia a/b.JPG"))["media"] == "a/b.JPG"
-    assert views.view({}, parse("x\nmedia a.pdf"))["media"] is None
+def test_media_only_images_and_videos():
+    assert views.media(parse("x\nmedia a/b.JPG")) == "a/b.JPG"
+    assert views.media(parse("x\nmedia a.pdf")) is None
 
 
 def test_hidings_name_real_types_and_valid_tags():

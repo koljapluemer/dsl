@@ -31,10 +31,7 @@ def test_past_appointments_are_deleted_with_their_media(data_dir):
     shared = attachments.attach("shared.txt", b"b", "image/png")["media"]
     note("other", f"Other\nmedia {shared}")
 
-    assert maintenance.past_appointments() == [
-        {"file": "past.txt", "heading": "Past", "date": "2020-01-01"},
-        {"file": "shared.txt", "heading": "Shared", "date": "2020-02-01"},
-    ]
+    assert [i["file"] for i in maintenance.past_appointments()] == ["past.txt", "shared.txt"]
     assert maintenance.delete_past_appointments() == 2
     assert sorted(p.name for p in data_dir.glob("*.txt")) == [
         "broken.txt", "future.txt", "month.txt", "other.txt", "weekly.txt"]

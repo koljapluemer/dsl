@@ -9,11 +9,6 @@ export const notesChanged = (qc: QueryClient) => Promise.all(['graph', 'items', 
 export const randomNote = (exclude: string[], orphan: boolean) =>
   api<{ filename: string | null }>('GET', `/api/graph/random?${new URLSearchParams({ exclude: exclude.join(','), ...(orphan ? { orphan: '1' } : {}) })}`);
 
-/** Without `related` a freestanding note; else `related -> new`, or `new -> related` with `reverse`. */
-export const createNote = (body: { body: string; related?: string; label?: string; reverse?: boolean }) =>
-  api<{ filename: string; label?: string }>('POST', '/api/graph/notes', body);
-
-
 /** Rejected when the text has errors: the note would drop out of the graph. */
 export const updateNote = (file: string, text: string) => api<null>('PUT', `/api/graph/notes/${enc(file)}`, { text });
 

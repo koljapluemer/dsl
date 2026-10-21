@@ -105,8 +105,7 @@ export type MeasuredNode = { id: string; type?: string; measured?: { height?: nu
 const MEASURED_HEIGHT_QUANTUM = 2;
 
 /**
- * Per-`note`-node measured heights, keyed by id (the filename for real notes).
- * Draft cards show up too, under their draft id - no graph note matches them.
+ * Per-`note`-node measured heights, keyed by id (the note's filename).
  */
 export function collectMeasuredHeights(nodes: Iterable<MeasuredNode>): Map<string, number> {
   const heights = new Map<string, number>();

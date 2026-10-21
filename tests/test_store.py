@@ -89,7 +89,7 @@ def test_refs_carry_target_headings(data_dir):
 def test_inline_refs_carry_headings_and_backlinks_are_explicit(data_dir):
     store.create({"file": "a.txt", "text": "Alpha [[b]] and [[gone|missing]]\nextra\nagain [[b]]"})
     store.create({"file": "b.txt", "text": "Beta heading"})
-    item = store.get_with_refs("a.txt")
+    item = store.get_payload("a.txt")
     assert item["refs"] == {"b": "Beta heading", "gone": None}
     assert store.backlinks("b.txt") == [
         {"file": "a.txt", "label": "", "heading": "Alpha [[b]] and [[gone|missing]]", "inline": True}
@@ -179,10 +179,30 @@ def test_relate_with_any_label(data_dir):
         store.relate("a.txt", {"target": "x.txt"})
 
 
-def test_with_refs(data_dir):
-    store.create({"file": "x.txt", "text": "X person"})
+def test_payload(data_dir):
+    store.create({"file": "x.txt", "text": "X person\nmore"})
     item = store.create({"file": "a.txt", "text": "a > b\n-> knows @x\n-> @gone\n"})
-    assert store.with_refs(item)["refs"] == {"gone": None, "x": "X person"}
+    assert store.payload(item)["refs"] == {"gone": None, "x": "X person"}
+    assert item["sourceKey"] is None
+    store.create({"file": "s.txt", "text": "S\nsource\ndata\nkey: vaswani2017\n"})
+    store.create({"file": "t.txt", "text": "T\nsource\ndata\nentrytype: misc\n"})
+    store.create({"file": "u.txt", "text": "U\nsource\ndata\nkey: [unclosed\n"})
+    assert [store.get_payload(f"{k}.txt")["sourceKey"] for k in "stu"] == ["vaswani2017", "t", "u"]
+
+
+def test_relabel_and_tags(data_dir):
+    store.create({"file": "a.txt", "text": "a\n-> knows @x\n-> knows @x\n"})
+    assert store.relabel("a.txt", {"label": "knows", "target": "x", "nextLabel": " met "})["text"] == "a\n-> met @x\n-> knows @x\n"
+    assert store.relabel("a.txt", {"label": "met", "target": "x", "nextLabel": ""})["text"] == "a\n-> @x\n-> knows @x\n"
+    with pytest.raises(store.NotFound):
+        store.relabel("a.txt", {"label": "met", "target": "x", "nextLabel": "y"})
+    with pytest.raises(store.ValidationError):
+        store.relabel("a.txt", {"label": "knows", "target": "x", "nextLabel": "a\nb"})
+    store.create({"file": "i.txt", "text": "Login\nissue\ntags x"})
+    assert store.set_tag("i.txt", {"tag": "suggest-think-and-sketch", "on": True})["text"].rstrip("\n") == "Login\nissue\ntags x suggest-think-and-sketch"
+    assert store.set_tag("i.txt", {"tag": "suggest-think-and-sketch", "on": False})["text"].rstrip("\n") == "Login\nissue\ntags x"
+    with pytest.raises(store.ValidationError):
+        store.set_tag("i.txt", {"tag": "Not A Tag", "on": True})
 
 
 def test_detach_removes_first_match(data_dir):
@@ -244,7 +264,7 @@ def test_queue_skips_hidden_types_and_tags(data_dir):
     store.create({"file": "a.txt", "text": "a\nappointment 26-08-29"})
     store.create({"file": "b.txt", "text": "b"})
     store.create({"file": "c.txt", "text": "c"})
-    store.hide("b.txt", views.QUEUE_HIDING)
+    store.set_tag("b.txt", {"tag": views.QUEUE_HIDING.tag, "on": True})
     assert store.get("b.txt")["text"] == "b\ntags no-q\n"
     for _ in range(5):
         res = store.queue_draw()
@@ -256,7 +276,7 @@ def test_float_skips_hidden_and_filters(data_dir):
     store.create({"file": "b.txt", "text": "b apple"})
     store.create({"file": "c.txt", "text": "c Apple"})
     store.create({"file": "d.txt", "text": "d pear"})
-    store.hide("b.txt", views.FLOAT_HIDING)
+    store.set_tag("b.txt", {"tag": views.FLOAT_HIDING.tag, "on": True})
     assert store.get("b.txt")["text"] == "b apple\ntags no-float\n"
     res = store.float_draw(" apple")
     assert [i["file"] for i in res["items"]] == ["c.txt"] and res["total"] == 1
@@ -276,7 +296,7 @@ def test_explorations_last_edited_first_and_not_in_queue(data_dir):
     store.create({"file": "c.txt", "text": "C\ntags explorations"})
     os.utime(data_dir / "a.txt", ns=(2_000_000_000, 2_000_000_000))
     os.utime(data_dir / "b.txt", ns=(1_000_000_000, 1_000_000_000))
-    assert store.explorations() == [{"file": "a.txt", "heading": "A"}, {"file": "b.txt", "heading": "B"}]
+    assert [i["file"] for i in store.explorations()] == ["a.txt", "b.txt"]
     assert [i["file"] for i in store.queue_draw()["items"]] == ["c.txt"]
 
 
@@ -295,10 +315,9 @@ def test_calendar_items(data_dir):
     store.create({"file": "a.txt", "text": "Lecture\n(bring laptop)\nrecurring mo until 26-03"})
     store.create({"file": "b.txt", "text": "plain"})
     store.create({"file": "c.txt", "text": "bad\nappointment 26-02-30"})
-    assert store.calendar_items() == [{
-        "file": "a.txt", "heading": "Lecture", "details": ["(bring laptop)"],
-        "when": {"recurring": 1, "until": "2026-03-31"},
-    }]
+    [item] = store.calendar_items()
+    assert (item["file"], item["when"]) == ("a.txt", {"recurring": 1, "until": "2026-03-31"})
+    assert item["text"].startswith("Lecture\n")
 
 
 def test_projects(data_dir):
@@ -311,29 +330,12 @@ def test_projects(data_dir):
     store.create({"file": "m.txt", "text": "Sketch it\nissue\n-> project @p\ntags suggest-think-and-sketch"})
     store.create({"file": "n.txt", "text": "plain"})
     store.create({"file": "o.txt", "text": "Inline is not ownership [[p]]\nissue"})
-    assert store.projects() == {
-        "projects": [
-            {"file": "q.txt", "heading": "Archive", "issues": [{"file": "j.txt", "heading": "Both", "think": False}]},
-            {"file": "p.txt", "heading": "Website", "issues": [
-                {"file": "m.txt", "heading": "Sketch it", "think": True},
-                {"file": "j.txt", "heading": "Both", "think": False},
-                {"file": "i.txt", "heading": "Login", "think": False},
-            ]},
-        ],
-        "orphans": [
-            {"file": "o.txt", "heading": "Inline is not ownership [[p]]", "think": False},
-            {"file": "l.txt", "heading": "Not a project", "think": False},
-            {"file": "k.txt", "heading": "Wrong label", "think": False},
-        ],
-    }
-
-
-def test_set_think(data_dir):
-    store.create({"file": "i.txt", "text": "Login\nissue\ntags x"})
-    store.set_think("i.txt", True)
-    assert store.get("i.txt")["text"].rstrip("\n") == "Login\nissue\ntags x suggest-think-and-sketch"
-    store.set_think("i.txt", False)
-    assert store.get("i.txt")["text"].rstrip("\n") == "Login\nissue\ntags x"
+    files = lambda items: [i["file"] for i in items]
+    res = store.projects()
+    assert [(p["file"], files(p["issues"])) for p in res["projects"]] == [
+        ("q.txt", ["j.txt"]), ("p.txt", ["m.txt", "j.txt", "i.txt"])]
+    assert files(res["orphans"]) == ["o.txt", "l.txt", "k.txt"]
+    assert res["projects"][0]["text"] == "Archive\nproject\n"
 
 
 def test_media_path(data_dir):
@@ -345,3 +347,17 @@ def test_media_path(data_dir):
             store.media_path(bad)
     with pytest.raises(store.NotFound):
         store.media_path("img/b.png")
+
+
+def test_item_endpoints(data_dir):
+    import app
+    client = app.app.test_client()
+    store.create({"file": "a.txt", "text": "a\n-> knows @x\n"})
+    r = client.post("/api/items/a.txt/relabel", json={"label": "knows", "target": "x", "nextLabel": "met"})
+    assert r.get_json()["text"] == "a\n-> met @x\n" and "refs" in r.get_json()
+    r = client.put("/api/items/a.txt/tags", json={"tag": "no-q", "on": True})
+    assert r.get_json()["text"] == "a\n-> met @x\ntags no-q\n"
+    assert client.put("/api/items/a.txt/tags", json={"tag": "", "on": True}).status_code == 400
+    for method, url in [("post", "/api/queue/hide/a.txt"), ("post", "/api/float/hide/a.txt"),
+                        ("put", "/api/projects/think/a.txt"), ("get", "/api/sources/schema"), ("post", "/api/graph/notes")]:
+        assert getattr(client, method)(url).status_code in (404, 405)

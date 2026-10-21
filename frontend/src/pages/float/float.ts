@@ -15,5 +15,5 @@ export const floatQuery = (q: string, round: number) => queryOptions({
   staleTime: Infinity,
 });
 
-/** Tags the item so the float view leaves it out (see docs/hiding.md). */
-export const hideFromFloat = (file: string) => api<null>('POST', `/api/float/hide/${enc(file)}`);
+/** The tag the float view leaves a note out by (see docs/hiding.md); keep in line with views.FLOAT_HIDING. */
+export const FLOAT_HIDE_TAG = 'no-float';

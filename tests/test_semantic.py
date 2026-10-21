@@ -33,7 +33,7 @@ def wait():
 
 
 def files(res):
-    return [r["filename"] for r in res["results"]]
+    return [r["file"] for r in res["results"]]
 
 
 def ranked(q):

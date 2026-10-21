@@ -2,19 +2,18 @@ import { Plus } from 'lucide-react';
 import type { CalendarEntry } from '@/api/types';
 import { entriesOn } from './calendar';
 import { daysBetween, formatDayHeading, isDay, today, type Day } from './dates';
-import { EntryRow } from './EntryRow';
+import { Entry } from './Entry';
 
 type Props = {
   entries: CalendarEntry[];
   from: Day;
   to: Day;
   onRange: (from: Day, to: Day) => void;
-  onOpen: (file: string) => void;
   onAdd: (day: Day) => void;
 };
 
 /** Every day of From..To (inclusive) with its items, empty days included. */
-export function RangeView({ entries, from, to, onRange, onOpen, onAdd }: Props) {
+export function RangeView({ entries, from, to, onRange, onAdd }: Props) {
   const now = today();
   // a From after To drags To along, and the other way round, so the range is never empty
   const pickFrom = (d: string) => isDay(d) && onRange(d, d > to ? d : to);
@@ -40,7 +39,7 @@ export function RangeView({ entries, from, to, onRange, onOpen, onAdd }: Props) 
               <button className="btn btn-ghost btn-xs btn-square" title="add appointment" onClick={() => onAdd(day)}><Plus size={14} /></button>
             </div>
             {!items.length && <p className="text-base-content/50 py-2">Nothing</p>}
-            {items.map((e) => <EntryRow key={e.file} entry={e} onOpen={onOpen} />)}
+            {items.map((e) => <Entry key={e.file} entry={e} />)}
           </section>
         );
       })}
