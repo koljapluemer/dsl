@@ -26,6 +26,7 @@ Defaults are full capabilities: anything not switched off is there.
 | `extraTools` | | the page's own tools, first in the row: a button `{key, title, icon, onClick}` or any `{key, node}` |
 | `mediaPosition` | `top` | `start`/`end`: the attachment beside the rest when the note is wide enough |
 | `inlineChars`, `highlight`, `onClick` | 120 | inline: characters of the first line shown, text marked in it, the whole line clickable |
+| `inlineWhole` | | inline: the whole body, uncut, instead of the first line (`inlineChars` and `highlight` then don't apply) |
 | `onEdit` | | the `edit` tool does this instead of opening its own modal (Float keeps the modal to pause its stage) |
 | `save`, `onDelete` | | write or delete instead of the items API (the Graph's own update and undo) |
 | `onSaved`, `onCreated`, `onDeleted`, `onClose`, `onEscape`, `onRef` | | `onRef`: a click on a related or linked note, by default the note opened in the sidebar (`useOpenNote`) |
@@ -59,6 +60,8 @@ for a new note; every `edit` tool and the sidebar's ⤢ tool open it.
   not of its Markdown (`inlineMarkdown` in `dumb/markdown.ts`), with `…` when
   cut or when the body goes on. Next to it: the attachment as a thumbnail, an
   icon for errors or warnings, and the tools. It never shows relationships.
+  With `inlineWhole` it shows the whole body instead, uncut and without `…`,
+  as `simple` renders it (`NoteContent`), the icon and tools at its top.
 
 ## Relationships
 
@@ -100,7 +103,7 @@ Choose `persist` to match the page:
 | Explorations | full, blur commit, edit first, persisted per view; the list inline |
 | Graph | view/edit, the mode from the graph's interaction, no relationships (the edges are), its own save, delete and hide; grip and pin as extra tools; links open in the sidebar. A new note (double-click, Add note, a drag onto empty canvas) is the new-note modal; from a drag it starts with the relationship from the dragged note staged |
 | Tasks | full, blur commit, edit first, persisted per note |
-| Projects | inline, in their expandable wrapper with the issue count and an add-issue tool; issues inline with the think/build tag toggle |
+| Projects | inline, in their expandable wrapper with the issue count and an add-issue tool; issues inline and whole (`inlineWhole`) with the think/build tag toggle |
 | Sources | the list inline, the open source edit only, blur commit; `copyKey` shows for any source |
 | Questions | full, view first, the mode kept by the page (`e` edits) |
 | Calendar | inline, with the edit tool |
