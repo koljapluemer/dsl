@@ -1,6 +1,7 @@
 import { useMemo, type MutableRefObject } from 'react';
 import { Prec } from '@codemirror/state';
 import { EditorView, keymap } from '@codemirror/view';
+import { indentWithTab } from '@codemirror/commands';
 import { CodeMirrorHost } from '@/dumb/CodeMirrorHost';
 import { dslExtensions } from '@/entities/item/dslExtensions';
 import { referenceCompletion } from '@/entities/item/dsl/referenceCompletion';
@@ -31,6 +32,8 @@ export function ItemTextEditor({ value, autofocus, onChange, onSave, onPasteFile
     ...referenceLinks(schema),
     // Mod-Enter saves (see onKeyDown) instead of the default keymap's blank line
     Prec.high(keymap.of([{ key: 'Mod-Enter', run: () => true }])),
+    // Tab/Shift-Tab indent the line(s) instead of moving focus; Esc then Tab still moves it
+    keymap.of([indentWithTab]),
     ...(hasPaste ? [EditorView.domEventHandlers({ paste: (event) => pastedMedia(event.clipboardData) !== undefined })] : []),
   ], [schema, hasPaste, currentFile]);
   return (

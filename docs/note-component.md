@@ -52,7 +52,7 @@ for a new note; every `edit` tool and the sidebar's ⤢ tool open it.
   the staged one, with a remove button.
 - **Content**:
   - view: `NoteContent` (`entities/item`), which is body and `extra` as Markdown, keyword lines and `data` highlighted, and never relationship lines
-  - edit: the editor and its problems
+  - edit: the editor and its problems. Tab and Shift-Tab indent and outdent the line (or the selected lines) by two spaces; Esc then Tab moves focus out of the editor
   - split: editor and preview side by side, stacked when the note is narrow (a container query)
 - **Relationships**: below the content (see below).
 - **Inline** (`NoteLine`, `entities/item`): the first line of the body,
