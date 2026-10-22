@@ -63,6 +63,11 @@ export type SourceCandidate = { file: string; key: string; title: string; level:
 export type SourceMatch = { source: SourceFields; candidates: SourceCandidate[] };
 /** an existing source by file, or a new one */
 export type SourceChoice = { file: string } | { source: SourceFields };
+type FieldValue = string | number | string[];
+/** a field both the source and the BibTeX have, differently */
+export type SourceConflict = { field: string; current: FieldValue; incoming: FieldValue };
+/** a source's text updated from BibTeX: the fields it lacked `filled`, those it had otherwise left as `conflicts` */
+export type SourceMerge = { text: string; filled: string[]; conflicts: SourceConflict[] };
 export type CalendarEntry = Item & { when: When };
 
 /** a pinned note, rendered with the notes up to `depth` relationships away */

@@ -108,6 +108,61 @@ def test_endpoints(data_dir):
     assert client.post("/api/sources/match", json={"text": "nothing"}).status_code == 400
 
 
+MERGE_BIB = ("@inproceedings{vaswani2017, title={Attention Is All You Need}, author={Vaswani, Ashish and Shazeer, Noam},"
+             " year=2017, doi={10.5555/x}, booktitle={NeurIPS}}")
+MERGE_TEXT = "Shitty title\n\nsource\ndata\nkey: shitty\nentrytype: misc\ndate: '2017'\nnote: kept\n\ntags paper\n-> about @other\nextra\nmy notes\n"
+
+
+def _entry(bib=MERGE_BIB):
+    import bibtex_import
+    [entry] = bibtex_import.parse(bib)
+    return entry
+
+
+def test_merge_fills_and_reports_conflicts(data_dir):
+    merged = sources.merge(None, MERGE_TEXT, _entry())
+    assert merged["filled"] == ["entrytype", "author", "booktitle", "doi"]
+    assert merged["conflicts"] == [
+        {"field": "title", "current": "Shitty title", "incoming": "Attention Is All You Need"},
+        {"field": "key", "current": "shitty", "incoming": "vaswani2017"},
+    ]
+    assert merged["text"] == (
+        "Shitty title\n\nsource\ndata\nkey: shitty\nentrytype: inproceedings\n"
+        "author:\n- Vaswani, Ashish\n- Shazeer, Noam\ndate: '2017'\nbooktitle: NeurIPS\ndoi: 10.5555/x\nnote: kept\n"
+        "\ntags paper\n-> about @other\nextra\nmy notes\n"
+    )
+    taken = sources.merge(None, merged["text"], _entry(), ["title"])
+    assert (taken["filled"], [c["field"] for c in taken["conflicts"]]) == ([], ["key"])
+    assert taken["text"] == "Attention Is All You Need" + merged["text"].removeprefix("Shitty title")
+    done = sources.merge(None, taken["text"], _entry(), ["key"])["text"]
+    assert "key: vaswani2017\n" in done
+    # nothing to change: the text as it was
+    assert sources.merge(None, done, _entry()) == {"text": done, "filled": [], "conflicts": []}
+
+
+def test_merge_without_data_block_and_keys(data_dir):
+    merged = sources.merge(None, "T\n\nsource\n", _entry())
+    assert merged["text"].startswith("T\n\nsource\ndata\nkey: vaswani2017\nentrytype: inproceedings\n")
+    assert merged["text"].endswith("\n") and not merged["text"].endswith("\n\n")
+    s = sources.create({"key": "vaswani2017"})
+    assert "key: vaswani2017-2" in sources.merge(None, "T\n\nsource\n", _entry())["text"]
+    assert sources.merge(s["file"], "T\n\nsource\ndata\nkey: vaswani2017\n", _entry())["conflicts"][0]["field"] == "title"
+    # misc doesn't replace a real type
+    assert sources.merge(None, "T\nsource\ndata\nentrytype: book\n", _entry(MERGE_BIB.replace("@inproceedings", "@misc")))["conflicts"] == [
+        {"field": "title", "current": "T", "incoming": "Attention Is All You Need"}]
+
+
+def test_merge_invalid(data_dir):
+    with pytest.raises(ValidationError):
+        sources.merge(None, "T\nsource\ndata\nkey: [\n", _entry())
+    import app
+    client = app.app.test_client()
+    r = client.post("/api/sources/merge", json={"text": "T\nsource\n", "bibtex": MERGE_BIB + MERGE_BIB.replace("{vaswani2017", "{b")})
+    assert r.status_code == 400
+    r = client.post("/api/sources/merge", json={"file": None, "text": "T\nsource\n", "bibtex": MERGE_BIB, "take": ["title"]})
+    assert r.get_json()["text"].startswith("Attention Is All You Need\nsource\ndata\n")
+
+
 def test_key_conflicts(data_dir):
     sources.create({"key": "b"})
     with pytest.raises(store.Conflict):

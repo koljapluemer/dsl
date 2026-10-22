@@ -255,6 +255,20 @@ def resolve_sources():
     return jsonify(out), 201
 
 
+@app.post("/api/sources/merge")
+def merge_source():
+    """`{file, text, bibtex, take?}`: `text`, the source's as edited, updated from
+    the one entry in `bibtex` (see sources.merge); nothing is written."""
+    body = _json()
+    try:
+        entries = bibtex_import.parse(str(body.get("bibtex", "")))
+    except ValueError as e:
+        raise fields.ValidationError(str(e)) from None
+    if len(entries) != 1:
+        raise fields.ValidationError(f"expected one BibTeX entry, found {len(entries)}")
+    return jsonify(sources.merge(body.get("file"), body.get("text"), entries[0], body.get("take") or []))
+
+
 def _json() -> dict:
     body = request.get_json(silent=True)
     return body if isinstance(body, dict) else {}

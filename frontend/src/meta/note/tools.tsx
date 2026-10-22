@@ -3,7 +3,7 @@ import { Columns2, Eye, Pencil, type LucideIcon } from 'lucide-react';
 import type { NoteMode } from './mode';
 
 /** The note's own tools, each shown where it applies (see Note's `tools`). */
-export type ToolId = 'media' | 'reference' | 'bibtex' | 'copyKey' | 'edit' | 'delete';
+export type ToolId = 'media' | 'reference' | 'bibtex' | 'bibtexUpdate' | 'copyKey' | 'edit' | 'delete';
 
 /** A tag the note toggles: `icon` while it's off, `activeIcon` (else `icon`, highlighted) while on. */
 export type TagToggle = { tag: string; icon: LucideIcon; activeIcon?: LucideIcon; title: string; activeTitle?: string };

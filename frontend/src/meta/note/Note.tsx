@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState, type FocusEvent, type KeyboardEvent, type ReactNode } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import type { EditorView } from '@codemirror/view';
-import { Check, Copy, Pencil, Trash2, Undo2, X } from 'lucide-react';
+import { BookDown, Check, Copy, Pencil, Trash2, Undo2, X } from 'lucide-react';
 import type { Item } from '@/api/types';
 import { showError } from '@/dumb/errorBanner';
 import { showNotice, UNSAVED } from '@/dumb/notice';
@@ -23,7 +23,8 @@ import type { MediaAttachment } from '@/features/item-media/useMediaAttachment';
 import type { PendingOp } from '@/features/item-relate/relationModel';
 import { Relationships } from '@/features/item-relate/Relationships';
 import { runPending, useRelationOps } from '@/features/item-relate/useRelationOps';
-import { BibtexPicker, StagedSources } from '@/features/source-bibtex/BibtexSourcesField';
+import { BibtexConflicts, BibtexPicker, StagedSources } from '@/features/source-bibtex/BibtexSourcesField';
+import { useBibtexUpdate } from '@/features/source-bibtex/useBibtexUpdate';
 import { useSessionState } from '@/dumb/useSessionState';
 import { ALL_MODES, isMode, resolveMode, type NoteMode } from './mode';
 import { NoteModal } from './NoteModal';
@@ -133,6 +134,8 @@ function LoadedNote({
   const [modal, setModal] = useState(false);
   const [focus, setFocus] = useState(autofocus);
   const editorRef = useRef<EditorView | null>(null);
+  // into the editor afterwards, so focus leaving the note writes a blur-committed update
+  const update = useBibtexUpdate((text) => { draft.setText(text); editorRef.current?.focus(); });
   const fetchItem = (f: string) => qc.fetchQuery({ ...itemQuery(f), staleTime: 0 });
 
   const setMode = async (next: NoteMode) => {
@@ -177,6 +180,7 @@ function LoadedNote({
   }
 
   const discard = () => {
+    update.cancel();
     if (isNew && onClose) onClose();
     else draft.reset({ text: item?.text ?? initial, media: item?.media ?? null });
   };
@@ -214,6 +218,10 @@ function LoadedNote({
       <ToolButton key="reference" title="insert note reference" onClick={() => editorRef.current && insertReference(editorRef.current)}>[[</ToolButton>
     ),
     want('bibtex', editing) && <BibtexPicker key="bibtex" onPick={() => void draft.bib.fromClipboard()} className={TOOL} />,
+    want('bibtexUpdate', editing && !!item?.sourceKey) && (
+      <ToolButton key="bibtexUpdate" title="update this source from BibTeX in the clipboard"
+                  onClick={() => void update.fromClipboard(item!.file, draft.text)}><BookDown size={14} /></ToolButton>
+    ),
     want('copyKey', !!item?.sourceKey) && (
       <ToolButton key="copyKey" title={`copy key ${item!.sourceKey}`} onClick={() => void navigator.clipboard.writeText(item!.sourceKey!)
         .then(() => showNotice(`copied ${item!.sourceKey}`), showError)}><Copy size={14} /></ToolButton>
@@ -282,7 +290,11 @@ function LoadedNote({
   const editor = (
     <div className="nodrag nowheel nopan cursor-auto select-text" onKeyDown={keys}>
       <StagedSources rows={draft.bib.staged} onChoice={draft.bib.setChoice} onRemove={draft.bib.remove} />
-      {(draft.media.error || draft.bib.error) && <p className="mb-2 text-sm text-error">{draft.media.error ?? draft.bib.error}</p>}
+      <BibtexConflicts conflicts={update.conflicts} take={update.take} onTake={update.setTake} onApply={() => void update.apply(draft.text)}
+                       onCancel={() => { update.cancel(); editorRef.current?.focus(); }} />
+      {(draft.media.error || draft.bib.error || update.error) && (
+        <p className="mb-2 text-sm text-error">{draft.media.error ?? draft.bib.error ?? update.error}</p>
+      )}
       <ItemTextEditor value={draft.text} autofocus={focus} onChange={draft.setText} onSave={() => void save()} onPasteFile={attach}
                       currentFile={item?.file} editorRef={editorRef} />
       <Problems text={draft.text} />

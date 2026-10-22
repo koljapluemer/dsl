@@ -41,6 +41,7 @@ for a new note; every `edit` tool and the sidebar's ⤢ tool open it.
   or the spinner of a blur save) and close on the right.
 - **Tools**, all icon buttons (`TOOL` in `tools.tsx`):
   - edit and split only: `media` (upload, and the camera on touch devices), `reference` (`[[`), `bibtex` (sources from the clipboard)
+  - edit and split, sources only: `bibtexUpdate` (fills in the source from the clipboard's BibTeX, the conflicting fields chosen above the editor)
   - `copyKey`: a source's BibTeX key
   - tag toggles
   - `edit`: by default only in `simple` and `inline`

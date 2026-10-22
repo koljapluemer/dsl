@@ -214,3 +214,70 @@ def link(text: str, files: list[str], label: str) -> str:
         if not any((r.label or "") == label and r.target == target for r in dsl.parse(store.SCHEMA, text).relations):
             text = questions.add_relation(text, label, target)
     return text
+
+
+def merge(file: str | None, text, entry: dict, take=()) -> dict:
+    """`text`, a source's (as edited, maybe not written yet), updated from `entry`
+    (a source, as from BibTeX): each field it lacks filled in (`filled`), each it
+    has otherwise replaced when in `take`; those not in `take` are `conflicts`,
+    `{field, current, incoming}`. `entrytype: misc` counts as none; the key is
+    renamed when another source has it. Nothing is written."""
+    if not isinstance(text, str):
+        raise ValidationError("text: expected string")
+    if not isinstance(take, (list, tuple)) or not all(isinstance(t, str) for t in take):
+        raise ValidationError("take: expected list of field names")
+    doc = dsl.parse(store.SCHEMA, text)
+    if doc.blocks.get("data") and doc.data is None:
+        raise ValidationError("the data block isn't valid YAML: fix it first")
+    data = dict(doc.data or {})
+
+    current = {n: str(data[n]) for n in ("key", "entrytype") if data.get(n) not in (None, "")}
+    current.update({n: _coerce(n, data[n]) for n in FIELDS if data.get(n) not in (None, "", [])})
+    if doc.heading:
+        current["title"] = doc.heading
+    incoming = normalise(entry)
+    incoming["key"] = unique_key(incoming["key"], {s["key"] for s in _sources().values() if s["file"] != file})
+    for side in (current, incoming):
+        if side.get("entrytype") == "misc":
+            del side["entrytype"]
+
+    changes: dict = {}
+    filled, conflicts = [], []
+    for name in ("title", "key", "entrytype", *FIELDS):
+        new = incoming.get(name)
+        if new is None or new == current.get(name):
+            continue
+        if name not in current:
+            filled.append(name)
+        elif name not in take:
+            conflicts.append({"field": name, "current": current[name], "incoming": new})
+            continue
+        changes[name] = new
+    if not changes:
+        return {"text": text, "filled": filled, "conflicts": conflicts}
+
+    lines = text.split("\n")
+    first = next((i for i, l in enumerate(lines) if l.strip()), 0)
+    if "title" in changes:
+        title = changes.pop("title")
+        if doc.heading:
+            lines[first] = title
+        else:
+            lines.insert(0, title)
+    if changes:
+        data.update(changes)
+        order = ["key", "entrytype", *FIELDS]
+        ordered = {n: data[n] for n in order if n in data} | {k: v for k, v in data.items() if k not in order}
+        start = next((i for i in range(first + 1, len(lines)) if dsl.block_keyword(store.SCHEMA, lines[i]) == "data"), None)
+        # blank lines ending the block (or the text, when there's none) stay after it
+        if start is None:
+            start = len(lines)
+            while start > first + 1 and not lines[start - 1].strip():
+                start -= 1
+            end = start
+        else:
+            end = next((j for j in range(start + 1, len(lines)) if dsl.ends_block(store.SCHEMA, lines[j])), len(lines))
+            while end > start + 1 and not lines[end - 1].strip():
+                end -= 1
+        lines[start:end] = _block("data", _dump_data(ordered))
+    return {"text": "\n".join(lines), "filled": filled, "conflicts": conflicts}
