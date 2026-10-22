@@ -32,7 +32,7 @@ A note shows rendered: body and `extra` content as markdown (marked + DOMPurify)
 
 ## Editing
 
-Everywhere a note is shown it's the same component (`meta/note/Note.tsx`, [`docs/note-component.md`](docs/note-component.md)); pages only set its parameters. Its tools are icon buttons at the top left (attach an image or video, take a photo on touch devices, insert a reference, add sources from BibTeX, update a source from BibTeX, copy a source's key, the page's tag toggles, edit in a modal, delete); at the top right a toggle switches between edit, view and both side by side, where the page offers more than one. Where edits are saved explicitly, Save (✓, Ctrl+Enter or Ctrl+S) and Discard (↶) take the toggle's place as soon as something is edited, and nothing - relationships included - is written until Save; elsewhere (the sidebar, Explorations, Tasks, Sources) edits are written as focus leaves the note. The New note button above the sidebar's search (on a phone the + button at the bottom right; or `c`) opens a new note in a modal, which closes on Save with a notice; so does editing a note from a list (Calendar, Projects, Float, Zero).
+Everywhere a note is shown it's the same component (`meta/note/Note.tsx`, [`docs/note-component.md`](docs/note-component.md)); pages only set its parameters. Its tools are icon buttons at the top left (attach an image or video, take a photo on touch devices, insert a reference, add sources from BibTeX, update a source from BibTeX, copy a source's key, the page's tag toggles, edit in a modal, delete); at the top right a toggle switches between edit, view and both side by side, where the page offers more than one. Where edits are saved explicitly, Save (✓, Ctrl+Enter or Ctrl+S) and Discard (↶) take the toggle's place as soon as something is edited, and nothing - relationships included - is written until Save; elsewhere (the sidebar, Explorations, Tasks, Sources) edits are written as focus leaves the note. The New note button above the sidebar's search (on a phone the + button at the bottom right; or `c`) opens a new note in a modal, which closes on Save with a notice; so does editing a note from a list (Calendar, Projects, Float, Tags).
 
 Relationships, outgoing and incoming, are one widget below the note: each in two lines, the label in small caps after its arrow (→ from the note, ← to it, dashed ⇢ ⇠ for inline references) and, where editable, detach and delete buttons; a click on the label edits it; the other note follows inline. Below them a direction, label and note (picked from the search, or written as a new one) add another.
 
@@ -68,14 +68,14 @@ When `questions.py` lists more than 3 questions, a local LLM chooses the 3 that 
 
 The server's URL is the only LLM setting (Settings, stored under `llm` in the config file); it defaults to `OLLAMA_HOST`, then `http://127.0.0.1:11434`. Each feature names its own model, and models are kept loaded for 30 minutes between calls (`llm.py`).
 
-## Calendar, Queue, Float, Zero, Suggest
+## Calendar, Queue, Float, Tags, Suggest
 
 Ports of the `../dsl-mobile` apps calendar, queue and zero, of `../floating-notes` and of `../suggest`, one route each; what an item means to them is in `views.py`.
 
 - **Calendar**: `appointment` and `recurring` items, inline, by day or over a From..To range (this week, Sunday to Saturday, by default), toggled at the top; view, day and range are in the URL. An item's edit button opens it in a modal; `+` adds one, prefilled with `appointment <that day>`.
 - **Queue**: 3 random items (not explorations), Next draws others; the icon toggle beside Next shows them simply (the body only) or in full, kept for the session. An item's hide toggle tags it `no-q` (toggling again untags it); what it hides is set in code, see [`docs/hiding.md`](docs/hiding.md).
 - **Float**: random items, shown simply, drifting across the window, a new one every few seconds, drawn in batches of 20 (`store.float_draw`); the filter below keeps those containing its text. A card stops under the pointer; its edit button opens it in a modal, which holds the stage still. The hide toggle tags it `no-float`, see [`docs/hiding.md`](docs/hiding.md).
-- **Zero**: each item tagged `zero`, inline, in a random order per page load; a click greys it out and moves it last until reload.
+- **Tags**: a dropdown of every tag, `zero` (the zero app's) selected on load, and each item carrying the selected one, inline, in a random order per page load; a click greys it out and moves it last until reload.
 - **Suggest**: a dropdown of the `suggest-` tags (`tags suggest-book`), a random one selected on load, and a random note carrying the selected one, shown simply or (as toggled beside the button) in full; hold "Hold for next" for another.
 
 ## Projects

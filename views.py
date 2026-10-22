@@ -1,4 +1,4 @@
-"""What the queue, float, zero, suggest, explorations, calendar and projects views read from an item."""
+"""What the queue, float, tags, suggest, explorations, calendar and projects views read from an item."""
 
 import calendar as _calendar
 from dataclasses import dataclass
@@ -17,7 +17,6 @@ ISSUE_KEYWORD = "issue"
 SOURCE_KEYWORD = "source"
 # an issue belongs to the projects its relationships with this label point to
 PROJECT_RELATION = "project"
-ZERO_TAG = "zero"
 # an issue to think about (and sketch) rather than build; projects lists these first
 THINK_TAG = "suggest-think-and-sketch"
 # the tags suggest offers

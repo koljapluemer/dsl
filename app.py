@@ -198,9 +198,14 @@ def float_draw():
     return jsonify(store.float_draw(request.args.get("q", "")))
 
 
-@app.get("/api/zero")
-def zero_items():
-    return jsonify(store.zero_items())
+@app.get("/api/tags")
+def all_tags():
+    return jsonify(store.all_tags())
+
+
+@app.get("/api/tagged")
+def tagged_items():
+    return jsonify(store.tagged_items(request.args.get("tag", "")))
 
 
 @app.get("/api/explorations")

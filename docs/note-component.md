@@ -109,7 +109,7 @@ Choose `persist` to match the page:
 | Calendar | inline, with the edit tool |
 | Queue | simple or full (view first), as the toggle beside Next says (kept for the session); a tag toggle hides from the queue |
 | Float | simple, with the edit tool (the page's modal, pausing the stage) and a tag toggle hiding from float |
-| Zero | inline; a click marks it done |
+| Tags | inline; a click marks it done |
 | Suggest | simple (default) or full, as the toggle beside "Hold for next" says |
 | Settings → maintenance | past appointments inline |
 

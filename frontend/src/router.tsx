@@ -18,8 +18,8 @@ import { SettingsPage } from './pages/settings/SettingsPage';
 import { SourcesPage } from './pages/sources/SourcesPage';
 import { validateSourcesSearch } from './pages/sources/sources';
 import { SuggestPage } from './pages/suggest/SuggestPage';
+import { TagsPage } from './pages/tags/TagsPage';
 import { TasksPage } from './pages/tasks/TasksPage';
-import { ZeroPage } from './pages/zero/ZeroPage';
 
 const root = createRootRouteWithContext<{ queryClient: QueryClient }>()({
   component: App,
@@ -49,7 +49,7 @@ const tree = root.addChildren([
   createRoute({ getParentRoute: () => root, path: '/calendar', validateSearch: validateCalendarSearch, component: CalendarPage }),
   createRoute({ getParentRoute: () => root, path: '/queue', component: QueuePage }),
   createRoute({ getParentRoute: () => root, path: '/float', component: FloatPage }),
-  createRoute({ getParentRoute: () => root, path: '/zero', component: ZeroPage }),
+  createRoute({ getParentRoute: () => root, path: '/tags', component: TagsPage }),
   createRoute({ getParentRoute: () => root, path: '/suggest', component: SuggestPage }),
   createRoute({ getParentRoute: () => root, path: '/settings', component: SettingsPage }),
 ]);

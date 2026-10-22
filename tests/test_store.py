@@ -302,10 +302,11 @@ def test_float_skips_hidden_and_filters(data_dir):
     assert store.queue_draw()["total"] == 3
 
 
-def test_zero_items(data_dir):
+def test_tagged_items(data_dir):
     store.create({"file": "a.txt", "text": "a\ntags zero"})
-    store.create({"file": "b.txt", "text": "b\ntags zeros"})
-    assert [i["file"] for i in store.zero_items()] == ["a.txt"]
+    store.create({"file": "b.txt", "text": "b\ntags zeros x"})
+    assert store.all_tags() == ["x", "zero", "zeros"]
+    assert [i["file"] for i in store.tagged_items("zero")] == ["a.txt"]
 
 
 def test_explorations_last_edited_first_and_not_in_queue(data_dir):

@@ -599,10 +599,15 @@ def float_draw(q: str = "") -> dict:
     return _draw(views.FLOAT_HIDING, FLOAT_BATCH, q)
 
 
-def zero_items() -> list[dict]:
-    """Every item tagged `zero`."""
+def all_tags() -> list[str]:
+    """Every tag."""
+    return sorted({t for e in _INDEX.refresh().values() for t in e.tags})
+
+
+def tagged_items(tag: str) -> list[dict]:
+    """Every item tagged `tag`."""
     entries = _INDEX.refresh()
-    return [_note(n, entries) for n, e in sorted(entries.items()) if views.ZERO_TAG in e.tags]
+    return [_note(n, entries) for n, e in sorted(entries.items()) if tag in e.tags]
 
 
 def explorations() -> list[dict]:

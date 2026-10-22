@@ -22,7 +22,7 @@ export const TABS = [
   { to: '/calendar', label: 'Calendar', key: 'c' },
   { to: '/queue', label: 'Queue', key: 'u' },
   { to: '/float', label: 'Float', key: 'f' },
-  { to: '/zero', label: 'Zero', key: 'z' },
+  { to: '/tags', label: 'Tags', key: 'z' },
   { to: '/suggest', label: 'Suggest', key: 'x' },
   { to: '/settings', label: 'Settings', key: ',' },
 ] as const;
