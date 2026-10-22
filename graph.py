@@ -180,7 +180,7 @@ def open_graph(raw_pins) -> dict:
     if not isinstance(raw_pins, list):
         raise store.ValidationError("pins must be a list")
     pinned = _valid_pins(raw_pins)
-    store._save_config(store._config() | {"graph": {"pins": pinned}})
+    store._update_config({"graph": {"pins": pinned}})
     return build(pinned)
 
 

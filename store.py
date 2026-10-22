@@ -50,9 +50,17 @@ def _config() -> dict:
     return cfg if isinstance(cfg, dict) else {}
 
 
-def _save_config(cfg: dict) -> None:
-    CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
-    CONFIG_PATH.write_text(json.dumps(cfg, indent=2) + "\n")
+_config_lock = threading.Lock()
+
+
+def _update_config(changes: dict) -> None:
+    """Merges `changes` into the config. Replaces the file atomically, as
+    requests read it concurrently (a truncated file reads as no config)."""
+    with _config_lock:
+        CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
+        tmp = CONFIG_PATH.with_name(CONFIG_PATH.name + ".tmp")
+        tmp.write_text(json.dumps(_config() | changes, indent=2) + "\n")
+        os.replace(tmp, CONFIG_PATH)
 
 
 def get_path() -> Path | None:
@@ -63,7 +71,7 @@ def get_path() -> Path | None:
 def set_path(path: str) -> Path:
     p = Path(path).expanduser().resolve()
     p.mkdir(parents=True, exist_ok=True)
-    _save_config(_config() | {"path": str(p)})
+    _update_config({"path": str(p)})
     return p
 
 
@@ -72,7 +80,7 @@ def set_llm(llm: dict) -> None:
     url = llm.get("url")
     if url is not None and not isinstance(url, str):
         raise ValidationError("llm.url must be a string")
-    _save_config(_config() | {"llm": {"url": url.strip()} if url and url.strip() else {}})
+    _update_config({"llm": {"url": url.strip()} if url and url.strip() else {}})
 
 
 def get_bib_paths() -> list[str]:
@@ -95,7 +103,7 @@ def set_bib_paths(paths) -> list[str]:
                 p = p / "sources.bib"
         if str(p) not in out:
             out.append(str(p))
-    _save_config(_config() | {"bibtex": out})
+    _update_config({"bibtex": out})
     return out
 
 

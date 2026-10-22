@@ -1,5 +1,6 @@
 import os
 import re
+import threading
 
 import pytest
 
@@ -12,6 +13,23 @@ def data_dir(tmp_path, monkeypatch):
     monkeypatch.setattr(store, "CONFIG_PATH", tmp_path / "cfg" / "config.json")
     store.set_path(str(tmp_path / "data"))
     return tmp_path / "data"
+
+
+def test_config_reads_stay_whole_during_writes(data_dir):
+    stop = threading.Event()
+
+    def write():
+        while not stop.is_set():
+            store._update_config({"graph": {"pins": [{"filename": "x.txt", "depth": 1}] * 50}})
+
+    t = threading.Thread(target=write)
+    t.start()
+    try:
+        paths = {store.get_path() for _ in range(2000)}
+    finally:
+        stop.set()
+        t.join()
+    assert paths == {data_dir.resolve()}
 
 
 def test_create_names_file_slug_hex(data_dir):
