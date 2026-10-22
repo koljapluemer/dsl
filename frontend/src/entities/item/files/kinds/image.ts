@@ -1,14 +1,5 @@
-/** Recognised video file extensions, as views.VIDEO_EXTENSIONS. */
-const VIDEO_EXTENSIONS = new Set(['mp4', 'webm', 'mov']);
-
-export const MAX_VIDEO_ATTACHMENT_BYTES = 250 * 1024 * 1024;
-
-export const isVideoFilename = (path: string) => VIDEO_EXTENSIONS.has(path.split('.').pop()?.toLowerCase() ?? '');
-
-export const mediaUrl = (path: string) => `/api/media/${path.split('/').map(encodeURIComponent).join('/')}`;
-
-export const pastedMedia = (data: DataTransfer | null) =>
-  Array.from(data?.files ?? []).find((item) => item.type.startsWith('image/') || item.type.startsWith('video/'));
+/** Images, as file_kinds.IMAGE: shown as a note's attachment, downscaled to WebP before they're written. */
+export const IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'];
 
 const MAX_EDGE = 1920;
 const QUALITY = 0.82;

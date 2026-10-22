@@ -18,6 +18,7 @@ export const TABS = [
   { to: '/tasks', label: 'Tasks', key: 't' },
   { to: '/projects', label: 'Projects', key: 'p' },
   { to: '/sources', label: 'Sources', key: 's' },
+  { to: '/portfolio', label: 'Portfolio', key: 'o' },
   { to: '/questions', label: 'Questions', key: 'q' },
   { to: '/calendar', label: 'Calendar', key: 'c' },
   { to: '/queue', label: 'Queue', key: 'u' },

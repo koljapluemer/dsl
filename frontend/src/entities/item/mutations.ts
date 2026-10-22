@@ -1,6 +1,7 @@
 import type { QueryClient } from '@tanstack/react-query';
 import { api, enc } from '@/api/client';
 import type { Answered, Backlink, Item } from '@/api/types';
+import { fileUrl } from './files/files';
 
 /** Updates `file`, or creates an item named after its text when `file` is null. */
 export const saveItem = (file: string | null, text: string) =>
@@ -20,7 +21,11 @@ export async function attachMedia(file: string, media: Blob) {
 
 export const clearMedia = (file: string) => api<Item>('DELETE', `/api/items/${enc(file)}/media`);
 
-export const mediaPath = async (path: string) => (await api<{ path: string }>('GET', `/api/media-path?p=${enc(path)}`)).path;
+/** The absolute path of a file in the data folder. */
+export const filePath = async (path: string) => (await api<{ path: string }>('GET', `/api/file-path?p=${enc(path)}`)).path;
+
+/** Writes a file of a kind edited as text (see files.ts). */
+export const writeTextFile = (path: string, text: string) => api<null>('PUT', fileUrl(path), { text });
 
 /** Links the item to `target` (a file) or to a new item with `text`, under any `label` ('' for none). */
 export const relateItem = (file: string, body: { label: string } & ({ target: string } | { text: string })) =>

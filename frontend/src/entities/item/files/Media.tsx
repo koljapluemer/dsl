@@ -2,7 +2,7 @@ import { Maximize2 } from 'lucide-react';
 import { useState, type ReactNode } from 'react';
 import { MediaPreview } from '@/dumb/MediaPreview';
 import { MediaModal } from './MediaModal';
-import { isVideoFilename, mediaUrl } from './media';
+import { fileUrl, kindOf } from './files';
 
 /**
  * How an attachment is shown: `inline` at most a third of the screen high,
@@ -58,5 +58,5 @@ export function Media({ src, kind, path, onDelete, actions, size = 'inline', cla
 
 /** The attachment at `path` in the data folder (an item's `media`). */
 export function NoteMedia({ path, ...rest }: { path: string; onDelete?: () => Promise<unknown>; actions?: ReactNode; size?: MediaSize; className?: string }) {
-  return <Media src={mediaUrl(path)} kind={isVideoFilename(path) ? 'video' : 'image'} path={path} {...rest} />;
+  return <Media src={fileUrl(path)} kind={kindOf(path).name === 'video' ? 'video' : 'image'} path={path} {...rest} />;
 }

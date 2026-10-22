@@ -13,15 +13,15 @@ export function MaintenanceSettings() {
       <Cleanup label="past appointments" action="past-appointments" count={data.pastAppointments.length}>
         {data.pastAppointments.map((a) => <li key={a.file}><Note file={a.file} item={a} render="inline" /></li>)}
       </Cleanup>
-      <Cleanup label="orphaned media" action="orphaned-media" count={data.orphanedMedia.length}>
-        {data.orphanedMedia.map((rel) => <li key={rel} className="font-mono">{rel}</li>)}
+      <Cleanup label="orphaned files" action="orphaned-files" count={data.orphanedFiles.length}>
+        {data.orphanedFiles.map((rel) => <li key={rel} className="font-mono">{rel}</li>)}
       </Cleanup>
     </fieldset>
   );
 }
 
 function Cleanup({ label, action, count, children }: {
-  label: string; action: 'past-appointments' | 'orphaned-media'; count: number; children: ReactNode;
+  label: string; action: 'past-appointments' | 'orphaned-files'; count: number; children: ReactNode;
 }) {
   const qc = useQueryClient();
 

@@ -3,7 +3,7 @@ import { useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import { showError } from '@/dumb/errorBanner';
 import { saveSettings, settingsQuery } from '@/entities/settings/queries';
-import { BibtexSettings } from './BibtexSettings';
+import { ExportSettings } from './ExportSettings';
 import { LlmSettings } from './LlmSettings';
 import { MaintenanceSettings } from './MaintenanceSettings';
 
@@ -31,7 +31,8 @@ export function SettingsPage() {
         </div>
       </fieldset>
       <LlmSettings />
-      {path && <BibtexSettings />}
+      {path && <ExportSettings exportKey="bibtex" legend="bibtex export" placeholder="~/path/to/sources.bib" />}
+      {path && <ExportSettings exportKey="portfolio" legend="portfolio export" placeholder="~/path/to/site/index.html" />}
       {path && <MaintenanceSettings />}
     </div>
   );

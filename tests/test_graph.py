@@ -1,6 +1,7 @@
 import pytest
 
-import attachments
+import file_kinds
+import files
 import graph
 import store
 
@@ -136,43 +137,53 @@ def test_strict_update(data_dir):
 
 def test_media_attach_replace_clear(data_dir):
     note("a", "A\nappointment 26-01-01\nextra\nx")
-    first = attachments.attach("a.txt", b"one", "image/jpeg")["media"]
+    first = files.attach("a.txt", b"one", "image/jpeg")["media"]
     assert first.startswith("images/a-") and first.endswith(".jpg")
     assert (data_dir / "a.txt").read_text() == f"A\nmedia {first}\nappointment 26-01-01\nextra\nx\n"
     note("b", f"B\nmedia {first}")
-    second = attachments.attach("a.txt", b"two", "video/quicktime")["media"]
+    second = files.attach("a.txt", b"two", "video/quicktime")["media"]
     assert second.endswith(".mov") and (data_dir / first).exists()  # still b's
-    attachments.clear("a.txt")
+    files.clear("a.txt")
     assert (data_dir / "a.txt").read_text() == "A\nappointment 26-01-01\nextra\nx\n"
     assert not (data_dir / second).exists()
     with pytest.raises(store.ValidationError):
-        attachments.attach("a.txt", b"x", "application/pdf")
+        files.attach("a.txt", b"x", "application/pdf")
 
 
 def test_media_video_size_limit(monkeypatch):
     note("a", "A")
-    monkeypatch.setattr(attachments, "MAX_VIDEO_BYTES", 2)
+    monkeypatch.setattr(file_kinds, "MAX_VIDEO_BYTES", 2)
     with pytest.raises(store.ValidationError, match="Video is too large"):
-        attachments.attach("a.txt", b"123", "video/mp4")
+        files.attach("a.txt", b"123", "video/mp4")
 
 
 def test_media_on_a_shared_line(data_dir):
     note("a", "A\nmedia images/old.png appointment 26-01-01")
-    attachments.attach("a.txt", b"x", "image/png")
+    files.attach("a.txt", b"x", "image/png")
     text = (data_dir / "a.txt").read_text()
     assert text.startswith("A\nmedia images/a-") and text.endswith(".png appointment 26-01-01\n")
-    attachments.clear("a.txt")
+    files.clear("a.txt")
     assert (data_dir / "a.txt").read_text() == "A\nappointment 26-01-01\n"
 
 
 def test_delete_and_undo_with_media(data_dir):
     note("a", "A")
-    rel = attachments.attach("a.txt", b"bytes", "image/png")["media"]
+    rel = files.attach("a.txt", b"bytes", "image/png")["media"]
     text = (data_dir / "a.txt").read_text()
     graph.delete("a.txt")
     assert not (data_dir / "a.txt").exists() and not (data_dir / rel).exists()
     graph.undo()
     assert (data_dir / "a.txt").read_text() == text and (data_dir / rel).read_bytes() == b"bytes"
+
+
+def test_delete_and_undo_with_several_files(data_dir):
+    note("a", "A\nmedia files/a.j2")
+    files.write_text("files/a.j2", "{{ body }}")
+    rel = files.attach("a.txt", b"bytes", "image/png")["media"]
+    graph.delete("a.txt")
+    assert not (data_dir / rel).exists() and not (data_dir / "files/a.j2").exists()
+    graph.undo()
+    assert (data_dir / rel).read_bytes() == b"bytes" and files.read_text("files/a.j2") == "{{ body }}"
 
 
 def test_hidden_notes_leave_the_graph_and_hide_undoes(data_dir):

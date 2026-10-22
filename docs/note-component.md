@@ -54,6 +54,10 @@ for a new note; every `edit` tool and the sidebar's ⤢ tool open it.
   - view: `NoteContent` (`entities/item`), which is body and `extra` as Markdown, keyword lines and `data` highlighted, and never relationship lines
   - edit: the editor and its problems. Tab and Shift-Tab indent and outdent the line (or the selected lines) by two spaces; Esc then Tab moves focus out of the editor
   - split: editor and preview side by side, stacked when the note is narrow (a container query)
+- **Files**: below the content, the saved note's other files
+  (`FileList`, `entities/item/files`, [`files.md`](files.md)): images and
+  videos as thumbnails, files edited as text (Jinja templates) as buttons
+  opening `TextFileModal` (`features/file-edit`), other files as links.
 - **Relationships**: below the content (see below).
 - **Inline** (`NoteLine`, `entities/item`): the first line of the body,
   rendered as Markdown. It's cut after `inlineChars` characters of its text,
@@ -105,6 +109,7 @@ Choose `persist` to match the page:
 | Tasks | full, blur commit, edit first, persisted per note |
 | Projects | inline, in their expandable wrapper with the issue count and an add-issue tool; issues inline and whole (`inlineWhole`) with the think/build tag toggle |
 | Sources | the list inline, the open source edit only, blur commit; `copyKey` shows for any source |
+| Portfolio | full, blur commit, edit first, persisted per view, no relationships, no delete; a preview link as extra tool |
 | Questions | full, view first, the mode kept by the page (`e` edits) |
 | Calendar | inline, with the edit tool |
 | Queue | simple or full (view first), as the toggle beside Next says (kept for the session); a tag toggle hides from the queue |

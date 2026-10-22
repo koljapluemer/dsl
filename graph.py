@@ -8,8 +8,8 @@ import re
 from collections import deque
 from dataclasses import dataclass, field
 
-import attachments
 import dsl
+import files
 import questions
 import store
 import views
@@ -270,7 +270,7 @@ def delete_relation(body: dict) -> None:
 
 # --- delete, hide and undo ---------------------------------------------------------
 
-# The last deletion or hide, for the undo popup: a note (its text and media bytes),
+# The last deletion or hide, for the undo popup: a note (its text and its files' bytes),
 # a relationship, or a hidden note's text before it was tagged.
 _undo: dict | None = None
 
@@ -279,15 +279,15 @@ def delete(name: str) -> None:
     global _undo
     e = _require(name)
     text = store.get(name)["text"]
-    media = None
-    if e.media:
+    kept = []
+    for rel in e.files:
         try:
-            media = (e.media, attachments.read(e.media))
-        except FileNotFoundError:
-            pass
-        attachments.release(name, e.media)
+            kept.append((rel, files.read(rel)))
+        except (store.NotFound, store.ValidationError):
+            continue
+        files.release(rel, ignoring=name)
     store.delete(name)
-    _undo = {"type": "note", "file": name, "text": text, "media": media}
+    _undo = {"type": "note", "file": name, "text": text, "files": kept}
 
 
 def hide(name: str) -> None:
@@ -307,9 +307,8 @@ def undo() -> dict:
         return {"restored": False}
     if pending["type"] == "note":
         store.create({"file": pending["file"], "text": pending["text"]})
-        if pending["media"]:
-            rel, data = pending["media"]
-            attachments.restore(rel, data)
+        for rel, data in pending["files"]:
+            files.restore(rel, data)
     elif pending["type"] == "hide":
         # not through _mutate: the note is hidden, so not part of the graph
         store.update(pending["file"], {"text": pending["text"]})

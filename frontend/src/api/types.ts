@@ -6,6 +6,7 @@ export type KeywordDef = {
   block: 'yaml' | 'text' | null;
   args: ArgDef[];
   line_start: boolean;
+  repeat: boolean;
   options: Record<string, { type: ValueType[]; meaning: string }>;
   excludes: string[];
   meaning: string;
@@ -14,11 +15,12 @@ export type Schema = { version: number; keywords: Record<string, KeywordDef> };
 export type Diagnostic = { code: string; line: number | null; detail: string | null };
 /**
  * A note as the API sends it, wherever it's shown: `refs` maps its relationship and inline
- * reference targets to their headings (null for a missing one); `media` is its attachment's
- * path in the data folder; `sourceKey` a source's BibTeX key, null for any other note.
+ * reference targets to their headings (null for a missing one); `files` are the paths in the data
+ * folder its `media` clauses name, `media` the one displayed (the first image or video);
+ * `sourceKey` a source's BibTeX key, null for any other note.
  */
 export type Item = {
-  file: string; text: string; media: string | null; errors: Diagnostic[]; warnings: Diagnostic[];
+  file: string; text: string; media: string | null; files: string[]; errors: Diagnostic[]; warnings: Diagnostic[];
   refs: Record<string, string | null>; sourceKey: string | null;
 };
 export type ItemPage = { items: Item[]; total: number; page: number; page_size: number };
@@ -33,10 +35,14 @@ export type QuestionPick = { questions: Question[]; missing_model?: string | nul
 export type NextNote = { item: Item | null; total: number };
 export type Answered = Item & { target: Suggestion };
 
-/** `bibtex`: the .bib export targets, each with its last export's error */
-export type Settings = { path: string | null; bibtex: { path: string; error: string | null }[] };
+/** the exports (exports.py), by their key */
+export type ExportKey = 'bibtex' | 'portfolio';
+/** `exports`: each export's target paths, each with its last export's error */
+export type Settings = { path: string | null; exports: Record<ExportKey, { path: string; error: string | null }[]> };
 /** what Settings → maintenance would delete */
-export type Maintenance = { pastAppointments: Item[]; orphanedMedia: string[] };
+export type Maintenance = { pastAppointments: Item[]; orphanedFiles: string[] };
+/** the note tagged portfolio and its template's path */
+export type Portfolio = { note: Item; template: string };
 export type LlmInfo ={ available: boolean; reason: string | null; url: string; default_url: string };
 
 export type QueueDraw = { items: Item[]; total: number };

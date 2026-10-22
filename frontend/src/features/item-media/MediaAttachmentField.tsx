@@ -1,7 +1,7 @@
 import { Camera, ImageOff, Upload } from 'lucide-react';
 import { useRef, type ChangeEvent } from 'react';
-import { Media, type MediaSize } from '@/entities/item/Media';
-import { isVideoFilename, mediaUrl } from '@/entities/item/media';
+import { fileUrl, kindOf } from '@/entities/item/files/files';
+import { Media, type MediaSize } from '@/entities/item/files/Media';
 import type { MediaAttachment } from './useMediaAttachment';
 
 /** Icon buttons attaching an image or video: upload, and (touch only) the camera. */
@@ -33,8 +33,8 @@ export function MediaPicker({ onAttach, className }: { onAttach: (file: File) =>
 /** A staged attachment, enlargeable, with its remove button; nothing when there is none. */
 export function MediaAttachmentPreview({ attachment, onRemove, size }: { attachment: MediaAttachment; onRemove: () => void; size?: MediaSize }) {
   if (!attachment) return null;
-  const src = attachment.status === 'existing' ? mediaUrl(attachment.filename) : attachment.url;
-  const kind = attachment.status === 'existing' ? (isVideoFilename(attachment.filename) ? 'video' : 'image') : attachment.kind;
+  const src = attachment.status === 'existing' ? fileUrl(attachment.filename) : attachment.url;
+  const kind = attachment.status === 'existing' ? (kindOf(attachment.filename).name === 'video' ? 'video' : 'image') : attachment.kind;
   return (
     <Media src={src} kind={kind} path={attachment.status === 'existing' ? attachment.filename : undefined} size={size} actions={
       <button type="button" className="btn btn-ghost btn-xs rounded-full bg-base-100/90 hover:bg-error/10 hover:text-error"

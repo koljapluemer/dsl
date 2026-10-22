@@ -9,7 +9,8 @@ import { analyze } from '@/entities/item/dsl/analyze';
 import { insertReference } from '@/entities/item/dsl/referenceCompletion';
 import { hasTag } from '@/entities/item/dsl/tags';
 import { draftItem } from '@/entities/item/draftItem';
-import { NoteMedia } from '@/entities/item/Media';
+import { FileList } from '@/entities/item/files/FileList';
+import { NoteMedia } from '@/entities/item/files/Media';
 import { attachMedia, clearMedia, itemsChanged, saveItem, setTag } from '@/entities/item/mutations';
 import { NoteContent } from '@/entities/item/NoteContent';
 import { NoteLine } from '@/entities/item/NoteLine';
@@ -17,6 +18,7 @@ import { itemQuery } from '@/entities/item/queries';
 import { useSchema } from '@/entities/item/schema';
 import { useOpenNote } from '@/entities/item/sidebar';
 import { useDeleteItem } from '@/features/item-delete/useDeleteItem';
+import { TextFileModal } from '@/features/file-edit/TextFileModal';
 import { ItemTextEditor } from '@/features/item-edit/ItemTextEditor';
 import { MediaAttachmentPreview, MediaPicker } from '@/features/item-media/MediaAttachmentField';
 import type { MediaAttachment } from '@/features/item-media/useMediaAttachment';
@@ -134,6 +136,8 @@ function LoadedNote({
   const [busy, setBusy] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
   const [modal, setModal] = useState(false);
+  // the file open in its text editor (see FileList)
+  const [textFile, setTextFile] = useState<string | null>(null);
   const [focus, setFocus] = useState(autofocus);
   const editorRef = useRef<EditorView | null>(null);
   // into the editor afterwards, so focus leaving the note writes a blur-committed update
@@ -314,6 +318,7 @@ function LoadedNote({
       {media && <div className={side ? 'shrink-0 @2xl:w-1/3' : ''}>{media}</div>}
       <div className="min-w-0 flex-1 space-y-3">
         {content}
+        {item && <FileList item={item} onOpen={setTextFile} />}
         {render === 'full' && relationships && (
           <Relationships file={item?.file ?? null} text={draft.text} refs={item?.refs ?? {}} pending={draft.pending}
                          editable={editing || relationshipsEditableInView} ops={ops} onRef={ref} />
@@ -335,6 +340,7 @@ function LoadedNote({
       {problem && <p className="mb-2 text-sm text-error">{problem}</p>}
       <div className={fill ? 'min-h-0 flex-1 overflow-y-auto' : ''}>{body}</div>
       {modalNote}
+      {textFile && <TextFileModal path={textFile} onClose={() => setTextFile(null)} />}
     </div>
   );
 }

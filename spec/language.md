@@ -153,6 +153,9 @@ appointment 26-10-12
 recurring mo until 27-03
 ```
 
+A keyword appears at most once per item, unless `keywords.yaml` marks it
+`repeat` (`media`); then each occurrence is a clause of its own.
+
 A keyword marked `line_start` in `keywords.yaml` (`tags`) must be the first
 token of its line. Found after another clause on the same line, it is an
 `unexpected_token`, and it and the rest of the line are skipped.
@@ -258,7 +261,7 @@ Errors are identified by these codes, plus the line they occur on.
 | `missing_arg`          | a keyword has fewer arguments than its `args` declares, or an option has no value |
 | `invalid_value`        | an argument or option value doesn't match its type                     |
 | `unexpected_token`     | a leftover token that is neither a known keyword nor an option of the current one |
-| `duplicate_keyword`    | the same keyword appears twice in one item, or the same option twice in one clause |
+| `duplicate_keyword`    | the same keyword appears twice in one item (unless it's marked `repeat`), or the same option twice in one clause |
 | `conflicting_keywords` | two keywords listed in each other's `excludes` both appear             |
 | `invalid_relation`     | see [Relationship lines](#relationship-lines)                          |
 | `invalid_state`        | see [State lines](#state-lines)                                        |

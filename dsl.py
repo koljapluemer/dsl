@@ -52,6 +52,7 @@ def load_schema(path: Path = SPEC_PATH) -> dict:
             "role": spec["role"],
             "block": spec.get("block"),
             "line_start": bool(spec.get("line_start")),
+            "repeat": bool(spec.get("repeat")),
             "args": [{"name": a["name"], "type": _types(name, a["type"])} for a in spec.get("args") or []],
             "options": {
                 o: {"type": _types(name, v["type"]), "meaning": v.get("meaning", "")}
@@ -372,7 +373,7 @@ class _SectionParser:
         keyword = toks[i][0]
         spec = self.kws[keyword]
         i += 1
-        if keyword in self._seen:
+        if keyword in self._seen and not spec["repeat"]:
             self._error("duplicate_keyword", no, keyword)
             return None, i
         self._seen.add(keyword)

@@ -83,15 +83,15 @@ def set_llm(llm: dict) -> None:
     _update_config({"llm": {"url": url.strip()} if url and url.strip() else {}})
 
 
-def get_bib_paths() -> list[str]:
-    return list(_config().get("bibtex") or [])
+def get_export_paths(key: str) -> list[str]:
+    return list(_config().get(key) or [])
 
 
-def set_bib_paths(paths) -> list[str]:
-    """Stores the .bib export targets (see bibtex_export). `~` is expanded, a
-    directory gets `sources.bib` appended."""
+def set_export_paths(key: str, paths, default_name: str) -> list[str]:
+    """Stores the targets of the export `key` (see exports.py). `~` is expanded,
+    a directory gets `default_name` appended."""
     if not isinstance(paths, list) or not all(isinstance(p, str) for p in paths):
-        raise ValidationError("bibtex: expected list of paths")
+        raise ValidationError(f"{key}: expected list of paths")
     out: list[str] = []
     for raw in paths:
         if not raw.strip():
@@ -100,10 +100,10 @@ def set_bib_paths(paths) -> list[str]:
         if p.is_absolute():
             p = p.resolve()
             if p.is_dir():
-                p = p / "sources.bib"
+                p = p / default_name
         if str(p) not in out:
             out.append(str(p))
-    _update_config({"bibtex": out})
+    _update_config({key: out})
     return out
 
 
@@ -122,14 +122,14 @@ def _file(name: str) -> Path:
 
 def _item(path: Path, text: str) -> dict:
     doc = dsl.parse(SCHEMA, text)
-    return {"file": path.name, "text": text, "media": views.media(doc), **dsl.diagnostics(doc)}
+    return {"file": path.name, "text": text, "media": views.media(doc), "files": views.files(doc), **dsl.diagnostics(doc)}
 
 
 def _read(path: Path) -> dict:
     try:
         return _item(path, path.read_text(encoding="utf-8"))
     except (OSError, UnicodeDecodeError) as e:
-        return {"file": path.name, "text": "", "media": None, "warnings": [],
+        return {"file": path.name, "text": "", "media": None, "files": [], "warnings": [],
                 "errors": [{"code": "unreadable", "line": None, "detail": str(e)}]}
 
 
@@ -163,6 +163,8 @@ class _Entry:
     # explicit and inline relationships used by graph/search; (label, target, inline)
     graph_rels: tuple[tuple[str, str, bool], ...]
     media: str | None
+    # every file it names (see views.files)
+    files: tuple[str, ...]
     extra: str
     data_text: str | None
     body_compact: str
@@ -205,6 +207,7 @@ def _entry(mtime_ns: int, item: dict) -> "_Entry":
         tuple((label, target, False) for label, target in explicit)
         + tuple(("", f"{target}.txt", True) for target in sorted(inline)),
         views.media(doc),
+        tuple(views.files(doc)),
         extra,
         "\n".join(doc.blocks["data"]) if "data" in doc.blocks else None,
         _SPACE_RE.sub(" ", body).strip(),
@@ -660,11 +663,3 @@ def projects() -> dict:
     }
 
 
-def media_path(rel: str) -> Path:
-    """An attachment's file in the data folder; only images and videos, never outside it."""
-    if not dsl.value_type(rel, ["path"]) or Path(rel).suffix.lower() not in views.MEDIA_EXTENSIONS:
-        raise ValidationError(f"invalid media path '{rel}'")
-    path = _dir() / rel
-    if not path.is_file():
-        raise NotFound(rel)
-    return path

@@ -119,7 +119,7 @@ function clause(pass: Pass, toks: Token[], i: number, end: number): number {
 
   const t = toks[i];
   const def = kws[t.text];
-  if (pass.keywords.includes(t.text)) return fail(i, `duplicate_keyword: ${t.text}`);
+  if (pass.keywords.includes(t.text) && !def.repeat) return fail(i, `duplicate_keyword: ${t.text}`);
   pass.keywords.push(t.text);
   mark(i, `tok-${def.role}`, def.meaning.trim());
   const kwAt = i++;

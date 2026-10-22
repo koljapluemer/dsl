@@ -24,7 +24,7 @@ Conventions:
 - Use `meta` only for real feature composition. For example, `note` is the
   note component every page shows notes with
   ([`note-component.md`](note-component.md)); it composes `item-edit`,
-  `item-media`, `item-delete`, `item-relate` and `source-bibtex` into its
+  `item-media`, `item-delete`, `item-relate`, `file-edit` and `source-bibtex` into its
   editor, tools and relationships; each feature remains usable on its own.
   The pieces it renders with that need no feature, `NoteContent` and
   `NoteLine`, are in `entities/item`, so features can show notes too.

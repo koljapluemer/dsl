@@ -1,6 +1,7 @@
 import { queryOptions } from '@tanstack/react-query';
 import { api, enc } from '@/api/client';
 import type { Backlink, Item, ItemPage } from '@/api/types';
+import { fileUrl } from './files/files';
 
 /** Shuffles the list's order; kept until the page reloads, so the order stays put while working. */
 export const SEED = Math.floor(Math.random() * 2 ** 32);
@@ -26,4 +27,14 @@ export const itemQuery = (file: string) => queryOptions({
 export const backlinksQuery = (file: string) => queryOptions({
   queryKey: ['items', 'backlinks', file],
   queryFn: () => api<Backlink[]>('GET', `/api/items/${enc(file)}/backlinks`),
+});
+
+/** A file of a kind edited as text (see files.ts), as it's written. */
+export const textFileQuery = (path: string) => queryOptions({
+  queryKey: ['file', path],
+  queryFn: async () => {
+    const res = await fetch(fileUrl(path));
+    if (!res.ok) throw new Error(`${path}: ${res.statusText}`);
+    return res.text();
+  },
 });
