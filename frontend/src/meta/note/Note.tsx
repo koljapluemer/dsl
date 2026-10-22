@@ -66,6 +66,8 @@ export type NoteProps = {
   mediaPosition?: 'top' | 'start' | 'end';
   /** inline: characters of the first line shown; text to mark; the whole line clickable */
   inlineChars?: number;
+  /** inline: the whole body, uncut, instead of the first line */
+  inlineWhole?: boolean;
   highlight?: string | null;
   onClick?: () => void;
   /** the edit tool does this instead of opening its own modal (a page keeping the modal) */
@@ -110,7 +112,7 @@ export function Note(props: NoteProps) {
 function LoadedNote({
   initial = '', item: shown, adopt, render = 'full', modes: modesAsked = ALL_MODES, defaultMode = 'view', mode: modeAsked, onModeChange,
   persist, commit = 'explicit', relationships = true, relationshipsEditableInView = true, initialPending, tools = {}, tagToggles = [],
-  extraTools = [], mediaPosition = 'top', inlineChars, highlight, onClick, onEdit, save: write, onDelete, onSaved, onCreated, onDeleted, onClose,
+  extraTools = [], mediaPosition = 'top', inlineChars, inlineWhole, highlight, onClick, onEdit, save: write, onDelete, onSaved, onCreated, onDeleted, onClose,
   onRef, onEscape, autofocus = false, fill = false, id, className = '',
 }: NoteProps & { adopt: (item: Item) => void }) {
   const qc = useQueryClient();
@@ -239,7 +241,7 @@ function LoadedNote({
   if (render === 'inline') {
     return (
       <div id={id} className={className}>
-        <NoteLine item={item ?? draftItem(initial)} chars={inlineChars} highlight={highlight} onClick={onClick} onRef={ref}
+        <NoteLine item={item ?? draftItem(initial)} chars={inlineChars} whole={inlineWhole} highlight={highlight} onClick={onClick} onRef={ref}
                   actions={toolRow.length ? toolRow : undefined} />
         {modalNote}
       </div>

@@ -90,7 +90,7 @@ function IssueList({ issues }: { issues: Item[] }) {
   return (
     <ul className="space-y-1">
       {issues.map((i) => (
-        <li key={i.file}><Note file={i.file} item={i} render="inline" tagToggles={[THINK]} className="px-2 py-1" /></li>
+        <li key={i.file}><Note file={i.file} item={i} render="inline" inlineWhole tagToggles={[THINK]} className="px-2 py-1" /></li>
       ))}
     </ul>
   );
