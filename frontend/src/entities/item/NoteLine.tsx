@@ -26,10 +26,10 @@ type Props = {
   className?: string;
 };
 
-/** Whether a click is the note's own: not on something in it acting on its own, nor in a modal it portaled. */
+/** Whether a click is the note's own: not on something in it acting on its own, nor in a portal outside it. */
 const ownClick = (event: MouseEvent<HTMLElement>) => {
   const target = event.target as Element;
-  return event.currentTarget.contains(target) && !target.closest('a, button, input, video, img, .modal');
+  return event.currentTarget.contains(target) && !target.closest('a, button, input, video, img');
 };
 
 /**
