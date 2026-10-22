@@ -338,17 +338,6 @@ def test_projects(data_dir):
     assert res["projects"][0]["text"] == "Archive\nproject\n"
 
 
-def test_media_path(data_dir):
-    (data_dir / "img").mkdir()
-    (data_dir / "img" / "a.png").write_bytes(b"x")
-    assert store.media_path("img/a.png") == data_dir / "img" / "a.png"
-    for bad in ["../x.png", "/etc/x.png", "img/a.txt"]:
-        with pytest.raises(store.ValidationError):
-            store.media_path(bad)
-    with pytest.raises(store.NotFound):
-        store.media_path("img/b.png")
-
-
 def test_item_endpoints(data_dir):
     import app
     client = app.app.test_client()

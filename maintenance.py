@@ -1,10 +1,9 @@
-"""Cleanups offered in Settings: past appointments and media no item names."""
+"""Cleanups offered in Settings: past appointments here, files no item names in files.py."""
 
 import datetime
 
-import attachments
+import files
 import store
-import views
 
 
 def _past(entries: dict) -> list[str]:
@@ -21,36 +20,11 @@ def past_appointments() -> list[dict]:
 
 
 def delete_past_appointments() -> int:
-    """Deletes them, with their attachments unless another item names those."""
+    """Deletes them, with their files unless another item names those."""
     entries = store._INDEX.refresh()
     names = _past(entries)
     for name in names:
         store.delete(name)
-        if entries[name].media:
-            attachments.release(name, entries[name].media)
+        for rel in entries[name].files:
+            files.release(rel)
     return len(names)
-
-
-def orphaned_media() -> list[str]:
-    """Media files in the app's `images/` folder that no item names, in its
-    `media` clause or anywhere else in its text."""
-    d = store._dir() / attachments.IMAGES_DIR
-    if not d.is_dir():
-        return []
-    entries = store._INDEX.refresh()
-    used = {e.media for e in entries.values() if e.media}
-    out = []
-    for path in d.iterdir():
-        if not path.is_file() or path.suffix.lower() not in views.MEDIA_EXTENSIONS:
-            continue
-        rel = f"{attachments.IMAGES_DIR}/{path.name}"
-        if rel not in used and not any(rel.lower() in e.lower for e in entries.values()):
-            out.append(rel)
-    return sorted(out)
-
-
-def delete_orphaned_media() -> int:
-    rels = orphaned_media()
-    for rel in rels:
-        (store._dir() / rel).unlink(missing_ok=True)
-    return len(rels)

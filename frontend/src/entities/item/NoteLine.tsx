@@ -3,7 +3,7 @@ import { CircleX, TriangleAlert } from 'lucide-react';
 import type { Item } from '@/api/types';
 import { inlineMarkdown } from '@/dumb/markdown';
 import { firstLine } from './dsl/firstLine';
-import { NoteMedia } from './Media';
+import { NoteMedia } from './files/Media';
 import { useSchema } from './schema';
 import { useOpenNote } from './sidebar';
 import './item.css';

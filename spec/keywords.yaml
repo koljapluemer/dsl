@@ -13,12 +13,13 @@
 #                        language.md, "Block keywords"); takes no args
 #   line_start: true — the keyword must be the first token of its line (see
 #                        language.md, "Keyword section")
+#   repeat:   true — the keyword may appear more than once in an item
 #   excludes: keywords that may not appear in the same item (declare on both)
 #   meaning:  what the keyword does — the part frontends must agree on
 #
 # A type is one name from language.md, or a list of them.
 
-version: 6
+version: 7
 
 changes:
   - version: 1
@@ -42,7 +43,7 @@ changes:
     note: >
       New value type tags (rest of the line, one or more lowercase tags); new
       keyword field line_start; new property tags.
-  - version: 6
+  - version: 7
     note: New primaries project and issue.
 
 keywords:
@@ -70,11 +71,14 @@ keywords:
 
   media:
     role: property
+    repeat: true
     args:
       - { name: file, type: path }
     meaning: >
-      The item's attached image or video. The file extension decides which:
-      jpg jpeg png gif webp bmp are images, mp4 webm mov are videos.
+      A file attached to the item. Its extension decides how frontends treat
+      it: jpg jpeg png gif webp bmp are images, mp4 webm mov are videos, and
+      the first image or video is the item's displayed attachment; other files
+      are listed.
 
   tasks:
     role: property

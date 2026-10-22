@@ -1,8 +1,8 @@
 import { Clipboard, Copy, Trash2, X } from 'lucide-react';
 import { useState } from 'react';
 import { Modal } from '@/dumb/Modal';
-import { imageUrlToPngBlob } from './media';
-import { mediaPath } from './mutations';
+import { filePath } from '../mutations';
+import { imageUrlToPngBlob } from './kinds/image';
 
 /**
  * An image or video as large as the screen allows, with Copy (images), Copy
@@ -44,7 +44,7 @@ export function MediaModal({ src, kind, path, onDelete, onClose }: {
           </button>
         )}
         {path && (
-          <button type="button" className="btn btn-ghost btn-sm" onClick={() => void run(async () => navigator.clipboard.writeText(await mediaPath(path)))}>
+          <button type="button" className="btn btn-ghost btn-sm" onClick={() => void run(async () => navigator.clipboard.writeText(await filePath(path)))}>
             <Copy className="size-4" /> Copy Path
           </button>
         )}

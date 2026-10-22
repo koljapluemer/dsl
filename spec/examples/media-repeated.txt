@@ -1,0 +1,4 @@
+A page
+media images/photo.webp
+media files/page.html.j2
+media "files/cv 2026.pdf"

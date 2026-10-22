@@ -5,7 +5,7 @@ import { CodeMirrorHost } from '@/dumb/CodeMirrorHost';
 import { dslExtensions } from '@/entities/item/dslExtensions';
 import { referenceCompletion } from '@/entities/item/dsl/referenceCompletion';
 import { referenceLinks } from '@/entities/item/dsl/referenceLinks';
-import { pastedMedia } from '@/entities/item/media';
+import { pastedMedia } from '@/entities/item/files/files';
 import { useSchema } from '@/entities/item/schema';
 
 type Props = {

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
-import { compressImage, MAX_VIDEO_ATTACHMENT_BYTES } from '@/entities/item/media';
+import { compressImage } from '@/entities/item/files/kinds/image';
+import { MAX_VIDEO_ATTACHMENT_BYTES } from '@/entities/item/files/kinds/video';
 
 /**
  * One attached image or video, one per note, alternative not additive. `existing`

@@ -2,11 +2,11 @@
 
 import calendar as _calendar
 from dataclasses import dataclass
-from pathlib import PurePosixPath
 
 import yaml
 
 import dsl
+import file_kinds
 
 APPOINTMENT_KEYWORD = "appointment"
 RECURRING_KEYWORD = "recurring"
@@ -44,10 +44,6 @@ QUEUE_HIDING = Hiding("no-q", frozenset({APPOINTMENT_KEYWORD, RECURRING_KEYWORD,
 FLOAT_HIDING = Hiding("no-float", frozenset({APPOINTMENT_KEYWORD, RECURRING_KEYWORD, SOURCE_KEYWORD}))
 GRAPH_HIDING = Hiding("no-graph", frozenset({APPOINTMENT_KEYWORD, RECURRING_KEYWORD}), frozenset({EXPLORATION_TAG}))
 
-IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp"}
-VIDEO_EXTENSIONS = {".mp4", ".webm", ".mov"}
-MEDIA_EXTENSIONS = IMAGE_EXTENSIONS | VIDEO_EXTENSIONS
-
 def _clause(doc: dsl.Document, keyword: str) -> dsl.Clause | None:
     return next((c for c in doc.clauses if c.keyword == keyword), None)
 
@@ -62,12 +58,14 @@ def tags(doc: dsl.Document) -> list[str]:
     return list(c.args) if c else []
 
 
+def files(doc: dsl.Document) -> list[str]:
+    """Every file the item names in a `media` clause, in order, each once."""
+    return list(dict.fromkeys(c.args[0] for c in doc.clauses if c.keyword == MEDIA_KEYWORD and c.args))
+
+
 def media(doc: dsl.Document) -> str | None:
-    """The attachment's path in the data folder, when it's an image or video."""
-    c = _clause(doc, MEDIA_KEYWORD)
-    if not c or not c.args or PurePosixPath(c.args[0]).suffix.lower() not in MEDIA_EXTENSIONS:
-        return None
-    return c.args[0]
+    """The displayed attachment: the first file that's an image or video."""
+    return next((f for f in files(doc) if file_kinds.kind(f).shown), None)
 
 
 def _iso_date(value: str) -> str:

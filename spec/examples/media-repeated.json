@@ -1,0 +1,10 @@
+{
+  "body": "A page",
+  "clauses": [
+    { "keyword": "media", "line": 2, "args": ["images/photo.webp"], "options": {} },
+    { "keyword": "media", "line": 3, "args": ["files/page.html.j2"], "options": {} },
+    { "keyword": "media", "line": 4, "args": ["files/cv 2026.pdf"], "options": {} }
+  ],
+  "errors": [],
+  "warnings": []
+}

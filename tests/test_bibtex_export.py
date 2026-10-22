@@ -2,6 +2,7 @@ import pytest
 
 import bibtex_export
 import bibtex_import
+import exports
 import sources
 import store
 
@@ -45,20 +46,20 @@ def test_sync(tmp_path):
     out.mkdir()
     foreign = tmp_path / "mine.bib"
     foreign.write_text("@misc{a}\n")
-    paths = store.set_bib_paths([str(out), "", str(foreign), "rel.bib", str(tmp_path / "x.txt"), str(out)])
+    paths = exports.set_paths("bibtex", [str(out), "", str(foreign), "rel.bib", str(tmp_path / "x.txt"), str(out)])
     assert paths == [str(out / "sources.bib"), str(foreign), "rel.bib", str(tmp_path / "x.txt")]
 
-    bibtex_export.sync()
-    assert bibtex_export.status[paths[0]] is None
-    assert "not generated" in bibtex_export.status[paths[1]]
-    assert "absolute" in bibtex_export.status[paths[2]]
-    assert ".bib" in bibtex_export.status[paths[3]]
+    exports.sync("bibtex")
+    assert exports.status["bibtex"][paths[0]] is None
+    assert "not generated" in exports.status["bibtex"][paths[1]]
+    assert "absolute" in exports.status["bibtex"][paths[2]]
+    assert ".bib" in exports.status["bibtex"][paths[3]]
     assert foreign.read_text() == "@misc{a}\n"
 
     target = out / "sources.bib"
     mtime = target.stat().st_mtime_ns
-    bibtex_export.sync()
+    exports.sync("bibtex")
     assert target.stat().st_mtime_ns == mtime  # unchanged: not rewritten
     store.delete(created["file"])
-    bibtex_export.sync()
+    exports.sync("bibtex")
     assert "doe2020" not in target.read_text()

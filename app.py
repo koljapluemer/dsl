@@ -6,13 +6,15 @@ from pathlib import Path
 
 from flask import Flask, abort, jsonify, request, send_file, send_from_directory
 
-import attachments
-import bibtex_export
+import bibtex_export  # noqa: F401 - registers its export
 import bibtex_import
+import exports
 import fields
+import files
 import graph
 import llm
 import maintenance
+import portfolio
 import questions
 import search as note_search
 import semantic
@@ -55,8 +57,7 @@ def get_schema():
 
 def _settings():
     p = store.get_path()
-    bib = [{"path": b, "error": bibtex_export.status.get(b)} for b in store.get_bib_paths()]
-    return jsonify(path=str(p) if p else None, bibtex=bib)
+    return jsonify(path=str(p) if p else None, exports={key: exports.paths(key) for key in exports.EXPORTS})
 
 
 @app.get("/api/settings")
@@ -66,29 +67,32 @@ def get_settings():
 
 @app.put("/api/settings")
 def put_settings():
-    """Any of `path`, `llm` (`{url}`) and `bibtex` (the .bib export paths)."""
+    """Any of `path`, `llm` (`{url}`) and `exports` (`{<export>: [paths]}`, see exports.py)."""
     body = request.get_json(silent=True) or {}
     if "llm" in body:
         if not isinstance(body["llm"], dict):
             raise store.ValidationError("llm must be an object")
         store.set_llm(body["llm"])
-    if "bibtex" in body:
-        store.set_bib_paths(body["bibtex"])
-    if "path" in body or not body.keys() & {"llm", "bibtex"}:
+    if "exports" in body:
+        if not isinstance(body["exports"], dict):
+            raise store.ValidationError("exports must be an object")
+        for key, value in body["exports"].items():
+            exports.set_paths(key, value)
+    if "path" in body or not body.keys() & {"llm", "exports"}:
         path = (body.get("path") or "").strip()
         if not path:
             raise store.ValidationError("path required")
         store.set_path(path)
-    if body.keys() & {"path", "bibtex"}:
-        bibtex_export.sync()
+    if body.keys() & {"path", "exports"}:
+        exports.sync()
     return _settings()
 
 
 @app.after_request
 def _export_after_change(response):
-    """Any write may change a source."""
+    """Any write may change what an export writes."""
     if request.method in ("POST", "PUT", "PATCH", "DELETE") and request.path.startswith("/api/") and response.status_code < 400:
-        bibtex_export.schedule()
+        exports.schedule()
     return response
 
 
@@ -317,7 +321,7 @@ def graph_delete_relation():
 
 @app.get("/api/maintenance")
 def get_maintenance():
-    return jsonify(pastAppointments=maintenance.past_appointments(), orphanedMedia=maintenance.orphaned_media())
+    return jsonify(pastAppointments=maintenance.past_appointments(), orphanedFiles=files.orphaned())
 
 
 @app.post("/api/maintenance/past-appointments")
@@ -325,19 +329,39 @@ def delete_past_appointments():
     return jsonify(deleted=maintenance.delete_past_appointments())
 
 
-@app.post("/api/maintenance/orphaned-media")
-def delete_orphaned_media():
-    return jsonify(deleted=maintenance.delete_orphaned_media())
+@app.post("/api/maintenance/orphaned-files")
+def delete_orphaned_files():
+    return jsonify(deleted=files.delete_orphaned())
 
 
-@app.get("/api/media/<path:rel>")
-def media(rel):
-    return send_file(store.media_path(rel), conditional=True)
+@app.get("/api/files/<path:rel>")
+def get_file(rel):
+    return send_file(files.path(rel), conditional=True)
 
 
-@app.get("/api/media-path")
-def media_path():
-    return jsonify(path=str(store.media_path(request.args.get("p", ""))))
+@app.put("/api/files/<path:rel>")
+def put_file(rel):
+    """Writes a text file (`{text}`), see file_kinds."""
+    text = (request.get_json(silent=True) or {}).get("text")
+    if not isinstance(text, str):
+        raise store.ValidationError("text required")
+    files.write_text(rel, text)
+    return "", 204
+
+
+@app.get("/api/file-path")
+def file_path():
+    return jsonify(path=str(files.path(request.args.get("p", ""))))
+
+
+@app.post("/api/portfolio")
+def ensure_portfolio():
+    return jsonify(portfolio.ensure())
+
+
+@app.get("/api/portfolio/preview")
+def preview_portfolio():
+    return portfolio.render(), 200, {"Content-Type": "text/html; charset=utf-8"}
 
 
 @app.get("/api/items")
@@ -368,12 +392,12 @@ def update_item(name):
 
 @app.put("/api/items/<name>/media")
 def attach_item_media(name):
-    return jsonify(attachments.attach(name, request.get_data(), request.content_type))
+    return jsonify(files.attach(name, request.get_data(), request.content_type))
 
 
 @app.delete("/api/items/<name>/media")
 def clear_item_media(name):
-    return jsonify(attachments.clear(name))
+    return jsonify(files.clear(name))
 
 
 @app.post("/api/items/<name>/relate")
@@ -434,5 +458,5 @@ if __name__ == "__main__":
         webbrowser.open(url)
     else:
         threading.Timer(0.8, webbrowser.open, args=(url,)).start()
-        bibtex_export.start()
+        exports.start()
         app.run(port=PORT)
