@@ -56,7 +56,6 @@ function NoteCardInner({
         onModeChange={(next) => (next === 'edit' ? onEdit(note.filename) : onCancelEdit())}
         relationships={false}
         save={(text, image) => onSaveEdit(note.filename, text, image, note.item)}
-        onRef={onPin}
         onEscape={onCancelEdit}
         extraTools={[
           {

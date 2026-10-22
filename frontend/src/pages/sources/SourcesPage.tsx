@@ -7,6 +7,7 @@ import { blurOnEscape, useSlashFocus } from '@/dumb/keys';
 import { itemsChanged, saveItem } from '@/entities/item/mutations';
 import { NoteLine } from '@/entities/item/NoteLine';
 import { itemQuery } from '@/entities/item/queries';
+import { useSidebarAction } from '@/entities/item/sidebar';
 import { StagedSources } from '@/features/source-bibtex/BibtexSourcesField';
 import { useBibtexSources, type StagedSource } from '@/features/source-bibtex/useBibtexSources';
 import { Note } from '@/meta/note/Note';
@@ -32,6 +33,7 @@ export function SourcesPage() {
     setListing(!file);
     void navigate({ to: '.', search: { q: q || undefined, open: file } });
   };
+  useSidebarAction({ icon: <PanelLeft size={14} />, title: 'open here', run: show, applies: (r) => !!r.sourceKey, marked: { has: (file) => file === open } });
 
   async function create(event: FormEvent) {
     event.preventDefault();
@@ -62,11 +64,11 @@ export function SourcesPage() {
 
   const rows = data?.filter((s) => matches(s.fields, q)) ?? [];
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-3 pb-4 md:grid md:grid-cols-[22rem_minmax(0,1fr)] md:gap-4">
-      <button type="button" className="btn btn-sm self-start md:hidden" onClick={() => setListing(!listing)}>
+    <div className="flex min-h-0 flex-1 flex-col gap-3 pb-4 @3xl:grid @3xl:grid-cols-[22rem_minmax(0,1fr)] @3xl:gap-4">
+      <button type="button" className="btn btn-sm self-start @3xl:hidden" onClick={() => setListing(!listing)}>
         <PanelLeft size={16} />{listing ? 'Editor' : 'Sources'}
       </button>
-      <aside className={`flex min-h-0 flex-1 flex-col gap-2 border border-base-300 p-2 md:flex-none ${listing ? '' : 'max-md:hidden'}`}>
+      <aside className={`flex min-h-0 flex-1 flex-col gap-2 border border-base-300 p-2 @3xl:flex-none ${listing ? '' : '@max-3xl:hidden'}`}>
         <form className="flex gap-2" onSubmit={(e) => void create(e)}>
           <input className="input input-sm min-w-0 flex-1" placeholder="new source: its title" value={title} onChange={(e) => setTitle(e.target.value)} />
           <button type="submit" className="btn btn-sm btn-square btn-primary" title="add" disabled={busy || !title.trim()}>
@@ -98,7 +100,7 @@ export function SourcesPage() {
           {data && !rows.length && <li className="px-2 text-base-content/50">{q ? 'No matches.' : 'No sources yet.'}</li>}
         </ul>
       </aside>
-      <section className={`min-h-0 flex-1 ${listing ? 'max-md:hidden' : ''}`}>
+      <section className={`min-h-0 flex-1 ${listing ? '@max-3xl:hidden' : ''}`}>
         {open ? (
           <Note key={open} file={open} modes={['edit']} commit="blur" fill className="h-full rounded-box border border-base-300 bg-base-100 p-3"
                 onDeleted={() => show(undefined)} />

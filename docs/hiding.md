@@ -32,7 +32,7 @@ needs to know:
 - Float: `store.float_draw`.
 - Graph: `graph._View`, so hidden notes are gone from the canvas, its search
   (`search.py`'s `graph` scope) and random alike, and relationships to them are
-  left out like those to notes with errors. The Notes tab's search still finds them.
+  left out like those to notes with errors. The sidebar's search still finds them.
 
 ## Hide toggle, hide button and undo
 

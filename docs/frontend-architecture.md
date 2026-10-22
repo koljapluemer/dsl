@@ -28,6 +28,10 @@ Conventions:
   editor, tools and relationships; each feature remains usable on its own.
   The pieces it renders with that need no feature, `NoteContent` and
   `NoteLine`, are in `entities/item`, so features can show notes too.
+  The note sidebar beside every page (`meta/note/NoteSidebar.tsx`) is part of
+  that slice; its state (the URL's `s…` keys, `useOpenNote`, a page's own
+  action on found notes) is `entities/item/sidebar.ts`, so pages and the note
+  links in `entities` reach it without importing `meta`.
 - Don't make a feature that only one page uses. Put it in the page's folder,
   split into files rather than one big page file.
 - No `index.ts` re-exports. Import from the defining file.

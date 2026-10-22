@@ -60,9 +60,18 @@ export function useHotkeys(bindings: Bindings, enabled = true) {
 /** Escape leaves a filter field, so the page's shortcuts work again. */
 export const blurOnEscape = (e: { key: string; currentTarget: HTMLElement }) => { if (e.key === 'Escape') e.currentTarget.blur(); };
 
-/** A ref for the page's filter or search field, which `/` focuses. */
-export function useSlashFocus() {
+type Field = { current: HTMLInputElement | null };
+/** the fields `/` may focus, the latest last; `fallback` ones only while there's no other */
+const slashTargets: { input: Field; fallback: boolean }[] = [];
+
+/** A ref for the page's filter or search field, which `/` focuses; a `fallback` one (the sidebar's search) only where the page has none. */
+export function useSlashFocus(fallback = false) {
   const input = useRef<HTMLInputElement>(null);
-  useHotkeys({ '/': () => input.current?.focus() });
+  useEffect(() => {
+    const target = { input, fallback };
+    slashTargets.push(target);
+    return () => { slashTargets.splice(slashTargets.indexOf(target), 1); };
+  }, [fallback]);
+  useHotkeys({ '/': () => (slashTargets.findLast((t) => !t.fallback) ?? slashTargets.findLast((t) => t.fallback))?.input.current?.focus() });
   return input;
 }

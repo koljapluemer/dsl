@@ -15,7 +15,7 @@ import { NoteContent } from '@/entities/item/NoteContent';
 import { NoteLine } from '@/entities/item/NoteLine';
 import { itemQuery } from '@/entities/item/queries';
 import { useSchema } from '@/entities/item/schema';
-import { useOpenNote } from '@/entities/item/useOpenNote';
+import { useOpenNote } from '@/entities/item/sidebar';
 import { useDeleteItem } from '@/features/item-delete/useDeleteItem';
 import { ItemTextEditor } from '@/features/item-edit/ItemTextEditor';
 import { MediaAttachmentPreview, MediaPicker } from '@/features/item-media/MediaAttachmentField';
@@ -80,7 +80,7 @@ export type NoteProps = {
   onDeleted?: () => void;
   /** a close button */
   onClose?: () => void;
-  /** a click on a related or linked note; by default it opens on its own */
+  /** a click on a related or linked note; by default it opens in the sidebar */
   onRef?: (file: string) => void;
   /** Escape in an unedited editor; by default it leaves the editor */
   onEscape?: () => void;

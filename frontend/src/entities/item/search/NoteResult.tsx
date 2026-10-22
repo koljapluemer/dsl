@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import type { SearchResult } from '@/api/types';
 import { NoteLine } from '../NoteLine';
 import { HighlightedText } from './HighlightedText';
@@ -9,13 +10,16 @@ type Props = {
   /** the keyboard's choice */
   active: boolean;
   compact?: boolean;
-  onSelect: () => void;
+  /** a click on it; without, it isn't clickable */
+  onSelect?: () => void;
   /** a click on a note link in it: that note, picked as if found */
   onRef: (file: string) => void;
+  /** buttons at its end */
+  actions?: ReactNode;
 };
 
 /** A found note, inline, its match marked; when the match isn't in its first line, an excerpt around it below. */
-export function NoteResult({ result, marked, active, compact = false, onSelect, onRef }: Props) {
+export function NoteResult({ result, marked, active, compact = false, onSelect, onRef, actions }: Props) {
   return (
     <div
       className={[
@@ -27,9 +31,9 @@ export function NoteResult({ result, marked, active, compact = false, onSelect, 
       // keeps the focus in the search field, so the keys keep working there
       onMouseDown={(event) => event.preventDefault()}
     >
-      <NoteLine item={result} highlight={result.match} onClick={onSelect} onRef={onRef} />
+      <NoteLine item={result} highlight={result.match} onClick={onSelect} onRef={onRef} actions={actions} />
       {result.excerpt ? (
-        <p className="mt-1.5 line-clamp-2 text-[0.6875rem] leading-4 text-base-content/60 cursor-pointer" onClick={onSelect}>
+        <p className={`mt-1.5 line-clamp-2 text-[0.6875rem] leading-4 text-base-content/60 ${onSelect ? 'cursor-pointer' : ''}`} onClick={onSelect}>
           <HighlightedText text={result.excerpt.text} match={result.excerpt.match} />
         </p>
       ) : null}

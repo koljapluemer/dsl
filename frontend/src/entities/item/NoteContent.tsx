@@ -6,7 +6,7 @@ import { highlight } from './dsl/highlight';
 import { outline } from './dsl/outline';
 import { isRelationLine } from './dsl/relation';
 import { useSchema } from './schema';
-import { useOpenNote } from './useOpenNote';
+import { useOpenNote } from './sidebar';
 import './item.css';
 
 /**
@@ -14,7 +14,7 @@ import './item.css';
  * highlighted code and the other keyword lines in monospace, highlighted.
  * `simple`: the body only. Never its relationships (the relationships widget
  * shows those) nor its attachment (the note's media slot does).
- * A click on a note link goes to `onRef`, by default the note on its own.
+ * A click on a note link goes to `onRef`, by default the note in the sidebar.
  */
 export function NoteContent({ item, variant = 'full', onRef }: { item: Item; variant?: 'full' | 'simple'; onRef?: (file: string) => void }) {
   const schema = useSchema();

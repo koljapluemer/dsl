@@ -51,7 +51,7 @@ describe('inlineMarkdown', () => {
 });
 
 describe('noteHref', () => {
-  it('opens the note in the Notes tab', () => {
-    expect(decodeURIComponent(noteHref('a b.txt'))).toBe('/?open=["a b.txt"]');
+  it('opens the note in the sidebar', () => {
+    expect(decodeURIComponent(noteHref('a b.txt'))).toBe('/?sopen=["a b.txt"]');
   });
 });

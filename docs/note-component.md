@@ -28,11 +28,12 @@ Defaults are full capabilities: anything not switched off is there.
 | `inlineChars`, `highlight`, `onClick` | 120 | inline: characters of the first line shown, text marked in it, the whole line clickable |
 | `onEdit` | | the `edit` tool does this instead of opening its own modal (Float keeps the modal to pause its stage) |
 | `save`, `onDelete` | | write or delete instead of the items API (the Graph's own update and undo) |
-| `onSaved`, `onCreated`, `onDeleted`, `onClose`, `onEscape`, `onRef` | | `onRef`: a click on a related or linked note, by default the note on its own (the Notes tab with it open, `/?open=…`) |
+| `onSaved`, `onCreated`, `onDeleted`, `onClose`, `onEscape`, `onRef` | | `onRef`: a click on a related or linked note, by default the note opened in the sidebar (`useOpenNote`) |
 
 `NoteModal` is the note in a modal: in the editor first, explicit commit, and
-Save closes it with a notice, as delete does. The new-note button (bottom
-right, or `c`) opens it for a new note; every `edit` tool opens it.
+Save closes it with a notice, as delete does. The New note button (above
+the sidebar's search, on a phone the + at the bottom right, or `c`) opens it
+for a new note; every `edit` tool and the sidebar's ⤢ tool open it.
 
 ## Layout
 
@@ -94,9 +95,9 @@ Choose `persist` to match the page:
 | Page | Configuration |
 |---|---|
 | New (button, `c`) | `NoteModal` for a new note: edit only |
-| Notes | full, persisted per note (`notes:<file>`); the search results inline |
+| Sidebar (every page) | full, view/edit, blur commit, persisted per note (`sidebar:<file>`), a tool opening it in `NoteModal`; the search results inline |
 | Explorations | full, blur commit, edit first, persisted per view; the list inline |
-| Graph | view/edit, the mode from the graph's interaction, no relationships (the edges are), its own save, delete and hide; grip and pin as extra tools. A new note (double-click, Add note, a drag onto empty canvas) is the new-note modal; from a drag it starts with the relationship from the dragged note staged |
+| Graph | view/edit, the mode from the graph's interaction, no relationships (the edges are), its own save, delete and hide; grip and pin as extra tools; links open in the sidebar. A new note (double-click, Add note, a drag onto empty canvas) is the new-note modal; from a drag it starts with the relationship from the dragged note staged |
 | Tasks | full, blur commit, edit first, persisted per note |
 | Projects | inline, in their expandable wrapper with the issue count and an add-issue tool; issues inline with the think/build tag toggle |
 | Sources | the list inline, the open source edit only, blur commit; `copyKey` shows for any source |
@@ -109,6 +110,6 @@ Choose `persist` to match the page:
 | Settings → maintenance | past appointments inline |
 
 The other lists of notes render them inline too:
-- every search result (`NoteSearch`: the Notes and Graph sidebars, the Graph's right-click search, the relationship adder's suggestions), with the match marked
+- every search result (`NoteSearch`: the note sidebar, the Graph's right-click search, the relationship adder's suggestions), with the match marked
 - relationship rows
 - BibTeX import candidates

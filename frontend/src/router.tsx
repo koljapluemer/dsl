@@ -1,7 +1,8 @@
 import type { QueryClient } from '@tanstack/react-query';
-import { createRootRouteWithContext, createRoute, createRouter, redirect } from '@tanstack/react-router';
-import { App, RootError } from './App';
+import { createRootRouteWithContext, createRoute, createRouter, redirect, retainSearchParams } from '@tanstack/react-router';
+import { App, RootError, TABS } from './App';
 import { schemaQuery } from './entities/item/schema';
+import { SIDEBAR_KEYS, validateSidebarSearch, type SidebarSearch } from './entities/item/sidebar';
 import { settingsQuery } from './entities/settings/queries';
 import { CalendarPage } from './pages/calendar/CalendarPage';
 import { validateCalendarSearch } from './pages/calendar/search';
@@ -9,8 +10,7 @@ import { ExplorationsPage } from './pages/explorations/ExplorationsPage';
 import { validateExplorationsSearch } from './pages/explorations/explorations';
 import { FloatPage } from './pages/float/FloatPage';
 import { GraphPage } from './pages/graph/GraphPage';
-import { NotesPage } from './pages/notes/NotesPage';
-import { validateNotesSearch } from './pages/notes/search';
+import { HomePage } from './pages/home/HomePage';
 import { ProjectsPage } from './pages/projects/ProjectsPage';
 import { QuestionsPage } from './pages/questions/QuestionsPage';
 import { QueuePage } from './pages/queue/QueuePage';
@@ -24,6 +24,9 @@ import { ZeroPage } from './pages/zero/ZeroPage';
 const root = createRootRouteWithContext<{ queryClient: QueryClient }>()({
   component: App,
   errorComponent: RootError,
+  // the note sidebar's state, on every page and kept across navigations
+  validateSearch: validateSidebarSearch,
+  search: { middlewares: [retainSearchParams<SidebarSearch>([...SIDEBAR_KEYS])] },
   // the item language's schema is needed to show anything; without a data directory there's nothing to show
   beforeLoad: async ({ context: { queryClient }, location }) => {
     await queryClient.ensureQueryData(schemaQuery);
@@ -33,10 +36,10 @@ const root = createRootRouteWithContext<{ queryClient: QueryClient }>()({
 });
 
 const tree = root.addChildren([
-  createRoute({ getParentRoute: () => root, path: '/', validateSearch: validateNotesSearch, component: () => <NotesPage /> }),
+  createRoute({ getParentRoute: () => root, path: '/', component: () => <HomePage views={TABS} /> }),
   createRoute({ getParentRoute: () => root, path: '/broken', beforeLoad: () => { throw redirect({ to: '/tasks' }); } }),
-  // a note on its own is one open in the Notes tab; the older address of its editor leads there
-  createRoute({ getParentRoute: () => root, path: '/edit/$file', beforeLoad: ({ params }) => { throw redirect({ to: '/', search: { open: [params.file] } }); } }),
+  // the older address of a note's editor: the note open in the sidebar
+  createRoute({ getParentRoute: () => root, path: '/edit/$file', beforeLoad: ({ params }) => { throw redirect({ to: '/', search: { sopen: [params.file] } }); } }),
   createRoute({ getParentRoute: () => root, path: '/explorations', validateSearch: validateExplorationsSearch, component: ExplorationsPage }),
   createRoute({ getParentRoute: () => root, path: '/graph', component: GraphPage }),
   createRoute({ getParentRoute: () => root, path: '/tasks', component: TasksPage }),

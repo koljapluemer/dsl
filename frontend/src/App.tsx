@@ -1,16 +1,18 @@
 import { useEffect, useState } from 'react';
-import { Plus } from 'lucide-react';
+import { PanelRight, Plus } from 'lucide-react';
 import { Link, Outlet, useLocation, useNavigate, type ErrorComponentProps } from '@tanstack/react-router';
 import { errorBanner } from './dumb/errorBanner';
 import { useHotkeys, type Bindings } from './dumb/keys';
 import { Modal } from './dumb/Modal';
 import { performUndo } from './dumb/undo';
 import { UndoToast } from './dumb/UndoToast';
+import { sidebarShown } from './entities/item/sidebar';
 import { NoteModal } from './meta/note/NoteModal';
+import { NoteSidebar } from './meta/note/NoteSidebar';
 
 /** `key`: `g <key>` opens the tab */
-const TABS = [
-  { to: '/', label: 'Notes', key: 'n' },
+export const TABS = [
+  { to: '/', label: 'Home', key: 'h' },
   { to: '/explorations', label: 'Explorations', key: 'e' },
   { to: '/graph', label: 'Graph', key: 'g' },
   { to: '/tasks', label: 'Tasks', key: 't' },
@@ -30,11 +32,11 @@ const SHORTCUTS: [string, string][] = [
   ['Ctrl+Enter', 'save what you edit'],
   ['Esc', 'close, only when nothing was edited; leave a filter'],
   ['Ctrl+S', 'save in a note editor'],
-  ['g n, g g, …', 'go to a tab (its key is in the tab\'s tooltip)'],
-  ['c', 'new note (as the + button)'],
-  ['/', 'focus the filter or search'],
+  ['g h, g g, …', 'go to a tab (its key is in the tab\'s tooltip)'],
+  ['c', 'new note (as the New note button)'],
+  ['/', 'focus the page\'s filter, else the sidebar\'s search'],
   ['u', 'undo the last change offered'],
-  ['← →', 'Notes: page · Calendar: day or range'],
+  ['← →', 'Calendar: day or range'],
   ['t · a · d · r', 'Calendar: today or this week · add · day view · range view'],
   ['n', 'Queue: next'],
   ['s · e · d', 'Questions: skip · edit · disable'],
@@ -47,37 +49,57 @@ export function App() {
   const path = useLocation({ select: (l) => l.pathname });
   const navigate = useNavigate();
   const error = errorBanner.use();
+  const shown = sidebarShown.use();
   const [help, setHelp] = useState(false);
   /** a new note's modal, keyed so each opening starts fresh */
   const [adding, setAdding] = useState<number | null>(null);
   useEffect(() => errorBanner.set(''), [path]);
 
+  const add = () => setAdding(Date.now());
+
   const keys: Bindings = {
-    c: () => setAdding(Date.now()),
+    c: add,
     u: () => void performUndo(),
     '?': () => setHelp(true),
   };
   for (const t of TABS) keys[`g ${t.key}`] = () => void navigate({ to: t.to });
   useHotkeys(keys);
 
-  // the notes, explorations, sources, the graph's canvas and the float stage take the whole window; the other pages a readable column
-  const full = ['/', '/explorations', '/sources', '/graph', '/float'].includes(path);
+  // explorations, sources, the graph's canvas and the float stage take the whole pane; the other pages a readable column
+  const full = ['/explorations', '/sources', '/graph', '/float'].includes(path);
 
   return (
-    // the bottom padding keeps the new-note button off the page's last controls
-    <div className={full ? 'flex h-screen flex-col px-4 pt-4 pb-20' : 'max-w-5xl mx-auto p-4 pb-24'}>
-      <UndoToast />
-      {error && <div role="alert" className="alert alert-error mb-4"><span>{error}</span></div>}
-      <div role="tablist" className="tabs tabs-border mb-4 flex-nowrap overflow-x-auto">
-        {TABS.map((t) => (
-          <Link key={t.to} to={t.to} role="tab" title={`g ${t.key}`} className={`tab ${path === t.to ? 'tab-active' : ''}`}>{t.label}</Link>
-        ))}
+    // the note sidebar is beside every page on a wide screen, a drawer otherwise
+    <div className="drawer drawer-end lg:drawer-open">
+      <input id="note-sidebar" type="checkbox" className="drawer-toggle" checked={shown} onChange={(e) => sidebarShown.set(e.target.checked)} />
+      <div className="drawer-content flex h-dvh min-w-0 flex-col">
+        <UndoToast />
+        <div className="shrink-0 px-4 pt-4">
+          {error && <div role="alert" className="alert alert-error mb-4"><span>{error}</span></div>}
+          <div className="mb-4 flex items-center gap-2">
+            <div role="tablist" className="tabs tabs-border min-w-0 flex-1 flex-nowrap overflow-x-auto">
+              {TABS.map((t) => (
+                <Link key={t.to} to={t.to} role="tab" title={`g ${t.key}`} className={`tab ${path === t.to ? 'tab-active' : ''}`}>{t.label}</Link>
+              ))}
+            </div>
+            <label htmlFor="note-sidebar" className="btn btn-ghost btn-sm btn-square lg:hidden" title="notes"><PanelRight size={18} /></label>
+          </div>
+        </div>
+        {/* below lg, the bottom padding keeps the new-note button off the page's last controls */}
+        <main className={`@container min-h-0 flex-1 px-4 pb-20 lg:pb-4 ${full ? 'flex flex-col' : 'overflow-y-auto'}`}>
+          {full ? <Outlet /> : <div className="mx-auto max-w-5xl"><Outlet /></div>}
+        </main>
       </div>
-      <Outlet />
-      <button type="button" className="btn btn-circle btn-primary btn-lg fixed right-4 bottom-[max(1rem,env(safe-area-inset-bottom))] z-40 shadow-lg"
-              title="new note (c)" onClick={() => setAdding(Date.now())}>
-        <Plus size={24} />
-      </button>
+      <div className="drawer-side z-50">
+        <label htmlFor="note-sidebar" aria-label="close the sidebar" className="drawer-overlay" />
+        <aside className="h-full w-[22rem] max-w-[85vw] border-l border-base-300 bg-base-100"><NoteSidebar onNew={add} /></aside>
+      </div>
+      {!shown && (
+        <button type="button" className="btn btn-circle btn-primary btn-lg fixed right-4 bottom-[max(1rem,env(safe-area-inset-bottom))] z-40 shadow-lg lg:hidden"
+                title="new note (c)" onClick={add}>
+          <Plus size={24} />
+        </button>
+      )}
       {adding !== null && <NoteModal key={adding} file={null} onClose={() => setAdding(null)} />}
       {help && (
         <Modal onClose={() => setHelp(false)}>

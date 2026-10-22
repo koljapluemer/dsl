@@ -3,11 +3,14 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useSearch } from '@tanstack/react-router';
 import { PanelLeft, Plus } from 'lucide-react';
 import { useSlashFocus } from '@/dumb/keys';
+import { hasTag } from '@/entities/item/dsl/tags';
 import { itemsChanged, saveItem } from '@/entities/item/mutations';
 import { NoteLine } from '@/entities/item/NoteLine';
 import { itemQuery } from '@/entities/item/queries';
+import { useSchema } from '@/entities/item/schema';
+import { useSidebarAction } from '@/entities/item/sidebar';
 import { Note } from '@/meta/note/Note';
-import { explorationsQuery, explorationText, type ExplorationsSearch } from './explorations';
+import { EXPLORATION_TAG, explorationsQuery, explorationText, type ExplorationsSearch } from './explorations';
 import './explorations.css';
 
 /**
@@ -16,6 +19,7 @@ import './explorations.css';
  */
 export function ExplorationsPage() {
   const qc = useQueryClient();
+  const schema = useSchema();
   const navigate = useNavigate();
   const { open } = useSearch({ strict: false }) as ExplorationsSearch;
   const list = useQuery(explorationsQuery);
@@ -30,6 +34,10 @@ export function ExplorationsPage() {
     setListing(!file);
     void navigate({ to: '.', search: { open: file } });
   };
+  useSidebarAction({
+    icon: <PanelLeft size={14} />, title: 'open here', run: show,
+    applies: (r) => hasTag(schema, r.text, EXPLORATION_TAG), marked: { has: (file) => file === open },
+  });
 
   async function create(event: FormEvent) {
     event.preventDefault();
@@ -50,11 +58,11 @@ export function ExplorationsPage() {
   }
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-3 pb-4 md:grid md:grid-cols-[22rem_minmax(0,1fr)] md:gap-4">
-      <button type="button" className="btn btn-sm self-start md:hidden" onClick={() => setListing(!listing)}>
+    <div className="flex min-h-0 flex-1 flex-col gap-3 pb-4 @3xl:grid @3xl:grid-cols-[22rem_minmax(0,1fr)] @3xl:gap-4">
+      <button type="button" className="btn btn-sm self-start @3xl:hidden" onClick={() => setListing(!listing)}>
         <PanelLeft size={16} />{listing ? 'Editor' : 'Explorations'}
       </button>
-      <aside className={`flex min-h-0 flex-1 flex-col border border-base-300 md:flex-none ${listing ? '' : 'max-md:hidden'}`}>
+      <aside className={`flex min-h-0 flex-1 flex-col border border-base-300 @3xl:flex-none ${listing ? '' : '@max-3xl:hidden'}`}>
         <form className="flex gap-2 border-b border-base-300 p-2" onSubmit={(e) => void create(e)}>
           <input ref={input} className="input input-sm min-w-0 flex-1" placeholder="new exploration" value={start}
                  onChange={(e) => setStart(e.target.value)} />
@@ -73,7 +81,7 @@ export function ExplorationsPage() {
           {list.data?.length === 0 && <li className="px-2 text-base-content/50">No explorations yet.</li>}
         </ul>
       </aside>
-      <section className={`min-h-0 flex-1 ${listing ? 'max-md:hidden' : ''}`}>
+      <section className={`min-h-0 flex-1 ${listing ? '@max-3xl:hidden' : ''}`}>
         {open ? (
           <Note key={open} file={open} fill commit="blur" defaultMode="edit" persist="explorations"
                 className="exploration h-full rounded-box border border-base-300 bg-base-100 p-3" onDeleted={() => show(undefined)} />

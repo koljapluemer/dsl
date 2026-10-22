@@ -16,8 +16,8 @@ DOMPurify.addHook('afterSanitizeAttributes', (node) => {
   }
 });
 
-/** Where a note opens as a page of its own: the Notes tab with it open (a new tab's address). */
-export const noteHref = (file: string) => `/?open=${encodeURIComponent(JSON.stringify([file]))}`;
+/** Where a note opens as a page of its own: the start page with it open in the sidebar (a new tab's address). */
+export const noteHref = (file: string) => `/?sopen=${encodeURIComponent(JSON.stringify([file]))}`;
 
 /** `s` with its inline note references as links (or struck through when missing). */
 function expandReferences(s: string, refs: Record<string, string | null>) {

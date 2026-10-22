@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, useState, type ReactNode, type Ref } from 'react';
 import { ChevronLeft, ChevronRight, CircleHelp, LoaderCircle, Search } from 'lucide-react';
-import type { OrphanFilter } from '@/api/types';
+import type { OrphanFilter, SearchResult } from '@/api/types';
 import { isSubmit } from '@/dumb/keys';
 import { NoteResult } from './NoteResult';
 import { SearchHelpModal } from './SearchHelpModal';
@@ -26,6 +26,8 @@ type Props = {
   /** notes to set apart (open, pinned) */
   marked?: { has: (file: string) => boolean };
   onSelect: (file: string) => void;
+  /** buttons at a result's end; with them, a click on the result itself does nothing (Enter still picks it) */
+  resultActions?: (result: SearchResult) => ReactNode;
   /** a button beside the field acting on its text; Enter does it while no result is chosen with the arrow keys, Mod-Enter always */
   action?: { label: ReactNode; title: string; run: (text: string) => void };
   /** Escape; without it, Escape closes the dropdown, or leaves a `list`'s field */
@@ -53,7 +55,7 @@ const ORPHAN_OPTIONS: { value: OrphanFilter; label: string }[] = [
  */
 export function NoteSearch({
   state, onState, found, variant = 'list', syntax = 'full', semanticToggle = false, orphanFilter = false, historyKey,
-  marked, onSelect, action, onEscape, placeholder = 'Search notes…', autoFocus = false, disabled = false, pager = true,
+  marked, onSelect, resultActions, action, onEscape, placeholder = 'Search notes…', autoFocus = false, disabled = false, pager = true,
   compact = false, inputRef, children,
 }: Props) {
   const { results, total, pageSize, loading } = found;
@@ -159,7 +161,7 @@ export function NoteSearch({
 
   const list = shown.map((result, i) => (
     <NoteResult key={result.file} result={result} marked={!!marked?.has(result.file)} active={i === at} compact={compact || suggest}
-                onSelect={() => pick(result.file)} onRef={pick} />
+                onSelect={resultActions ? undefined : () => pick(result.file)} onRef={pick} actions={resultActions?.(result)} />
   ));
 
   if (suggest) {

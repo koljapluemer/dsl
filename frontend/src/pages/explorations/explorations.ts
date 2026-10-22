@@ -3,7 +3,7 @@ import { api } from '@/api/client';
 import type { Item } from '@/api/types';
 
 /** keep in line with views.EXPLORATION_TAG */
-const EXPLORATION_TAG = 'exploration';
+export const EXPLORATION_TAG = 'exploration';
 
 /** Every note tagged `exploration`, the last edited first; under `items`, so writes refetch it. */
 export const explorationsQuery = queryOptions({

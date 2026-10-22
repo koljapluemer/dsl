@@ -5,7 +5,7 @@ import { inlineMarkdown } from '@/dumb/markdown';
 import { firstLine } from './dsl/firstLine';
 import { NoteMedia } from './Media';
 import { useSchema } from './schema';
-import { useOpenNote } from './useOpenNote';
+import { useOpenNote } from './sidebar';
 import './item.css';
 
 /** How many characters of the first line an inline note shows by default. */
@@ -19,7 +19,7 @@ type Props = {
   highlight?: string | null;
   /** the whole note is clickable (links, buttons and media in it still do their own thing) */
   onClick?: () => void;
-  /** a click on a note link in it; by default the note on its own */
+  /** a click on a note link in it; by default the note in the sidebar */
   onRef?: (file: string) => void;
   /** controls at its end (the note component's tools) */
   actions?: ReactNode;
