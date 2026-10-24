@@ -1,4 +1,4 @@
-"""What the queue, float, tags, suggest, explorations, calendar and projects views read from an item."""
+"""What the queue, float, tags, suggest, explorations, goals, calendar and projects views read from an item."""
 
 import calendar as _calendar
 from dataclasses import dataclass
@@ -23,6 +23,8 @@ THINK_TAG = "suggest-think-and-sketch"
 SUGGEST_PREFIX = "suggest-"
 # a note worked on in the explorations tab, left out of the queue and the graph
 EXPLORATION_TAG = "exploration"
+# a note shown in the goals tab until it has an attached image, which marks it done
+GOAL_TAG = "goal"
 
 
 @dataclass(frozen=True)

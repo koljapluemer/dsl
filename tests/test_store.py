@@ -319,6 +319,14 @@ def test_explorations_last_edited_first_and_not_in_queue(data_dir):
     assert [i["file"] for i in store.queue_draw()["items"]] == ["c.txt"]
 
 
+def test_goals_without_an_image_by_heading(data_dir):
+    store.create({"file": "a.txt", "text": "b goal\ntags goal"})
+    store.create({"file": "b.txt", "text": "A goal\ntags x goal\nmedia clip.mp4\nmedia notes.pdf"})
+    store.create({"file": "c.txt", "text": "done\ntags goal\nmedia clip.mp4\nmedia photo.png"})
+    store.create({"file": "d.txt", "text": "not one\ntags goals"})
+    assert [i["file"] for i in store.goals()] == ["b.txt", "a.txt"]
+
+
 def test_suggest_random_excludes_unless_only_one(data_dir):
     store.create({"file": "a.txt", "text": "a\ntags suggest-idea"})
     store.create({"file": "b.txt", "text": "b\ntags x suggest-idea"})

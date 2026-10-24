@@ -107,6 +107,7 @@ Choose `persist` to match the page:
 | Explorations | full, blur commit, edit first, persisted per view; the list inline |
 | Graph | view/edit, the mode from the graph's interaction, no relationships (the edges are), its own save, delete and hide; grip and pin as extra tools; links open in the sidebar. A new note (double-click, Add note, a drag onto empty canvas) is the new-note modal; from a drag it starts with the relationship from the dragged note staged |
 | Tasks | full, blur commit, edit first, persisted per note |
+| Goals | full, blur commit, view first, persisted per note |
 | Projects | inline, in their expandable wrapper with the issue count and an add-issue tool; issues inline and whole (`inlineWhole`) with the think/build tag toggle |
 | Sources | the list inline, the open source edit only, blur commit; `copyKey` shows for any source |
 | Portfolio | full, blur commit, edit first, persisted per view, no relationships, no delete; a preview link as extra tool |

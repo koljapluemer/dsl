@@ -16,6 +16,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import dsl
+import file_kinds
 import inline_refs
 import questions
 import views
@@ -618,6 +619,14 @@ def explorations() -> list[dict]:
     entries = _INDEX.refresh()
     names = sorted((n for n, e in entries.items() if views.EXPLORATION_TAG in e.tags), key=lambda n: (-entries[n].mtime_ns, n))
     return [_note(n, entries) for n in names]
+
+
+def goals() -> list[dict]:
+    """Every item tagged views.GOAL_TAG without an attached image (that marks
+    it done), by heading."""
+    entries = _INDEX.refresh()
+    names = [n for n, e in entries.items() if views.GOAL_TAG in e.tags and not any(file_kinds.kind(f) is file_kinds.IMAGE for f in e.files)]
+    return [_note(n, entries) for n in sorted(names, key=lambda n: (entries[n].heading.lower(), n))]
 
 
 def suggest_tags() -> list[str]:

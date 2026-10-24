@@ -9,6 +9,7 @@ import { validateCalendarSearch } from './pages/calendar/search';
 import { ExplorationsPage } from './pages/explorations/ExplorationsPage';
 import { validateExplorationsSearch } from './pages/explorations/explorations';
 import { FloatPage } from './pages/float/FloatPage';
+import { GoalsPage } from './pages/goals/GoalsPage';
 import { GraphPage } from './pages/graph/GraphPage';
 import { HomePage } from './pages/home/HomePage';
 import { PortfolioPage } from './pages/portfolio/PortfolioPage';
@@ -44,6 +45,7 @@ const tree = root.addChildren([
   createRoute({ getParentRoute: () => root, path: '/explorations', validateSearch: validateExplorationsSearch, component: ExplorationsPage }),
   createRoute({ getParentRoute: () => root, path: '/graph', component: GraphPage }),
   createRoute({ getParentRoute: () => root, path: '/tasks', component: TasksPage }),
+  createRoute({ getParentRoute: () => root, path: '/goals', component: GoalsPage }),
   createRoute({ getParentRoute: () => root, path: '/projects', component: ProjectsPage }),
   createRoute({ getParentRoute: () => root, path: '/sources', validateSearch: validateSourcesSearch, component: SourcesPage }),
   createRoute({ getParentRoute: () => root, path: '/portfolio', component: PortfolioPage }),

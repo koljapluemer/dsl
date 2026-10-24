@@ -217,6 +217,11 @@ def explorations():
     return jsonify(store.explorations())
 
 
+@app.get("/api/goals")
+def goals():
+    return jsonify(store.goals())
+
+
 @app.get("/api/suggest/tags")
 def suggest_tags():
     return jsonify(store.suggest_tags())
