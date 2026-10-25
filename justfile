@@ -9,6 +9,10 @@ run:
     [ -d {{dir}}/frontend/dist ] || just build-release
     uv run --project {{dir}} {{dir}}/app.py
 
+# download the headless Chromium the portfolio's card collages are rendered in (once)
+chromium:
+    uv run --project {{dir}} playwright install chromium
+
 # the frontend with hot reload on :5173, against the API on :8766
 dev:
     #!/usr/bin/env bash
@@ -46,6 +50,7 @@ reinstall:
     #!/usr/bin/env bash
     set -euo pipefail
     uv sync --project {{dir}}
+    just chromium
     just build-release
     mkdir -p {{icons}} {{apps}}
     cp {{dir}}/frontend/public/icons/icon.svg {{icons}}/dsl-crud.svg

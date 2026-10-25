@@ -42,7 +42,8 @@ export type Settings = { path: string | null; exports: Record<ExportKey, { path:
 /** what Settings → maintenance would delete */
 export type Maintenance = { pastAppointments: Item[]; orphanedFiles: string[] };
 /** the note tagged portfolio and its template's path */
-export type Portfolio = { note: Item; template: string };
+/** `cards`: whether this install can render card collages (Chromium), and why not */
+export type Portfolio = { note: Item; template: string; cards: { available: boolean; reason: string | null } };
 export type LlmInfo ={ available: boolean; reason: string | null; url: string; default_url: string };
 
 export type QueueDraw = { items: Item[]; total: number };

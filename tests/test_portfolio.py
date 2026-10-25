@@ -1,5 +1,7 @@
 import pytest
 
+import collage
+
 import exports
 import files
 import portfolio
@@ -9,6 +11,7 @@ import store
 @pytest.fixture(autouse=True)
 def data_dir(tmp_path, monkeypatch):
     monkeypatch.setattr(store, "CONFIG_PATH", tmp_path / "cfg" / "config.json")
+    monkeypatch.setattr(collage, "CACHE_DIR", tmp_path / "cache")
     store.set_path(str(tmp_path / "data"))
     return tmp_path / "data"
 
@@ -75,3 +78,86 @@ def test_endpoints(data_dir):
     assert client.put("/api/files/images/x.png", json={"text": "x"}).status_code == 400
     assert client.get("/api/settings").get_json()["exports"] == {"bibtex": [], "portfolio": []}
     assert client.put("/api/settings", json={"exports": {"nope": []}}).status_code == 400
+
+
+needs_chromium = pytest.mark.skipif(not collage.available()["available"], reason=str(collage.available()["reason"]))
+
+
+def add_card(data_dir, name="c.txt", text="# Card [[x|ref]]\n\nmedia images/p.png\ntags card\nextra\nsome *text*"):
+    (data_dir / "images").mkdir(exist_ok=True)
+    # a 1x1 PNG
+    (data_dir / "images" / "p.png").write_bytes(bytes.fromhex(
+        "89504e470d0a1a0a0000000d4948445200000001000000010806000000"
+        "1f15c4890000000d49444154789c6360f8cf00000301010018dd8db00000000049454e44ae426082"))
+    store.create({"file": name, "text": text})
+
+
+@pytest.fixture
+def unavailable(monkeypatch):
+    monkeypatch.setattr(collage, "_missing", lambda: "Chromium missing")
+
+
+def test_render_cards(data_dir):
+    add_card(data_dir)
+    store.create({"file": "me.txt", "text": "Me\nmedia files/t.j2\ntags portfolio"})
+    files.write_text("files/t.j2", "{% for c in cards %}{{ c.title }} {{ c.image }} {{ c.thumb }}{% endfor %}")
+    assert portfolio.render() == f"{portfolio.MARKER}\nCard [[x|ref]] cards/c.webp cards/c-thumb.webp"
+    assert [c["file"] for c in portfolio.cards()] == ["c.txt"]
+
+
+def test_default_template_shows_the_cards(data_dir):
+    add_card(data_dir)
+    portfolio.ensure()
+    assert '<a href="cards/c.webp" target="_blank" rel="noopener"><img src="cards/c-thumb.webp" alt="Card [[x|ref]]"' in portfolio.render()
+
+
+@needs_chromium
+def test_export_writes_the_cards(data_dir, tmp_path):
+    add_card(data_dir)
+    portfolio.ensure()
+    out = tmp_path / "site"
+    (out / "cards").mkdir(parents=True)
+    (out / "cards" / "gone.webp").write_bytes(b"old")
+    exports.set_paths("portfolio", [str(out)])
+    exports.sync("portfolio")
+    assert exports.status["portfolio"] == {str(out / "index.html"): None}
+    assert sorted(p.name for p in (out / "cards").iterdir()) == ["c-thumb.webp", "c.webp"]
+    assert (out / "cards" / "c.webp").read_bytes() == portfolio.card_images("c.txt")[0]
+
+
+@needs_chromium
+def test_card_endpoints(data_dir):
+    import app
+    add_card(data_dir)
+    client = app.app.test_client()
+    assert [c["file"] for c in client.get("/api/portfolio/cards").get_json()] == ["c.txt"]
+    r = client.get("/api/portfolio/cards/c-thumb.webp")
+    assert r.status_code == 200 and r.content_type == "image/webp"
+    assert r.data == portfolio.card_images("c.txt")[1]
+    assert client.get("/api/portfolio/cards/nope.webp").status_code == 404
+
+
+def test_without_chromium_the_export_writes_nothing(data_dir, tmp_path, unavailable):
+    portfolio.ensure()
+    out = tmp_path / "site"
+    out.mkdir()
+    exports.set_paths("portfolio", [str(out)])
+    exports.sync("portfolio")
+    assert exports.status["portfolio"] == {str(out / "index.html"): None}
+    add_card(data_dir)
+    (out / "cards" / "kept.webp").write_bytes(b"old")
+    before = (out / "index.html").read_text()
+    exports.sync("portfolio")
+    assert "Chromium missing" in exports.status["portfolio"][str(out / "index.html")]
+    assert (out / "index.html").read_text() == before
+    assert (out / "cards" / "kept.webp").read_bytes() == b"old"
+
+
+def test_without_chromium_the_tab_and_preview_say_so(data_dir, unavailable):
+    import app
+    add_card(data_dir)
+    client = app.app.test_client()
+    assert client.post("/api/portfolio").get_json()["cards"] == {"available": False, "reason": "Chromium missing"}
+    assert client.get("/api/portfolio/preview").status_code == 200
+    r = client.get("/api/portfolio/cards/c.webp")
+    assert r.status_code == 503 and "Chromium missing" in r.get_json()["error"]

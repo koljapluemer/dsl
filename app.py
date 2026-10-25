@@ -8,6 +8,7 @@ from flask import Flask, abort, jsonify, request, send_file, send_from_directory
 
 import bibtex_export  # noqa: F401 - registers its export
 import bibtex_import
+import collage
 import exports
 import fields
 import files
@@ -43,6 +44,11 @@ def _invalid_source(e):
 @app.errorhandler(store.Conflict)
 def _conflict(e):
     return jsonify(error=str(e)), 409
+
+
+@app.errorhandler(collage.Unavailable)
+def _collage_unavailable(e):
+    return jsonify(error=str(e)), 503
 
 
 @app.errorhandler(store.NotFound)
@@ -386,6 +392,18 @@ def ensure_portfolio():
 @app.get("/api/portfolio/preview")
 def preview_portfolio():
     return portfolio.render(), 200, {"Content-Type": "text/html; charset=utf-8"}
+
+
+@app.get("/api/portfolio/cards")
+def portfolio_cards():
+    return jsonify(portfolio.cards())
+
+
+# where the preview's relative `cards/...` links lead
+@app.get("/api/portfolio/cards/<path:rel>")
+def portfolio_card(rel):
+    # revalidated every time: the URL stays the same when only the layout code changes
+    return portfolio.card_file(rel), 200, {"Content-Type": "image/webp", "Cache-Control": "no-cache"}
 
 
 @app.get("/api/items")
