@@ -27,7 +27,7 @@ describe('relationship text transforms', () => {
   it('ignores lines in the body and in blocks', () => {
     const text = 'a -> not @here\nextra\n -> nor @here\n';
     expect(relations(schema, text)).toEqual([]);
-    expect(relations(schema, 'a\nproject\n-> owner @p\n')).toEqual([{ line: 2, label: 'owner', target: 'p' }]);
+    expect(relations(schema, 'a\nissue\n-> owner @p\n')).toEqual([{ line: 2, label: 'owner', target: 'p' }]);
   });
 });
 

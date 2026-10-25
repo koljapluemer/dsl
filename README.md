@@ -86,7 +86,7 @@ Calendar, queue, float, tags, and suggest are derived item views; shared documen
 
 ## Projects
 
-`project` and `issue` items (`store.projects`). An issue belongs to the projects its `-> project @<name>` relationships point to; issues belonging to none are listed below the projects. Each project is shown inline, expandable to its issues, inline too, by heading; issues to think about (and sketch) rather than build come first. An issue's bulb/hammer toggle flips it between the two by adding or removing the tag `suggest-think-and-sketch` (`views.THINK_TAG`; as a `suggest-` tag it also shows up in Suggest). Their edit buttons open them in a modal. `+ Project` adds a project; a project's `+` tool adds an issue, prefilled with `issue` and its relationship to the project; the modal closes once it's added.
+Notes tagged `project` (`views.PROJECT_TAG`) and `issue` items (`store.projects`). An issue belongs to the projects its `-> project @<name>` relationships point to; issues belonging to none are listed below the projects. Each project is shown inline, expandable to its issues, inline too, by heading; issues to think about (and sketch) rather than build come first. An issue's bulb/hammer toggle flips it between the two by adding or removing the tag `suggest-think-and-sketch` (`views.THINK_TAG`; as a `suggest-` tag it also shows up in Suggest). Their edit buttons open them in a modal. `+ Project` adds a project, prefilled with `tags project`; a project's `+` tool adds an issue, prefilled with `issue` and its relationship to the project; the modal closes once it's added.
 
 ## Sources
 

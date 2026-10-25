@@ -540,13 +540,13 @@ def calendar_items() -> list[dict]:
 
 
 def projects() -> dict:
-    """Every project with the issues belonging to it, and the issues belonging
+    """Every project (tagged views.PROJECT_TAG) with the issues belonging to it, and the issues belonging
     to none (see views.PROJECT_RELATION); by heading, issues to think about
     (views.THINK_TAG) first."""
     entries = _INDEX.refresh()
     by_heading = lambda n: (entries[n].heading.lower(), n)
     thinks_first = lambda n: (views.THINK_TAG not in entries[n].tags, *by_heading(n))
-    owned: dict[str, list[str]] = {n: [] for n, e in entries.items() if e.primary == views.PROJECT_KEYWORD}
+    owned: dict[str, list[str]] = {n: [] for n, e in entries.items() if views.PROJECT_TAG in e.tags}
     orphans = []
     for name, e in entries.items():
         if e.primary != views.ISSUE_KEYWORD:
