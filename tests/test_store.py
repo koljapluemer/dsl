@@ -349,8 +349,8 @@ def test_calendar_items(data_dir):
 
 
 def test_projects(data_dir):
-    store.create({"file": "p.txt", "text": "Website\nproject"})
-    store.create({"file": "q.txt", "text": "Archive\nproject"})
+    store.create({"file": "p.txt", "text": "Website\ntags project"})
+    store.create({"file": "q.txt", "text": "Archive\ntags project"})
     store.create({"file": "i.txt", "text": "Login\nissue\n-> project @p"})
     store.create({"file": "j.txt", "text": "Both\nissue\n-> project @p\n-> project @q"})
     store.create({"file": "k.txt", "text": "Wrong label\nissue\n-> blocks @p"})
@@ -363,7 +363,7 @@ def test_projects(data_dir):
     assert [(p["file"], files(p["issues"])) for p in res["projects"]] == [
         ("q.txt", ["j.txt"]), ("p.txt", ["m.txt", "j.txt", "i.txt"])]
     assert files(res["orphans"]) == ["o.txt", "l.txt", "k.txt"]
-    assert res["projects"][0]["text"] == "Archive\nproject\n"
+    assert res["projects"][0]["text"] == "Archive\ntags project\n"
 
 
 def test_item_endpoints(data_dir):

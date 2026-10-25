@@ -11,9 +11,10 @@ APPOINTMENT_KEYWORD = "appointment"
 RECURRING_KEYWORD = "recurring"
 TAGS_KEYWORD = "tags"
 MEDIA_KEYWORD = "media"
-PROJECT_KEYWORD = "project"
 ISSUE_KEYWORD = "issue"
 SOURCE_KEYWORD = "source"
+# a note shown as a project in the projects tab, which issues belong to
+PROJECT_TAG = "project"
 # an issue belongs to the projects its relationships with this label point to
 PROJECT_RELATION = "project"
 # an issue to think about (and sketch) rather than build; projects lists these first

@@ -19,7 +19,7 @@
 #
 # A type is one name from language.md, or a list of them.
 
-version: 7
+version: 8
 
 changes:
   - version: 1
@@ -43,8 +43,12 @@ changes:
     note: >
       New value type tags (rest of the line, one or more lowercase tags); new
       keyword field line_start; new property tags.
-  - version: 7
+  - version: 8
     note: New primaries project and issue.
+  - version: 8
+    note: >
+      Breaking: the primary project is gone; a project is an item tagged
+      `project`.
 
 keywords:
   appointment:
@@ -105,18 +109,13 @@ keywords:
       `date`, `url`, …) are the mapping in its `data` block.
     excludes: [appointment, recurring]
 
-  project:
-    role: primary
-    excludes: [issue]
-    meaning: The item is a project, which issues belong to.
-
   issue:
     role: primary
-    excludes: [project]
     meaning: >
-      The item is an issue of a project. It belongs to the targets of its
-      relationships labeled `project` that are projects; without one, it is
-      an issue without a project, which frontends flag.
+      The item is an issue of a project, an item tagged `project`. It belongs
+      to the targets of its relationships labeled `project` that are tagged
+      `project`; without one, it is an issue without a project, which
+      frontends flag.
 
   data:
     role: property
