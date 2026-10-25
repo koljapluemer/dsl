@@ -1,11 +1,13 @@
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
-import { Check, ExternalLink } from 'lucide-react';
+import { Check, ExternalLink, Plus } from 'lucide-react';
 import { settingsQuery } from '@/entities/settings/queries';
 import { Note } from '@/meta/note/Note';
+import { NoteModal } from '@/meta/note/NoteModal';
 import { TOOL } from '@/meta/note/tools';
 import type { Item } from '@/api/types';
-import { PREVIEW_URL, cardImageUrl, cardThumbUrl, cardsQuery, portfolioQuery } from './portfolio';
+import { NEW_CARD, PREVIEW_URL, cardThumbUrl, cardsQuery, portfolioQuery } from './portfolio';
 
 /**
  * The note tagged `portfolio`, in the editor to begin with and saved as focus
@@ -49,33 +51,35 @@ function ExportStatus() {
 }
 
 /**
- * The card notes: their collages' thumbnails, each opening the collage in a new
- * tab, then the notes themselves. Where collages can't be rendered, why instead of the thumbnails.
+ * The card notes as their collages' thumbnails (their headings where collages
+ * can't be rendered, with why), each opening the note in a modal, then a tile
+ * adding a new card.
  */
 function Cards({ available, reason }: { available: boolean; reason: string | null }) {
   const { data } = useQuery(cardsQuery);
+  const [editing, setEditing] = useState<Item | null>(null);
+  const [adding, setAdding] = useState<number | null>(null);
   if (!data) return null;
   return (
     <section className="space-y-3">
       <h2 className="font-semibold">Cards</h2>
-      {!data.length && <p className="text-sm text-base-content/50">No notes tagged <code>card</code>.</p>}
       {!!data.length && !available && <p className="text-sm text-warning">Card collages aren't available on this install: {reason}</p>}
-      {!!data.length && available && (
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-          {data.map((i) => (
-            <a key={i.file} href={cardImageUrl(i)} target="_blank" rel="noopener">
-              <img src={cardThumbUrl(i)} alt={i.file} loading="lazy" className="w-full rounded-box border border-base-300" />
-            </a>
-          ))}
-        </div>
-      )}
-      {data.map((i) => <CardRow key={i.file} item={i} />)}
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+        {data.map((i) => (
+          <button key={i.file} type="button" className="cursor-pointer text-left" onClick={() => setEditing(i)}>
+            {available
+              ? <img src={cardThumbUrl(i)} alt={i.file} loading="lazy" className="w-full rounded-box border border-base-300" />
+              : <span className="block rounded-box border border-base-300 p-3 text-sm">{heading(i)}</span>}
+          </button>
+        ))}
+        <button type="button" className="btn btn-dash h-auto min-h-16 rounded-box" onClick={() => setAdding(Date.now())}>
+          <Plus size={16} />Card
+        </button>
+      </div>
+      {editing && <NoteModal key={editing.file} file={editing.file} item={editing} onClose={() => setEditing(null)} />}
+      {adding && <NoteModal key={adding} file={null} initial={NEW_CARD} onClose={() => setAdding(null)} />}
     </section>
   );
 }
 
-function CardRow({ item }: { item: Item }) {
-  const unreadable = item.errors.find((e) => e.code === 'unreadable');
-  if (unreadable) return <p className="text-error text-sm">unreadable note: {unreadable.detail}</p>;
-  return <Note file={item.file} item={item} commit="blur" defaultMode="view" persist={`portfolio:card:${item.file}`} className="rounded-box border border-base-300 p-3" />;
-}
+const heading = (item: Item) => item.text.split('\n')[0].replace(/^#+\s*/, '') || item.file;
