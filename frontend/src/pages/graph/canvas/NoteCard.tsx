@@ -1,7 +1,7 @@
 import { EyeOff, GripVertical } from 'lucide-react';
 import { memo } from 'react';
-import type { GraphNodePayload, Item } from '@/api/types';
-import type { MediaAttachment } from '@/features/item-media/useMediaAttachment';
+import type { GraphNodePayload } from '@/api/types';
+import type { MediaDraft } from '@/features/item-media/useMediaAttachments';
 import { Note } from '@/meta/note/Note';
 import { PinControl } from './PinControl';
 
@@ -29,7 +29,7 @@ function NoteCardInner({
   onHide: (filename: string, pinDepth: number | null) => Promise<void>;
   onEdit: (filename: string) => void;
   /** Rejected when the text has errors: the note would drop out of the graph. */
-  onSaveEdit: (filename: string, text: string, image: MediaAttachment, previous: Item) => Promise<void>;
+  onSaveEdit: (filename: string, text: string, media: MediaDraft) => Promise<void>;
   onCancelEdit: () => void;
   onPin: (filename: string) => void;
   onUnpin: (filename: string) => void;
@@ -55,7 +55,7 @@ function NoteCardInner({
         mode={editing ? 'edit' : 'view'}
         onModeChange={(next) => (next === 'edit' ? onEdit(note.filename) : onCancelEdit())}
         relationships={false}
-        save={(text, image) => onSaveEdit(note.filename, text, image, note.item)}
+        save={(text, media) => onSaveEdit(note.filename, text, media)}
         onEscape={onCancelEdit}
         extraTools={[
           {

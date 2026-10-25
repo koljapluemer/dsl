@@ -16,16 +16,17 @@ type Props = {
   onChange: (text: string) => void;
   /** Mod-s and Mod-Enter */
   onSave: () => void;
-  onPasteFile?: (file: File) => void;
+  /** pasted images and videos, instead of the editor */
+  onPasteFiles?: (files: File[]) => void;
   currentFile?: string | null;
   /** the CodeMirror view, for tools acting on it (see insertReference) */
   editorRef?: MutableRefObject<EditorView | null>;
 };
 
 /** An editor for item text, highlighted and linted as the item language. */
-export function ItemTextEditor({ value, autofocus, onChange, onSave, onPasteFile, currentFile, editorRef }: Props) {
+export function ItemTextEditor({ value, autofocus, onChange, onSave, onPasteFiles, currentFile, editorRef }: Props) {
   const schema = useSchema();
-  const hasPaste = !!onPasteFile;
+  const hasPaste = !!onPasteFiles;
   const extensions = useMemo(() => [
     ...dslExtensions(schema),
     referenceCompletion(schema, currentFile),
@@ -34,14 +35,14 @@ export function ItemTextEditor({ value, autofocus, onChange, onSave, onPasteFile
     Prec.high(keymap.of([{ key: 'Mod-Enter', run: () => true }])),
     // Tab/Shift-Tab indent the line(s) instead of moving focus; Esc then Tab still moves it
     keymap.of([indentWithTab]),
-    ...(hasPaste ? [EditorView.domEventHandlers({ paste: (event) => pastedMedia(event.clipboardData) !== undefined })] : []),
+    ...(hasPaste ? [EditorView.domEventHandlers({ paste: (event) => pastedMedia(event.clipboardData).length > 0 })] : []),
   ], [schema, hasPaste, currentFile]);
   return (
     <div
       onKeyDown={(event) => { if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) onSave(); }}
-      onPaste={onPasteFile ? (event) => {
-        const file = pastedMedia(event.clipboardData);
-        if (file) { event.preventDefault(); onPasteFile(file); }
+      onPaste={onPasteFiles ? (event) => {
+        const files = pastedMedia(event.clipboardData);
+        if (files.length) { event.preventDefault(); onPasteFiles(files); }
       } : undefined}
     >
       <CodeMirrorHost value={value} extensions={extensions} autofocus={autofocus} onChange={onChange} onSave={onSave} editorRef={editorRef} />

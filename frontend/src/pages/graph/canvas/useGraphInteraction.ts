@@ -1,6 +1,6 @@
 import type { OnConnectEnd, OnConnectStart } from '@xyflow/react';
 import { useCallback, useMemo, useRef, type Dispatch, type MouseEvent as ReactMouseEvent, type SetStateAction } from 'react';
-import type { MediaAttachment } from '@/features/item-media/useMediaAttachment';
+import { persistMedia, type MediaDraft } from '@/features/item-media/useMediaAttachments';
 import { IDLE_INTERACTION, connectionTargetFilename, type ConnectingInteraction, type Interaction } from './graph-interaction';
 import { EXPAND_PIN_DEPTH } from './graph-hidden-relations';
 import type { ViewCallbacks } from './graph-view-model';
@@ -17,7 +17,6 @@ import {
   undoDelete,
   updateNote,
 } from '@/entities/graph/mutations';
-import { attachMedia, clearMedia } from '@/entities/item/mutations';
 
 export interface UseGraphInteractionParams {
   setInteraction: Dispatch<SetStateAction<Interaction>>;
@@ -170,16 +169,12 @@ export function useGraphInteraction({
   );
 
   const handleSaveEdit = useCallback(
-    async (filename: string, text: string, image: MediaAttachment, previous: Item): Promise<void> => {
+    async (filename: string, text: string, media: MediaDraft): Promise<void> => {
       await updateNote(filename, text);
 
-      // Media has its own endpoints (they write the file and the note's `media`
-      // line), so it reconciles separately from the note text.
-      if (image?.status === 'new') {
-        await attachMedia(filename, image.blob);
-      } else if (image === null && previous.media !== null) {
-        await clearMedia(filename);
-      }
+      // Media has its own endpoints (they write the files and the note's `media`
+      // lines), so it reconciles separately from the note text.
+      await persistMedia(filename, media);
 
       await notesChanged(qc);
       markInteraction(filename);

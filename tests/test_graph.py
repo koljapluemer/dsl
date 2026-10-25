@@ -134,15 +134,18 @@ def test_strict_update(data_dir):
     assert (data_dir / "a.txt").read_text() == "A2\n"
 
 
-def test_media_attach_replace_clear(data_dir):
+def test_media_attach_remove(data_dir):
     note("a", "A\nappointment 26-01-01\nextra\nx")
     first = files.attach("a.txt", b"one", "image/jpeg")["media"]
     assert first.startswith("images/a-") and first.endswith(".jpg")
     assert (data_dir / "a.txt").read_text() == f"A\nmedia {first}\nappointment 26-01-01\nextra\nx\n"
     note("b", f"B\nmedia {first}")
-    second = files.attach("a.txt", b"two", "video/quicktime")["media"]
-    assert second.endswith(".mov") and (data_dir / first).exists()  # still b's
-    files.clear("a.txt")
+    second = files.attach("a.txt", b"two", "video/quicktime")["files"][-1]
+    assert second.endswith(".mov")
+    assert (data_dir / "a.txt").read_text() == f"A\nmedia {first}\nmedia {second}\nappointment 26-01-01\nextra\nx\n"
+    files.remove("a.txt", first)
+    assert (data_dir / first).exists()  # still b's
+    files.remove("a.txt", second)
     assert (data_dir / "a.txt").read_text() == "A\nappointment 26-01-01\nextra\nx\n"
     assert not (data_dir / second).exists()
     with pytest.raises(store.ValidationError):
@@ -158,11 +161,10 @@ def test_media_video_size_limit(monkeypatch):
 
 def test_media_on_a_shared_line(data_dir):
     note("a", "A\nmedia images/old.png appointment 26-01-01")
-    files.attach("a.txt", b"x", "image/png")
-    text = (data_dir / "a.txt").read_text()
-    assert text.startswith("A\nmedia images/a-") and text.endswith(".png appointment 26-01-01\n")
-    files.clear("a.txt")
-    assert (data_dir / "a.txt").read_text() == "A\nappointment 26-01-01\n"
+    rel = files.attach("a.txt", b"x", "image/png")["files"][-1]
+    assert (data_dir / "a.txt").read_text() == f"A\nmedia images/old.png appointment 26-01-01\nmedia {rel}\n"
+    files.remove("a.txt", "images/old.png")
+    assert (data_dir / "a.txt").read_text() == f"A\nappointment 26-01-01\nmedia {rel}\n"
 
 
 def test_delete_and_undo_with_media(data_dir):

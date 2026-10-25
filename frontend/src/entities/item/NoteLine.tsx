@@ -3,6 +3,7 @@ import { CircleX, TriangleAlert } from 'lucide-react';
 import type { Item } from '@/api/types';
 import { inlineMarkdown } from '@/dumb/markdown';
 import { firstLine } from './dsl/firstLine';
+import { shownFiles } from './files/files';
 import { NoteMedia } from './files/Media';
 import { NoteContent } from './NoteContent';
 import { useSchema } from './schema';
@@ -37,8 +38,8 @@ const ownClick = (event: MouseEvent<HTMLElement>) => {
 
 /**
  * A note in one line: its first line rendered as Markdown, cut after `chars`
- * characters with `…` (also when the body goes on), its attachment as a
- * thumbnail and its problems as an icon. Never its relationships.
+ * characters with `…` (also when the body goes on), its cover image as a
+ * thumbnail (with how many more it has) and its problems as an icon. Never its relationships.
  * `whole`: the whole body instead, uncut, as NoteContent's `simple`.
  */
 export function NoteLine({ item, chars = INLINE_CHARS, whole = false, highlight, onClick, onRef, actions, className = '' }: Props) {
@@ -46,6 +47,7 @@ export function NoteLine({ item, chars = INLINE_CHARS, whole = false, highlight,
   const openNote = useOpenNote();
   const { line, more } = firstLine(schema, item.text);
   const { html, cut } = inlineMarkdown(line, item.refs, chars, highlight ?? undefined);
+  const moreMedia = shownFiles(item).length - 1;
   const problem = item.errors.length ? 'error' : item.warnings.length ? 'warning' : null;
 
   const click = (event: MouseEvent<HTMLElement>) => {
@@ -76,7 +78,12 @@ export function NoteLine({ item, chars = INLINE_CHARS, whole = false, highlight,
               : <span className="ov-muted">{item.file.replace(/\.txt$/, '')}{more ? '…' : ''}</span>}
           </span>
         )}
-      {item.media && <NoteMedia path={item.media} size="thumb" />}
+      {item.media && (
+        <span className="relative shrink-0">
+          <NoteMedia path={item.media} size="thumb" />
+          {moreMedia > 0 && <span className="badge badge-xs pointer-events-none absolute -bottom-1 -right-1 px-1">+{moreMedia}</span>}
+        </span>
+      )}
       {actions && <span className="flex shrink-0 items-center gap-0.5">{actions}</span>}
     </div>
   );

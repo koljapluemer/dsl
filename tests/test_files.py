@@ -1,5 +1,6 @@
 import pytest
 
+from dsl_crud.application import create_app
 from dsl_crud.infrastructure import config, items as store, media as files
 
 
@@ -34,21 +35,43 @@ def test_item_lists_its_files(data_dir):
     assert (item["media"], item["files"]) == ("images/x.png", ["files/t.j2", "images/x.png", "images/y.png"])
 
 
-def test_attach_and_clear_touch_only_the_shown_file(data_dir):
+def test_attach_appends_and_remove_drops_one(data_dir):
     note("a", "A\nmedia files/t.j2\nextra\nx")
-    first = files.attach("a.txt", b"one", "image/png")["media"]
+    first = files.attach("a.txt", b"one", "image/png")["files"][-1]
     assert (data_dir / "a.txt").read_text() == f"A\nmedia files/t.j2\nmedia {first}\nextra\nx\n"
-    second = files.attach("a.txt", b"two", "image/png")["media"]
+    item = files.attach("a.txt", b"two", "image/png")
+    second = item["files"][-1]
+    assert (item["media"], item["files"]) == (first, ["files/t.j2", first, second])
+    assert (data_dir / "a.txt").read_text() == f"A\nmedia files/t.j2\nmedia {first}\nmedia {second}\nextra\nx\n"
+    assert files.remove("a.txt", first)["media"] == second
     assert (data_dir / "a.txt").read_text() == f"A\nmedia files/t.j2\nmedia {second}\nextra\nx\n"
-    assert not (data_dir / first).exists()
-    files.clear("a.txt")
-    assert (data_dir / "a.txt").read_text() == "A\nmedia files/t.j2\nextra\nx\n"
+    assert not (data_dir / first).exists() and (data_dir / second).exists()
 
 
-def test_attach_replaces_the_right_clause_on_a_shared_line(data_dir):
+def test_remove_drops_the_right_clause_on_a_shared_line(data_dir):
     note("a", "A\nmedia files/t.j2 media images/old.png appointment 26-01-01")
-    rel = files.attach("a.txt", b"x", "image/png")["media"]
-    assert (data_dir / "a.txt").read_text() == f"A\nmedia files/t.j2 media {rel} appointment 26-01-01\n"
+    files.remove("a.txt", "images/old.png")
+    assert (data_dir / "a.txt").read_text() == "A\nmedia files/t.j2 appointment 26-01-01\n"
+
+
+def test_media_api_adds_and_removes_by_path(data_dir):
+    client = create_app().test_client()
+    note("a", "A")
+    for data in (b"one", b"two"):
+        res = client.post("/api/items/a.txt/media", data=data, content_type="image/png")
+        assert res.status_code == 200
+    first, second = res.get_json()["files"]
+    res = client.delete(f"/api/items/a.txt/media?p={first}")
+    assert (res.get_json()["media"], res.get_json()["files"]) == (second, [second])
+    assert not (data_dir / first).exists()
+
+
+def test_remove_releases_a_file_no_longer_named(data_dir):
+    note("a", "A")
+    rel = files.attach("a.txt", b"x", "image/png")["files"][-1]
+    store.update("a.txt", {"text": "A"})
+    assert files.remove("a.txt", rel)["text"] == "A\n"
+    assert not (data_dir / rel).exists()
 
 
 def test_add_names_a_file_once(data_dir):
@@ -62,9 +85,9 @@ def test_add_names_a_file_once(data_dir):
 
 def test_release_keeps_a_file_another_note_mentions(data_dir):
     note("a", "A")
-    rel = files.attach("a.txt", b"x", "image/png")["media"]
+    rel = files.attach("a.txt", b"x", "image/png")["files"][-1]
     note("b", f"B, see ![]({rel})")
-    files.clear("a.txt")
+    files.remove("a.txt", rel)
     assert (data_dir / rel).exists()
 
 

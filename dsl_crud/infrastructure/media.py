@@ -133,20 +133,17 @@ def _insert(lines: list[str], doc: dsl.Document, rel: str) -> None:
     lines.extend([_line(rel), ""])
 
 
-def _replace(lines: list[str], doc: dsl.Document, clause: dsl.Clause, rel: str | None) -> None:
-    """Points `clause` at `rel`, or removes it, keeping other clauses on its line."""
+def _drop(lines: list[str], doc: dsl.Document, clause: dsl.Clause) -> None:
+    """Removes `clause`, keeping other clauses on its line."""
     i = clause.line - 1
     alone = ([c for c in doc.clauses if c.line == clause.line] == [clause]
              and not any(d.code == "unknown_keyword" and d.line == clause.line for d in doc.diagnostics))
     if alone:
-        if rel is None:
-            del lines[i]
-        else:
-            lines[i] = _line(rel)
+        del lines[i]
         return
     arg = clause.args[0]
     pattern = rf'(?<!\S){views.MEDIA_KEYWORD}\s+(?:{re.escape(_token(arg))}|{re.escape(arg)})(?!\S)\s*'
-    lines[i] = re.sub(pattern, lambda _: "" if rel is None else _line(rel) + " ", lines[i], count=1).rstrip()
+    lines[i] = re.sub(pattern, "", lines[i], count=1).rstrip()
 
 
 def _edit(name: str, change) -> dict:
@@ -155,16 +152,6 @@ def _edit(name: str, change) -> dict:
     lines = text.replace("\r", "").split("\n")
     change(lines, dsl.parse(store.SCHEMA, text))
     return store.update(name, {"text": "\n".join(lines)})
-
-
-def _set_shown(lines: list[str], doc: dsl.Document, rel: str | None) -> None:
-    """Points the displayed attachment's clause at `rel` (None removes it); other files stay."""
-    shown = views.media(doc)
-    clause = next((c for c in doc.clauses if c.keyword == views.MEDIA_KEYWORD and c.args and c.args[0] == shown), None)
-    if clause is not None:
-        _replace(lines, doc, clause, rel)
-    elif rel is not None:
-        _insert(lines, doc, rel)
 
 
 def add(name: str, rel: str) -> dict:
@@ -176,8 +163,8 @@ def add(name: str, rel: str) -> dict:
 
 
 def attach(name: str, data: bytes, content_type: str) -> dict:
-    """Writes an uploaded image or video as the item's displayed attachment and returns the updated item."""
-    previous = store.get(name)["media"]
+    """Writes an uploaded image or video, names it in a new `media` clause after
+    the item's others and returns the updated item (the upload is its last file)."""
     try:
         ext = file_kinds.upload_extension(content_type, len(data))
     except file_kinds.UploadError as e:
@@ -186,18 +173,17 @@ def attach(name: str, data: bytes, content_type: str) -> dict:
     while _resolve(rel := f"{IMAGES_DIR}/{_stem(name)}-{ms}.{ext}").exists():
         ms += 1
     restore(rel, data)
-    updated = _edit(name, lambda lines, doc: _set_shown(lines, doc, rel))
-    if previous and previous != rel:
-        release(previous)
-    return store.payload(updated)
+    return store.payload(add(name, rel))
 
 
-def clear(name: str) -> dict:
-    """Removes the item's displayed attachment and returns the updated item."""
+def remove(name: str, rel: str) -> dict:
+    """Removes the item's `media` clause naming `rel` (if it still has one), deletes
+    the file once nothing references it, and returns the updated item."""
+    def change(lines, doc):
+        clause = next((c for c in doc.clauses if c.keyword == views.MEDIA_KEYWORD and c.args and c.args[0] == rel), None)
+        if clause is not None:
+            _drop(lines, doc, clause)
     item = store.get(name)
-    previous = item["media"]
-    if not previous:
-        return store.payload(item)
-    updated = _edit(name, lambda lines, doc: _set_shown(lines, doc, None))
-    release(previous)
+    updated = _edit(name, change) if rel in item["files"] else item
+    release(rel)
     return store.payload(updated)

@@ -5,7 +5,7 @@ import { VIDEO_EXTENSIONS } from './kinds/video';
 
 /**
  * What the app does with a file a note names, by its extension (as file_kinds.py):
- * images and videos are `shown` as its attachment, kinds with an `editor` are edited as text.
+ * images and videos are `shown` as its media, kinds with an `editor` are edited as text.
  */
 export type FileKind = { name: 'image' | 'video' | 'jinja' | 'other'; extensions: string[]; shown?: boolean; editor?: () => Extension[] };
 
@@ -25,5 +25,14 @@ export const fileName = (path: string) => path.split('/').pop() ?? path;
 
 export const fileUrl = (path: string) => `/api/files/${path.split('/').map(encodeURIComponent).join('/')}`;
 
-export const pastedMedia = (data: DataTransfer | null) =>
-  Array.from(data?.files ?? []).find((item) => item.type.startsWith('image/') || item.type.startsWith('video/'));
+/** The item's images and videos, in the order its `media` clauses name them (the first is `item.media`). */
+export const shownFiles = (item: { files: string[] }) => item.files.filter((f) => kindOf(f).shown);
+
+/** How a shown file is shown. */
+export const mediaKind = (path: string): 'image' | 'video' => (kindOf(path).name === 'video' ? 'video' : 'image');
+
+/** The images and videos among picked or pasted files. */
+export const mediaFiles = (files: FileList | File[] | null | undefined) =>
+  Array.from(files ?? []).filter((file) => file.type.startsWith('image/') || file.type.startsWith('video/'));
+
+export const pastedMedia = (data: DataTransfer | null) => mediaFiles(data?.files);

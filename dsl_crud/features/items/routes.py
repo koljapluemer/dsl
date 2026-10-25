@@ -31,12 +31,12 @@ def delete_item(name):
     return "", 204
 
 
-@blueprint.put("/api/items/<name>/media")
+@blueprint.post("/api/items/<name>/media")
 def attach_media(name): return jsonify(media.attach(name, request.get_data(), request.content_type))
 
 
 @blueprint.delete("/api/items/<name>/media")
-def clear_media(name): return jsonify(media.clear(name))
+def remove_media(name): return jsonify(media.remove(name, request.args.get("p", "")))
 
 
 @blueprint.post("/api/items/<name>/relate")

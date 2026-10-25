@@ -1,8 +1,8 @@
 import { Handle, Position, type Node, type NodeProps } from '@xyflow/react';
 import { memo } from 'react';
-import type { MediaAttachment } from '@/features/item-media/useMediaAttachment';
+import type { MediaDraft } from '@/features/item-media/useMediaAttachments';
 import { NoteCard } from './NoteCard';
-import type { GraphNodePayload, Item } from '@/api/types';
+import type { GraphNodePayload } from '@/api/types';
 
 export type NoteNodeData = {
   note: GraphNodePayload;
@@ -15,7 +15,7 @@ export type NoteNodeData = {
   /** Whether the card shows its editor. */
   editing: boolean;
   onEdit: (filename: string) => void;
-  onSaveEdit: (filename: string, text: string, image: MediaAttachment, previous: Item) => Promise<void>;
+  onSaveEdit: (filename: string, text: string, media: MediaDraft) => Promise<void>;
   onCancelEdit: () => void;
   onPin: (filename: string) => void;
   onUnpin: (filename: string) => void;
