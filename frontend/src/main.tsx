@@ -2,7 +2,7 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { QueryCache, QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { RouterProvider } from '@tanstack/react-router';
-import { showError } from './dumb/errorBanner';
+import { showError } from './dumb/notice';
 import { createAppRouter } from './router';
 import './app.css';
 

@@ -2,7 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useSearch } from '@tanstack/react-router';
 import { ClipboardPaste, PanelLeft, Plus } from 'lucide-react';
-import { showError } from '@/dumb/errorBanner';
+import { showError } from '@/dumb/notice';
 import { blurOnEscape, useSlashFocus } from '@/dumb/keys';
 import { itemsChanged, saveItem } from '@/entities/item/mutations';
 import { NoteLine } from '@/entities/item/NoteLine';

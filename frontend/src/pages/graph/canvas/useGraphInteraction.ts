@@ -17,6 +17,7 @@ import {
   undoDelete,
   updateNote,
 } from '@/entities/graph/mutations';
+import { markDeleted, markWritten } from '@/entities/item/deleted';
 import { attachMedia, clearMedia } from '@/entities/item/mutations';
 
 export interface UseGraphInteractionParams {
@@ -131,10 +132,12 @@ export function useGraphInteraction({
   const handleDeleteNote = useCallback(
     async (filename: string, priorDepth: number | null): Promise<void> => {
       await deleteNote(filename);
+      await markDeleted(qc, filename);
       onUnpinNote(filename);
       await notesChanged(qc);
       showUndo('Note deleted.', async () => {
         await undoDelete();
+        markWritten(filename);
         await notesChanged(qc);
         if (priorDepth !== null) {
           onPinNote(filename, priorDepth);

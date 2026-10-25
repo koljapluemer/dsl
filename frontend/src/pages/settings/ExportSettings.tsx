@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
 import { Check } from 'lucide-react';
 import type { ExportKey, Settings } from '@/api/types';
-import { showError } from '@/dumb/errorBanner';
+import { showError } from '@/dumb/notice';
 import { saveSettings, settingsQuery } from '@/entities/settings/queries';
 
 type Props = { exportKey: ExportKey; legend: string; placeholder: string };

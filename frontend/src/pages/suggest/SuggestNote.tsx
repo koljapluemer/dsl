@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Shuffle } from 'lucide-react';
 import type { Item } from '@/api/types';
-import { showError } from '@/dumb/errorBanner';
+import { showError } from '@/dumb/notice';
 import { useHotkeys } from '@/dumb/keys';
 import { useSessionState } from '@/dumb/useSessionState';
 import { Note } from '@/meta/note/Note';

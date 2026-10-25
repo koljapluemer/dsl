@@ -1,14 +1,20 @@
 import type { QueryClient } from '@tanstack/react-query';
 import { api, enc } from '@/api/client';
 import type { Answered, Backlink, Item } from '@/api/types';
+import { markWritten } from './deleted';
 import { fileUrl } from './files/files';
 
 /** Updates `file`, or creates an item named after its text when `file` is null. */
 export const saveItem = (file: string | null, text: string) =>
-  file ? api<Item>('PUT', `/api/items/${enc(file)}`, { text }) : api<Item>('POST', '/api/items', { text });
+  (file ? api<Item>('PUT', `/api/items/${enc(file)}`, { text }) : api<Item>('POST', '/api/items', { text })).then(written);
 
 /** Recreates a deleted item under its old name. */
-export const restoreItem = ({ file, text }: Item) => api<Item>('POST', '/api/items', { file, text });
+export const restoreItem = ({ file, text }: Item) => api<Item>('POST', '/api/items', { file, text }).then(written);
+
+function written(item: Item) {
+  markWritten(item.file);
+  return item;
+}
 
 export const deleteItem = (file: string) => api<null>('DELETE', `/api/items/${enc(file)}`);
 

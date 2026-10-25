@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
-import { showError } from '@/dumb/errorBanner';
+import { showError } from '@/dumb/notice';
 import { saveSettings, settingsQuery } from '@/entities/settings/queries';
 import { ExportSettings } from './ExportSettings';
 import { LlmSettings } from './LlmSettings';

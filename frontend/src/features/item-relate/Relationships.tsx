@@ -28,7 +28,7 @@ type Props = {
  */
 export function Relationships({ file, text, refs, pending, editable, ops, onRef }: Props) {
   const schema = useSchema();
-  const { data: backlinks } = useQuery({ ...backlinksQuery(file ?? ''), enabled: !!file });
+  const { data: backlinks } = useQuery(backlinksQuery(file ?? ''));
   const rows = rowsOf(schema, text, refs, backlinks ?? [], pending);
   const [busy, setBusy] = useState(false);
 

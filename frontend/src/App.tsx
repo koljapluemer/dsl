@@ -1,7 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { PanelRight, Plus } from 'lucide-react';
 import { Link, Outlet, useLocation, useNavigate, type ErrorComponentProps } from '@tanstack/react-router';
-import { errorBanner } from './dumb/errorBanner';
 import { useHotkeys, type Bindings } from './dumb/keys';
 import { Modal } from './dumb/Modal';
 import { performUndo } from './dumb/undo';
@@ -51,12 +50,10 @@ const SHORTCUTS: [string, string][] = [
 export function App() {
   const path = useLocation({ select: (l) => l.pathname });
   const navigate = useNavigate();
-  const error = errorBanner.use();
   const shown = sidebarShown.use();
   const [help, setHelp] = useState(false);
   /** a new note's modal, keyed so each opening starts fresh */
   const [adding, setAdding] = useState<number | null>(null);
-  useEffect(() => errorBanner.set(''), [path]);
 
   const add = () => setAdding(Date.now());
 
@@ -78,7 +75,6 @@ export function App() {
       <div className="drawer-content flex h-dvh min-w-0 flex-col">
         <UndoToast />
         <div className="shrink-0 px-4 pt-4">
-          {error && <div role="alert" className="alert alert-error mb-4"><span>{error}</span></div>}
           <div className="mb-4 flex items-center gap-2">
             <div role="tablist" className="tabs tabs-border min-w-0 flex-1 flex-nowrap overflow-x-auto">
               {TABS.map((t) => (

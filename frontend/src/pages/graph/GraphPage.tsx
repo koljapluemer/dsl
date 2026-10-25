@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Pin } from 'lucide-react';
-import { errorBanner, showError } from '@/dumb/errorBanner';
+import { showError, showNotice } from '@/dumb/notice';
 import { randomNote } from '@/entities/graph/mutations';
 import { searchFilenames } from '@/entities/item/search/search';
 import { useNoteSearch } from '@/entities/item/search/useNoteSearch';
@@ -25,12 +25,8 @@ export function GraphPage() {
     setBusy(true);
     try {
       const { filename } = await randomNote(Array.from(pins.keys()), orphan);
-      if (filename) {
-        pinNote(filename, MANUAL_PIN_DEPTH);
-        errorBanner.set('');
-      } else {
-        errorBanner.set(noneLeft);
-      }
+      if (filename) pinNote(filename, MANUAL_PIN_DEPTH);
+      else showNotice(noneLeft);
     } catch (error) {
       showError(error);
     } finally {
@@ -43,7 +39,7 @@ export function GraphPage() {
     try {
       const { filenames, total } = await searchFilenames(search.query, { scope: 'graph', orphan: search.orphan, semantic: search.semantic }, PIN_ALL_CAP);
       pinNotes(filenames, PIN_ALL_DEPTH);
-      errorBanner.set(total > filenames.length ? `Pinned the first ${filenames.length} of ${total} matches.` : '');
+      if (total > filenames.length) showNotice(`Pinned the first ${filenames.length} of ${total} matches.`);
     } catch (error) {
       showError(error);
     } finally {

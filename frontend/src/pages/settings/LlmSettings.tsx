@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { LlmInfo } from '@/api/types';
-import { showError } from '@/dumb/errorBanner';
+import { showError } from '@/dumb/notice';
 import { llmQuery, saveSettings } from '@/entities/settings/queries';
 
 export function LlmSettings() {

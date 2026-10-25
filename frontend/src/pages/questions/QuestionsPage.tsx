@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Ban, SkipForward } from 'lucide-react';
 import type { Item } from '@/api/types';
-import { showError } from '@/dumb/errorBanner';
+import { showError } from '@/dumb/notice';
 import { useHotkeys } from '@/dumb/keys';
 import { useSessionState } from '@/dumb/useSessionState';
 import { ModelDownload } from '@/features/model-download/ModelDownload';

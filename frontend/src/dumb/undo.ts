@@ -1,4 +1,4 @@
-import { showError } from './errorBanner';
+import { showError } from './notice';
 import { store } from './store';
 
 /** The last undoable change, while it can still be undone. */

@@ -3,8 +3,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import type { EditorView } from '@codemirror/view';
 import { BookDown, Check, Copy, Pencil, Trash2, Undo2, X } from 'lucide-react';
 import type { Item } from '@/api/types';
-import { showError } from '@/dumb/errorBanner';
-import { showNotice, UNSAVED } from '@/dumb/notice';
+import { showError, showNotice, UNSAVED } from '@/dumb/notice';
 import { analyze } from '@/entities/item/dsl/analyze';
 import { insertReference } from '@/entities/item/dsl/referenceCompletion';
 import { hasTag } from '@/entities/item/dsl/tags';
@@ -14,6 +13,7 @@ import { NoteMedia } from '@/entities/item/files/Media';
 import { attachMedia, clearMedia, itemsChanged, saveItem, setTag } from '@/entities/item/mutations';
 import { NoteContent } from '@/entities/item/NoteContent';
 import { NoteLine } from '@/entities/item/NoteLine';
+import { deletedItems } from '@/entities/item/deleted';
 import { itemQuery } from '@/entities/item/queries';
 import { useSchema } from '@/entities/item/schema';
 import { useOpenNote } from '@/entities/item/sidebar';
@@ -102,6 +102,10 @@ export type NoteProps = {
  */
 export function Note(props: NoteProps) {
   const { item, adopt, loading, error } = useNoteItem(props.file, props.item);
+  const deleted = deletedItems.use();
+  // gone at once, not when the list showing it has refetched; back if it's restored
+  const file = props.file ?? props.item?.file;
+  if (file && deleted.has(file)) return null;
   if (loading || (props.file && !item)) {
     return (
       <div id={props.id} className={props.className}>
@@ -140,6 +144,7 @@ function LoadedNote({
   const [textFile, setTextFile] = useState<string | null>(null);
   const [focus, setFocus] = useState(autofocus);
   const editorRef = useRef<EditorView | null>(null);
+  const deleting = useRef(false);
   // into the editor afterwards, so focus leaving the note writes a blur-committed update
   const update = useBibtexUpdate((text) => { draft.setText(text); editorRef.current?.focus(); });
   const fetchItem = (f: string) => qc.fetchQuery({ ...itemQuery(f), staleTime: 0 });
@@ -153,7 +158,8 @@ function LoadedNote({
 
   /** Writes the draft; resolves to the note as written, null when nothing was (or it failed, shown). */
   async function save(): Promise<Item | null> {
-    if (busy || !draft.text.trim() || !draft.dirty) return null;
+    // a delete in flight or done leaves nothing to write to (a blur may still come)
+    if (busy || deleting.current || !draft.text.trim() || !draft.dirty) return null;
     setBusy(true);
     setProblem(null);
     try {
@@ -192,7 +198,9 @@ function LoadedNote({
   };
 
   async function del() {
+    deleting.current = true;
     const deleted = onDelete ? await onDelete() : !!item && await deleteItem(item);
+    deleting.current = deleted;
     if (deleted) onDeleted?.();
   }
 

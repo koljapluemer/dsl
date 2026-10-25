@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { showError } from '@/dumb/errorBanner';
+import { showError } from '@/dumb/notice';
 import { maintenanceQuery, runMaintenance } from '@/entities/settings/queries';
 import { Note } from '@/meta/note/Note';
 

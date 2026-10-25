@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { Answered, Question } from '@/api/types';
-import { showError } from '@/dumb/errorBanner';
+import { showError } from '@/dumb/notice';
 import { NotePicker, type Pick } from '@/features/item-relate/NotePicker';
 import { answer } from './questions';
 

@@ -10,10 +10,10 @@ it, and slices of one layer don't import each other. `just check` enforces this
 | `meta`     | flows that coordinate multiple features                               | features, entities, dumb, api |
 | `features` | ways of acting on entities, named entity-action (`item-delete`)        | entities, dumb, api           |
 | `entities` | one folder per entity (`item`, `graph`, …): queries, mutations, views | dumb, api                     |
-| `dumb`     | generic pieces without app logic (modal, markdown, store, undo toast) | itself                        |
+| `dumb`     | generic pieces without app logic (modal, markdown, store, toasts)      | itself                        |
 | `api`      | the fetch wrapper and the API's types                                 | itself                        |
 
-`main.tsx`, `router.tsx` and `App.tsx` (tabs, error banner, undo toast) sit at
+`main.tsx`, `router.tsx` and `App.tsx` (tabs, toasts) sit at
 the root. No other top-level folders.
 
 Conventions:
@@ -35,3 +35,12 @@ Conventions:
 - Don't make a feature that only one page uses. Put it in the page's folder,
   split into files rather than one big page file.
 - No `index.ts` re-exports. Import from the defining file.
+- Messages go to the toast corner (`dumb/UndoToast.tsx`): `showNotice` for
+  news, `showError` for what failed (`dumb/notice.ts`), and the undo offer.
+  A failed query shows there too (`main.tsx`). Only a note's own save error is
+  shown in the note.
+- A note deleted here is marked so at once (`entities/item/deleted.ts`): every
+  view of it stops showing it, its blur save doesn't write, and its own
+  queries (backlinks) go inactive before anything refetches, so the refetches
+  after the delete don't ask for a note that's gone. Writing it again
+  (restore, or a new note under its name) clears the mark.

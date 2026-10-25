@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Download } from 'lucide-react';
-import { showError } from '@/dumb/errorBanner';
+import { showError } from '@/dumb/notice';
 import { pullProgress } from '@/dumb/pullProgress';
 import { modelQuery, pullModel, pullRunning, type ModelKind } from '@/entities/ollama/queries';
 

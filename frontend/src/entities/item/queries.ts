@@ -1,6 +1,7 @@
 import { queryOptions } from '@tanstack/react-query';
 import { api, enc } from '@/api/client';
 import type { Backlink, Item, ItemPage } from '@/api/types';
+import { isDeleted } from './deleted';
 import { fileUrl } from './files/files';
 
 /** Shuffles the list's order; kept until the page reloads, so the order stays put while working. */
@@ -23,10 +24,14 @@ export const itemQuery = (file: string) => queryOptions({
   queryFn: () => api<Item>('GET', `/api/items/${enc(file)}`),
 });
 
-/** The relationships in other notes pointing to `file`; under `items`, so writes refetch it. */
+/**
+ * The relationships in other notes pointing to `file` ('' for none yet); under
+ * `items`, so writes refetch it - except once it's deleted (see deleted.ts).
+ */
 export const backlinksQuery = (file: string) => queryOptions({
   queryKey: ['items', 'backlinks', file],
   queryFn: () => api<Backlink[]>('GET', `/api/items/${enc(file)}/backlinks`),
+  enabled: () => !!file && !isDeleted(file),
 });
 
 /** A file of a kind edited as text (see files.ts), as it's written. */

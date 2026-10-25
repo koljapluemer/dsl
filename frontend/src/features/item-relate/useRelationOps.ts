@@ -1,6 +1,6 @@
 import { useQueryClient } from '@tanstack/react-query';
 import type { Item } from '@/api/types';
-import { showError } from '@/dumb/errorBanner';
+import { showError } from '@/dumb/notice';
 import { addRelation, relabelRelation, removeRelation } from '@/entities/item/dsl/relation';
 import { addBacklink, detachItem, itemsChanged, relabelItem, relateItem } from '@/entities/item/mutations';
 import { backlinksQuery, itemQuery } from '@/entities/item/queries';
