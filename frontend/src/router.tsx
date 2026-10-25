@@ -6,6 +6,8 @@ import { SIDEBAR_KEYS, validateSidebarSearch, type SidebarSearch } from './entit
 import { settingsQuery } from './entities/settings/queries';
 import { CalendarPage } from './pages/calendar/CalendarPage';
 import { validateCalendarSearch } from './pages/calendar/search';
+import { DeskPage } from './pages/desk/DeskPage';
+import { validateDeskSearch } from './pages/desk/search';
 import { ExplorationsPage } from './pages/explorations/ExplorationsPage';
 import { validateExplorationsSearch } from './pages/explorations/explorations';
 import { FloatPage } from './pages/float/FloatPage';
@@ -42,6 +44,7 @@ const tree = root.addChildren([
   createRoute({ getParentRoute: () => root, path: '/broken', beforeLoad: () => { throw redirect({ to: '/tasks' }); } }),
   // the older address of a note's editor: the note open in the sidebar
   createRoute({ getParentRoute: () => root, path: '/edit/$file', beforeLoad: ({ params }) => { throw redirect({ to: '/', search: { sopen: [params.file] } }); } }),
+  createRoute({ getParentRoute: () => root, path: '/desk', validateSearch: validateDeskSearch, component: DeskPage }),
   createRoute({ getParentRoute: () => root, path: '/explorations', validateSearch: validateExplorationsSearch, component: ExplorationsPage }),
   createRoute({ getParentRoute: () => root, path: '/graph', component: GraphPage }),
   createRoute({ getParentRoute: () => root, path: '/tasks', component: TasksPage }),

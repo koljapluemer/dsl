@@ -20,7 +20,11 @@ Vite + React + TypeScript in `frontend/`, with TanStack Router (the note sidebar
 
 Home (`/`) links to the other views. Beside every view, on the right, is the note sidebar (`meta/note/NoteSidebar.tsx`): a New note button, then a search over all notes (with the semantic toggle and orphan filter; its results are notes inline, the match marked) and, once notes are open, below it the notes opened from it, the last opened first. The search then takes half the column's height and the column scrolls. Each note shows rendered (view) or in the editor (edit, written as focus leaves it), with its relationships, keeps its mode for the session, opens in a modal from its ⤢ tool, and its ✕ closes it. A click on a related or linked note anywhere opens that note here. The sidebar's state is in the URL (`sq`, `ss`, `sorphan`, `spage`, `sopen`, kept across tabs), so `/?sopen=["<file>"]` is a note on its own (the old `/edit/<file>` leads there). On a phone the sidebar is a drawer, opened from the button beside the tabs or by opening a note; while it's closed, the + button at the bottom right adds a note.
 
-A view may have its own way to open a found note (`useSidebarAction` in `entities/item/sidebar.ts`): the Graph pins it, Explorations and Sources open it in their pane (explorations and sources only). There the results aren't clickable; each has ⌄ to open it in the sidebar and the view's icon.
+A view may have its own way to open a found note (`useSidebarAction` in `entities/item/sidebar.ts`): the Graph pins it, the Desk opens it among its notes, Explorations and Sources open it in their pane (explorations and sources only). There the results aren't clickable; each has ⌄ to open it in the sidebar and the view's icon.
+
+## Desk
+
+The Desk tab is a workspace for several notes at once: a search result's icon in the sidebar opens it here, beside those already open (in the URL's `open`). One fills the pane, two sit side by side, more take further columns and rows as the width allows; on a narrow pane they stack. Each note offers edit, view and both, keeps its mode for the session, and is saved explicitly (Save/Discard); a click on a related or linked note opens that one on the desk too, and ✕ closes a note.
 
 ## Explorations
 
