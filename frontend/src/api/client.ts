@@ -6,9 +6,14 @@ export async function api<T = unknown>(method: string, url: string, body?: unkno
     body: body === undefined ? undefined : JSON.stringify(body),
     signal,
   });
+  return readResponse<T>(res);
+}
+
+/** An API response's JSON; throws its `error` message, or its status when the body isn't JSON (a 405 page, say). */
+export async function readResponse<T>(res: Response): Promise<T> {
   if (res.status === 204) return null as T;
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error || res.statusText);
+  const data = res.headers.get('Content-Type')?.includes('json') ? await res.json() : null;
+  if (!res.ok) throw new Error(data?.error || `${res.status} ${res.statusText}`);
   return data as T;
 }
 

@@ -1,5 +1,5 @@
 import type { QueryClient } from '@tanstack/react-query';
-import { api, enc } from '@/api/client';
+import { api, enc, readResponse } from '@/api/client';
 import type { Answered, Backlink, Item } from '@/api/types';
 import { markWritten } from './deleted';
 import { fileUrl } from './files/files';
@@ -21,9 +21,7 @@ export const deleteItem = (file: string) => api<null>('DELETE', `/api/items/${en
 /** Uploads an image or video as the item's last `media`. */
 export async function attachMedia(file: string, media: Blob) {
   const res = await fetch(`/api/items/${enc(file)}/media`, { method: 'POST', headers: { 'Content-Type': media.type }, body: media });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error || res.statusText);
-  return data as Item;
+  return readResponse<Item>(res);
 }
 
 /** Drops the item's `media` clause naming `path`, deleting the file once nothing references it. */

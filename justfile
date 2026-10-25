@@ -1,8 +1,8 @@
 dir := justfile_directory()
 apps := env("HOME") / ".local/share/applications"
 icons := env("HOME") / ".local/share/icons/hicolor/scalable/apps"
-# `[a]` keeps pkill/pgrep from matching the recipe's own shell
-proc := "python -m [d]sl_crud"
+# the app's port (as dsl_crud/__main__.py); whatever listens there is the running server
+port := "8766"
 
 # start the app (or open the browser if it's already running) from the committed build
 run:
@@ -17,7 +17,7 @@ chromium:
 dev:
     #!/usr/bin/env bash
     trap 'kill 0' EXIT
-    uv run --project {{dir}} flask --app dsl_crud run --port 8766 --debug &
+    uv run --project {{dir}} flask --app dsl_crud run --port {{port}} --debug &
     npm --prefix {{dir}}/frontend run dev
 
 # build into the ignored directory used for feature-branch validation
@@ -55,9 +55,9 @@ reinstall:
         {{dir}}/dsl-crud.desktop > {{apps}}/dsl-crud.desktop
     update-desktop-database {{apps}} 2>/dev/null || true
     gtk-update-icon-cache -q ~/.local/share/icons/hicolor 2>/dev/null || true
-    if pgrep -f '{{proc}}' >/dev/null; then
-        pkill -f '{{proc}}'
-        while pgrep -f '{{proc}}' >/dev/null; do sleep 0.2; done
+    if fuser -s {{port}}/tcp; then
+        fuser -s -k -TERM {{port}}/tcp
+        while fuser -s {{port}}/tcp; do sleep 0.2; done
         setsid -f uv run --project {{dir}} python -m dsl_crud >/dev/null 2>&1
         echo "restarted"
     fi
