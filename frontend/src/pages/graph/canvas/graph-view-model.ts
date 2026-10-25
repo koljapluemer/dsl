@@ -1,12 +1,12 @@
 import type { Edge } from '@xyflow/react';
-import type { MediaAttachment } from '@/features/item-media/useMediaAttachment';
+import type { MediaDraft } from '@/features/item-media/useMediaAttachments';
 import type { GraphFlowNode } from './graph-flow-node';
 import { mergeRelationsIntoEdges } from './graph-edges';
 import { buildHiddenRelations } from './graph-hidden-relations';
 import type { ConnectingInteraction, Interaction } from './graph-interaction';
 import { NODE_CLASS_NAME } from './graph-node-style';
 import { NODE_WIDTH, seedPosition, type GraphLayout } from '../layout/graph-layout';
-import type { GraphEdgePayload, Item, NoteGraph } from '@/api/types';
+import type { GraphEdgePayload, NoteGraph } from '@/api/types';
 
 // Edited cards can grow past their layout slot while their content changes -
 // keep them above everything else instead of trying to keep the layout from ever
@@ -17,7 +17,7 @@ export interface ViewCallbacks {
   onDeleteNote: (filename: string, pinDepth: number | null) => Promise<void>;
   onHideNote: (filename: string, pinDepth: number | null) => Promise<void>;
   onStartEdit: (filename: string) => void;
-  onSaveEdit: (filename: string, text: string, image: MediaAttachment, previous: Item) => Promise<void>;
+  onSaveEdit: (filename: string, text: string, media: MediaDraft) => Promise<void>;
   onCancelInteraction: () => void;
   onConfirmConnection: (connecting: ConnectingInteraction, label: string) => Promise<void>;
   onDeleteRelation: (relation: GraphEdgePayload) => Promise<void>;

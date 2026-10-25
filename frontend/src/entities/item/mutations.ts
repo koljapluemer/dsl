@@ -18,14 +18,16 @@ function written(item: Item) {
 
 export const deleteItem = (file: string) => api<null>('DELETE', `/api/items/${enc(file)}`);
 
+/** Uploads an image or video as the item's last `media`. */
 export async function attachMedia(file: string, media: Blob) {
-  const res = await fetch(`/api/items/${enc(file)}/media`, { method: 'PUT', headers: { 'Content-Type': media.type }, body: media });
+  const res = await fetch(`/api/items/${enc(file)}/media`, { method: 'POST', headers: { 'Content-Type': media.type }, body: media });
   const data = await res.json();
   if (!res.ok) throw new Error(data.error || res.statusText);
   return data as Item;
 }
 
-export const clearMedia = (file: string) => api<Item>('DELETE', `/api/items/${enc(file)}/media`);
+/** Drops the item's `media` clause naming `path`, deleting the file once nothing references it. */
+export const removeMedia = (file: string, path: string) => api<Item>('DELETE', `/api/items/${enc(file)}/media?p=${enc(path)}`);
 
 /** The absolute path of a file in the data folder. */
 export const filePath = async (path: string) => (await api<{ path: string }>('GET', `/api/file-path?p=${enc(path)}`)).path;

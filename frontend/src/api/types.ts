@@ -16,7 +16,7 @@ export type Diagnostic = { code: string; line: number | null; detail: string | n
 /**
  * A note as the API sends it, wherever it's shown: `refs` maps its relationship and inline
  * reference targets to their headings (null for a missing one); `files` are the paths in the data
- * folder its `media` clauses name, `media` the one displayed (the first image or video);
+ * folder its `media` clauses name, `media` its cover (the first image or video);
  * `sourceKey` a source's BibTeX key, null for any other note.
  */
 export type Item = {

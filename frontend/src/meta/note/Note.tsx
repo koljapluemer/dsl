@@ -9,8 +9,9 @@ import { insertReference } from '@/entities/item/dsl/referenceCompletion';
 import { hasTag } from '@/entities/item/dsl/tags';
 import { draftItem } from '@/entities/item/draftItem';
 import { FileList } from '@/entities/item/files/FileList';
-import { NoteMedia } from '@/entities/item/files/Media';
-import { attachMedia, clearMedia, itemsChanged, saveItem, setTag } from '@/entities/item/mutations';
+import { fileUrl, mediaKind, shownFiles } from '@/entities/item/files/files';
+import { MediaGallery, type GalleryMedia } from '@/entities/item/files/MediaGallery';
+import { itemsChanged, removeMedia, saveItem, setTag } from '@/entities/item/mutations';
 import { NoteContent } from '@/entities/item/NoteContent';
 import { NoteLine } from '@/entities/item/NoteLine';
 import { deletedItems } from '@/entities/item/deleted';
@@ -20,8 +21,8 @@ import { useOpenNote } from '@/entities/item/sidebar';
 import { useDeleteItem } from '@/features/item-delete/useDeleteItem';
 import { TextFileModal } from '@/features/file-edit/TextFileModal';
 import { ItemTextEditor } from '@/features/item-edit/ItemTextEditor';
-import { MediaAttachmentPreview, MediaPicker } from '@/features/item-media/MediaAttachmentField';
-import type { MediaAttachment } from '@/features/item-media/useMediaAttachment';
+import { MediaPicker, stagedMedia } from '@/features/item-media/MediaAttachmentField';
+import { persistMedia, type MediaDraft } from '@/features/item-media/useMediaAttachments';
 import type { PendingOp } from '@/features/item-relate/relationModel';
 import { Relationships } from '@/features/item-relate/Relationships';
 import { runPending, useRelationOps } from '@/features/item-relate/useRelationOps';
@@ -41,7 +42,7 @@ export type NoteProps = {
   initial?: string;
   /** the note as already loaded (a list's), so it isn't fetched */
   item?: Item;
-  /** `full` (default), `simple`: the body and attachment only, `inline`: one line (see NoteLine) */
+  /** `full` (default), `simple`: the body and media only, `inline`: one line (see NoteLine) */
   render?: 'full' | 'simple' | 'inline';
   /** the modes offered (default all; a new note only edits); the toggle hides when there's one */
   modes?: readonly NoteMode[];
@@ -65,7 +66,7 @@ export type NoteProps = {
   tagToggles?: TagToggle[];
   /** the page's own tools, first in the row */
   extraTools?: ExtraTool[];
-  /** where the attachment sits: above (default), or beside the rest on a wide enough note */
+  /** where the images and videos sit: above (default), or stacked beside the rest on a wide enough note */
   mediaPosition?: 'top' | 'start' | 'end';
   /** inline: characters of the first line shown; text to mark; the whole line clickable */
   inlineChars?: number;
@@ -76,7 +77,7 @@ export type NoteProps = {
   /** the edit tool does this instead of opening its own modal (a page keeping the modal) */
   onEdit?: () => void;
   /** writes the edit instead of the items API (the graph's update) */
-  save?: (text: string, media: MediaAttachment, item: Item | null) => Promise<Item | void>;
+  save?: (text: string, media: MediaDraft, item: Item | null) => Promise<Item | void>;
   /** deletes instead of the items API (with its undo); resolves to whether it did */
   onDelete?: () => Promise<boolean>;
   onSaved?: (item: Item) => void;
@@ -164,14 +165,12 @@ function LoadedNote({
     setProblem(null);
     try {
       const text = draft.bib.staged.length ? (await draft.bib.apply(draft.text)).text! : draft.text;
-      const attachment = draft.media.attachment;
       let saved: Item;
       if (write) {
-        saved = (await write(text, attachment, item)) ?? draftItem(text, item ?? undefined);
+        saved = (await write(text, draft.mediaEdits, item)) ?? draftItem(text, item ?? undefined);
       } else {
         saved = !item || text !== item.text ? await saveItem(item?.file ?? null, text) : item;
-        if (attachment?.status === 'new') saved = await attachMedia(saved.file, attachment.blob);
-        else if (attachment === null && item?.media) saved = await clearMedia(saved.file);
+        saved = (await persistMedia(saved.file, draft.mediaEdits)) ?? saved;
         adopt(saved);
       }
       draft.reset(saved, true);
@@ -194,7 +193,7 @@ function LoadedNote({
   const discard = () => {
     update.cancel();
     if (isNew && onClose) onClose();
-    else draft.reset({ text: item?.text ?? initial, media: item?.media ?? null });
+    else draft.reset({ text: item?.text ?? initial, files: item?.files ?? [] });
   };
 
   async function del() {
@@ -224,7 +223,7 @@ function LoadedNote({
   });
 
   const want = (tool: ToolId, applies: boolean) => applies && (tools[tool] ?? (tool !== 'edit' || render !== 'full'));
-  const attach = (f: File) => void draft.media.attachFile(f);
+  const attach = (files: File[]) => void draft.media.attachFiles(files);
   const toolRow: ReactNode[] = [
     ...extraTools.map((t) => <Extra key={t.key} tool={t} />),
     want('media', editing) && <MediaPicker key="media" onAttach={attach} className={TOOL} />,
@@ -286,11 +285,13 @@ function LoadedNote({
     </div>
   );
 
-  const media = editing
-    ? draft.media.attachment && <MediaAttachmentPreview attachment={draft.media.attachment} onRemove={() => draft.media.setAttachment(null)} />
-    : item?.media && (
-      <NoteMedia path={item.media} onDelete={async () => { const cleared = await clearMedia(item.file); adopt(cleared); draft.reset(cleared); void itemsChanged(qc); }} />
-    );
+  const gallery: GalleryMedia[] = editing
+    ? stagedMedia(draft.media.entries, draft.media.remove)
+    : (item ? shownFiles(item) : []).map((path) => ({
+      key: path, src: fileUrl(path), kind: mediaKind(path), path,
+      onDelete: async () => { const removed = await removeMedia(item!.file, path); adopt(removed); draft.reset(removed); void itemsChanged(qc); },
+    }));
+  const media = gallery.length > 0 && <MediaGallery media={gallery} stacked={mediaPosition !== 'top'} />;
 
   const keys = (event: KeyboardEvent) => {
     // keys stay here: the graph's canvas and a modal would act on them too
@@ -309,7 +310,7 @@ function LoadedNote({
       {(draft.media.error || draft.bib.error || update.error) && (
         <p className="mb-2 text-sm text-error">{draft.media.error ?? draft.bib.error ?? update.error}</p>
       )}
-      <ItemTextEditor value={draft.text} autofocus={focus} onChange={draft.setText} onSave={() => void save()} onPasteFile={attach}
+      <ItemTextEditor value={draft.text} autofocus={focus} onChange={draft.setText} onSave={() => void save()} onPasteFiles={attach}
                       currentFile={item?.file} editorRef={editorRef} />
       <Problems text={draft.text} />
     </div>

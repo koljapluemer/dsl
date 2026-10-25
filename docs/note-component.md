@@ -12,7 +12,7 @@ Defaults are full capabilities: anything not switched off is there.
 | Parameter | Default | |
 |---|---|---|
 | `file`, `item`, `initial` | | the note (null for a new one, which only edits), as already loaded (else fetched), a new note's text |
-| `render` | `full` | `full`; `simple`: the body and attachment only, no relationships, no mode toggle; `inline`: one line (below) |
+| `render` | `full` | `full`; `simple`: the body and media only, no relationships, no mode toggle; `inline`: one line (below) |
 | `modes` | edit, view, split | the modes offered; the toggle (top right) hides when only one is |
 | `defaultMode` | `view` | the mode shown first |
 | `mode`, `onModeChange` | | the mode, when the caller keeps it (Graph, Questions' `e`) |
@@ -24,7 +24,7 @@ Defaults are full capabilities: anything not switched off is there.
 | `tools` | each where it applies | switch tools off, or `edit` on in `full` |
 | `tagToggles` | | `{tag, icon, activeIcon?, title, activeTitle?}`: a tool adding or removing the tag |
 | `extraTools` | | the page's own tools, first in the row: a button `{key, title, icon, onClick}` or any `{key, node}` |
-| `mediaPosition` | `top` | `start`/`end`: the attachment beside the rest when the note is wide enough |
+| `mediaPosition` | `top` | `start`/`end`: the images and videos stacked beside the rest when the note is wide enough |
 | `inlineChars`, `highlight`, `onClick` | 120 | inline: characters of the first line shown, text marked in it, the whole line clickable |
 | `inlineWhole` | | inline: the whole body, uncut, instead of the first line (`inlineChars` and `highlight` then don't apply) |
 | `onEdit` | | the `edit` tool does this instead of opening its own modal (Float keeps the modal to pause its stage) |
@@ -41,28 +41,33 @@ for a new note; every `edit` tool and the sidebar's ⤢ tool open it.
 - **Header**: the tool row on the left; the mode toggle (or Save/Discard,
   or the spinner of a blur save) and close on the right.
 - **Tools**, all icon buttons (`TOOL` in `tools.tsx`):
-  - edit and split only: `media` (upload, and the camera on touch devices), `reference` (`[[`), `bibtex` (sources from the clipboard)
+  - edit and split only: `media` (upload, any number at once, and the camera on touch devices; pasting works too), `reference` (`[[`), `bibtex` (sources from the clipboard)
   - edit and split, sources only: `bibtexUpdate` (fills in the source from the clipboard's BibTeX, the conflicting fields chosen above the editor)
   - `copyKey`: a source's BibTeX key
   - tag toggles
   - `edit`: by default only in `simple` and `inline`
   - `delete`
-- **Attachment**: rendered once, never in both panes. In view mode it shows
-  the saved one, deletable from its enlarged view; in edit and split it shows
-  the staged one, with a remove button.
+- **Media**: the note's images and videos (`MediaGallery`,
+  `entities/item/files`), rendered once, never in both panes. One is shown as
+  before, more in a row of equal height scrolled sideways (a daisyUI
+  `carousel`, swiped on touch) with their count. Enlarging one opens
+  `MediaModal`, which steps through all of them (arrow buttons, ←/→). In view
+  mode it shows the saved ones, each deletable from the enlarged view; in edit
+  and split the staged ones (`useMediaAttachments`, `features/item-media`),
+  each with a remove button. Saving removes the dropped ones, then uploads the
+  new ones in order (`persistMedia`).
 - **Content**:
   - view: `NoteContent` (`entities/item`), which is body and `extra` as Markdown, keyword lines and `data` highlighted, and never relationship lines
   - edit: the editor and its problems. Tab and Shift-Tab indent and outdent the line (or the selected lines) by two spaces; Esc then Tab moves focus out of the editor
   - split: editor and preview side by side, stacked when the note is narrow (a container query)
-- **Files**: below the content, the saved note's other files
-  (`FileList`, `entities/item/files`, [`files.md`](files.md)): images and
-  videos as thumbnails, files edited as text (Jinja templates) as buttons
+- **Files**: below the content, the saved note's files besides its images
+  and videos (`FileList`, `entities/item/files`, [`files.md`](files.md)): files edited as text (Jinja templates) as buttons
   opening `TextFileModal` (`features/file-edit`), other files as links.
 - **Relationships**: below the content (see below).
 - **Inline** (`NoteLine`, `entities/item`): the first line of the body,
   rendered as Markdown. It's cut after `inlineChars` characters of its text,
   not of its Markdown (`inlineMarkdown` in `dumb/markdown.ts`), with `…` when
-  cut or when the body goes on. Next to it: the attachment as a thumbnail, an
+  cut or when the body goes on. Next to it: the cover image as a thumbnail (`+N` for more), an
   icon for errors or warnings, and the tools. It never shows relationships.
   With `inlineWhole` it shows the whole body instead, uncut and without `…`,
   as `simple` renders it (`NoteContent`), the icon and tools at its top.

@@ -34,7 +34,7 @@ The Tasks tab shows the notes needing attention, then the other notes with `task
 
 The Goals tab shows the notes tagged `goal` (`GET /api/goals`), by heading, each inline with its whole body, edited in a modal. A goal with an attached image counts as done and is left out.
 
-A note shows rendered: body and `extra` content as markdown (marked + DOMPurify), its attachment, `data` blocks as highlighted code, and only keyword lines in monospace with the editor's highlighting; its relationships are in the relationships widget below it. Body and `extra` may use `[[target]]` or `[[target|display text]]` for inline note relationships; missing targets are visibly struck through. A list shows a note inline: its first line as markdown, cut with `…`, its attachment as a thumbnail and an icon when it has problems.
+A note shows rendered: body and `extra` content as markdown (marked + DOMPurify), its images and videos, `data` blocks as highlighted code, and only keyword lines in monospace with the editor's highlighting; its relationships are in the relationships widget below it. Body and `extra` may use `[[target]]` or `[[target|display text]]` for inline note relationships; missing targets are visibly struck through. A list shows a note inline: its first line as markdown, cut with `…`, its cover image as a thumbnail (with how many more it has) and an icon when it has problems.
 
 ## Editing
 
@@ -158,9 +158,9 @@ The Graph shows notes as cards on a [React Flow](https://reactflow.dev) canvas, 
 
 ## Files
 
-A note names files in the data folder with `media` clauses, any number of them ([`docs/files.md`](docs/files.md)). The first image or video is its displayed attachment; its other files are listed below its content: images and videos as thumbnails, Jinja templates as buttons opening them in a text editor (Save ✓, Ctrl+S or Ctrl+Enter), anything else as a link.
+A note names files in the data folder with `media` clauses, any number of them ([`docs/files.md`](docs/files.md)). Its images and videos are shown above it, in order (several in a row scrolled sideways, enlarged into a view stepping through them); the first is its cover, the thumbnail in lists. Its other files are listed below its content: Jinja templates as buttons opening them in a text editor (Save ✓, Ctrl+S or Ctrl+Enter), anything else as a link.
 
-The note editor accepts one image (downscaled to WebP) or short video as the displayed attachment, by paste or upload; on touch devices they also take a photo with the camera. Attachments go into `images/` in the data folder as `<note>-<ms>.<ext>`; a file in `images/` or `files/` is deleted when it is replaced or removed and no other note names it.
+The note editor accepts any number of images (downscaled to WebP) and short videos, by paste or upload; on touch devices they also take a photo with the camera. Each is added after the note's others, removed on its own, and reordered by moving its `media` line. Uploads go into `images/` in the data folder as `<note>-<ms>.<ext>`; a file in `images/` or `files/` is deleted when it is removed and no other note names it.
 
 ## Maintenance
 
