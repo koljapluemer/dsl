@@ -17,6 +17,9 @@ export const cardsQuery = queryOptions({
   queryFn: () => api<Item[]>('GET', '/api/portfolio/cards'),
 });
 
+/** A new card's text; its first line is left for the heading. */
+export const NEW_CARD = '\ntags card\n';
+
 export const PREVIEW_URL = '/api/portfolio/preview';
 
 /** A short hash of the card's text, so the browser doesn't keep showing an earlier render. */
@@ -27,6 +30,5 @@ function version(text: string): string {
 }
 
 const cardUrl = (item: Item, suffix: string) => `/api/portfolio/cards/${item.file.replace(/\.txt$/, '')}${suffix}?v=${version(item.text)}`;
-/** A card's A4 collage, as WebP. */
-export const cardImageUrl = (item: Item) => cardUrl(item, '.webp');
+/** A card's A4 collage's thumbnail, as WebP. */
 export const cardThumbUrl = (item: Item) => cardUrl(item, '-thumb.webp');
