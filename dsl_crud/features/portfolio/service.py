@@ -10,13 +10,10 @@ import jinja2
 from markdown_it import MarkdownIt
 from markupsafe import Markup
 
-import collage
-import dsl
-import exports
-import file_kinds
-import files
-import store
-import views
+from dsl_crud.core import documents as views
+from dsl_crud.core import dsl, file_kinds
+from dsl_crud.features.portfolio import collage
+from dsl_crud.infrastructure import exports, items as store, media as files
 
 TAG = "portfolio"
 CARD_TAG = "card"
@@ -148,4 +145,5 @@ def render() -> str:
     return f"{MARKER}\n{page}"
 
 
-exports.register(exports.Export("portfolio", ".html", "index.html", MARKER, render, assets, CARDS_DIR))
+def export_definition() -> exports.Export:
+    return exports.Export("portfolio", ".html", "index.html", MARKER, render, assets, CARDS_DIR)

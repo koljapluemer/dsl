@@ -1,18 +1,16 @@
 import pytest
 
-import collage
+from dsl_crud.features.portfolio import collage
 
-import exports
-import files
-import portfolio
-import store
+from dsl_crud.features.portfolio import service as portfolio
+from dsl_crud.infrastructure import config, exports, items as store, media as files
 
 
 @pytest.fixture(autouse=True)
 def data_dir(tmp_path, monkeypatch):
-    monkeypatch.setattr(store, "CONFIG_PATH", tmp_path / "cfg" / "config.json")
+    monkeypatch.setattr(config, "CONFIG_PATH", tmp_path / "cfg" / "config.json")
     monkeypatch.setattr(collage, "CACHE_DIR", tmp_path / "cache")
-    store.set_path(str(tmp_path / "data"))
+    config.set_path(str(tmp_path / "data"))
     return tmp_path / "data"
 
 
@@ -69,8 +67,8 @@ def test_export(data_dir, tmp_path):
 
 
 def test_endpoints(data_dir):
-    import app
-    client = app.app.test_client()
+    from dsl_crud.application import app
+    client = app.test_client()
     template = client.post("/api/portfolio").get_json()["template"]
     assert client.put(f"/api/files/{template}", json={"text": "<b>{{ title }}</b>"}).status_code == 204
     assert client.get(f"/api/files/{template}").data == b"<b>{{ title }}</b>"
@@ -127,9 +125,9 @@ def test_export_writes_the_cards(data_dir, tmp_path):
 
 @needs_chromium
 def test_card_endpoints(data_dir):
-    import app
+    from dsl_crud.application import app
     add_card(data_dir)
-    client = app.app.test_client()
+    client = app.test_client()
     assert [c["file"] for c in client.get("/api/portfolio/cards").get_json()] == ["c.txt"]
     r = client.get("/api/portfolio/cards/c-thumb.webp")
     assert r.status_code == 200 and r.content_type == "image/webp"
@@ -154,9 +152,9 @@ def test_without_chromium_the_export_writes_nothing(data_dir, tmp_path, unavaila
 
 
 def test_without_chromium_the_tab_and_preview_say_so(data_dir, unavailable):
-    import app
+    from dsl_crud.application import app
     add_card(data_dir)
-    client = app.app.test_client()
+    client = app.test_client()
     assert client.post("/api/portfolio").get_json()["cards"] == {"available": False, "reason": "Chromium missing"}
     assert client.get("/api/portfolio/preview").status_code == 200
     r = client.get("/api/portfolio/cards/c.webp")

@@ -30,8 +30,9 @@ fi
 # the frontend is built on the desktop and committed
 [ -f "$dir/frontend/dist/index.html" ] || { echo "frontend/dist missing: run 'just build' on the desktop and commit it"; exit 1; }
 
-# webbrowser.open in app.py runs $BROWSER
+# The package entry point's webbrowser.open runs $BROWSER.
 export BROWSER=termux-open-url PYTHONDONTWRITEBYTECODE=1
 termux-wake-lock
-"$venv/bin/python" "$dir/app.py" || true
+cd "$dir"
+"$venv/bin/python" -m dsl_crud || true
 termux-wake-unlock

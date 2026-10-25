@@ -1,7 +1,7 @@
 import pytest
 
-from bibtex_import import parse
-from fields import normalise
+from dsl_crud.features.sources.bibtex_import import parse
+from dsl_crud.features.sources.fields import normalise
 
 
 def test_article_legacy_fields():

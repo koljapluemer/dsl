@@ -2,15 +2,14 @@ import datetime
 
 import pytest
 
-import files
-import maintenance
-import store
+from dsl_crud.features.maintenance import service as maintenance
+from dsl_crud.infrastructure import config, items as store, media as files
 
 
 @pytest.fixture(autouse=True)
 def data_dir(tmp_path, monkeypatch):
-    monkeypatch.setattr(store, "CONFIG_PATH", tmp_path / "cfg" / "config.json")
-    store.set_path(str(tmp_path / "data"))
+    monkeypatch.setattr(config, "CONFIG_PATH", tmp_path / "cfg" / "config.json")
+    config.set_path(str(tmp_path / "data"))
     return tmp_path / "data"
 
 

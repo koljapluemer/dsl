@@ -1,12 +1,11 @@
-"""What the queue, float, tags, suggest, explorations, goals, calendar and projects views read from an item."""
+"""Shared interpretations of parsed item documents."""
 
 import calendar as _calendar
 from dataclasses import dataclass
 
 import yaml
 
-import dsl
-import file_kinds
+from dsl_crud.core import dsl, file_kinds
 
 APPOINTMENT_KEYWORD = "appointment"
 RECURRING_KEYWORD = "recurring"

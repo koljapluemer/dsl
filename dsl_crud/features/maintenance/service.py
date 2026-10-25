@@ -1,9 +1,8 @@
-"""Cleanups offered in Settings: past appointments here, files no item names in files.py."""
+"""Cleanups offered in Settings."""
 
 import datetime
 
-import files
-import store
+from dsl_crud.infrastructure import items as store, media as files
 
 
 def _past(entries: dict) -> list[str]:

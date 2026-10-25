@@ -1,7 +1,6 @@
-"""Config and one-.txt-file-per-item storage, directly inside the data folder."""
+"""Indexed one-.txt-file-per-item storage and item payloads."""
 
 import bisect
-import json
 import math
 import os
 import random
@@ -15,13 +14,10 @@ from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
 
-import dsl
-import file_kinds
-import inline_refs
-import questions
-import views
-
-CONFIG_PATH = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config")) / "dsl-crud" / "config.json"
+from dsl_crud.core import documents as views
+from dsl_crud.core import dsl, edits, file_kinds, inline_refs
+from dsl_crud.infrastructure import config
+from dsl_crud.infrastructure.errors import Conflict, NotFound, ValidationError
 
 SCHEMA = dsl.load_schema()
 
@@ -31,85 +27,8 @@ PAGE_SIZE = 50
 TASKS_KEYWORD = "tasks"
 
 
-class ValidationError(ValueError):
-    pass
-
-
-class Conflict(Exception):
-    pass
-
-
-class NotFound(Exception):
-    pass
-
-
-def _config() -> dict:
-    try:
-        cfg = json.loads(CONFIG_PATH.read_text())
-    except (OSError, ValueError):
-        return {}
-    return cfg if isinstance(cfg, dict) else {}
-
-
-_config_lock = threading.Lock()
-
-
-def _update_config(changes: dict) -> None:
-    """Merges `changes` into the config. Replaces the file atomically, as
-    requests read it concurrently (a truncated file reads as no config)."""
-    with _config_lock:
-        CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
-        tmp = CONFIG_PATH.with_name(CONFIG_PATH.name + ".tmp")
-        tmp.write_text(json.dumps(_config() | changes, indent=2) + "\n")
-        os.replace(tmp, CONFIG_PATH)
-
-
-def get_path() -> Path | None:
-    p = _config().get("path")
-    return Path(p) if p else None
-
-
-def set_path(path: str) -> Path:
-    p = Path(path).expanduser().resolve()
-    p.mkdir(parents=True, exist_ok=True)
-    _update_config({"path": str(p)})
-    return p
-
-
-def set_llm(llm: dict) -> None:
-    """Sets the Ollama `url`; an empty one means the default."""
-    url = llm.get("url")
-    if url is not None and not isinstance(url, str):
-        raise ValidationError("llm.url must be a string")
-    _update_config({"llm": {"url": url.strip()} if url and url.strip() else {}})
-
-
-def get_export_paths(key: str) -> list[str]:
-    return list(_config().get(key) or [])
-
-
-def set_export_paths(key: str, paths, default_name: str) -> list[str]:
-    """Stores the targets of the export `key` (see exports.py). `~` is expanded,
-    a directory gets `default_name` appended."""
-    if not isinstance(paths, list) or not all(isinstance(p, str) for p in paths):
-        raise ValidationError(f"{key}: expected list of paths")
-    out: list[str] = []
-    for raw in paths:
-        if not raw.strip():
-            continue
-        p = Path(raw.strip()).expanduser()
-        if p.is_absolute():
-            p = p.resolve()
-            if p.is_dir():
-                p = p / default_name
-        if str(p) not in out:
-            out.append(str(p))
-    _update_config({key: out})
-    return out
-
-
 def _dir() -> Path:
-    p = get_path()
+    p = config.get_path()
     if p is None or not p.is_dir():
         raise ValidationError("path not set")
     return p
@@ -151,7 +70,6 @@ class _Entry:
     lower: str
     flagged: bool
     has_tasks: bool
-    candidate: bool
     heading: str
     body: str
     words: frozenset[str]
@@ -196,7 +114,6 @@ def _entry(mtime_ns: int, item: dict) -> "_Entry":
         text.lower(),
         bool(item["errors"] or item["warnings"]),
         any(c.keyword == TASKS_KEYWORD for c in doc.clauses),
-        questions.is_candidate(doc),
         doc.heading,
         body,
         frozenset(words(text)),
@@ -431,17 +348,6 @@ def delete(name: str) -> None:
     _INDEX.invalidate()
 
 
-def random_candidate(exclude: list[str] = ()) -> dict:
-    """A random note to ask questions about (see questions.is_candidate), other
-    than those in `exclude` - or, when that leaves none, any; `item` is None
-    when there are none at all. `total` counts all candidates."""
-    entries = _INDEX.refresh()
-    names = sorted(n for n, e in entries.items() if e.candidate)
-    pool = [n for n in names if n not in set(exclude)] or names
-    item = _note(random.choice(pool), entries) if pool else None
-    return {"item": item, "total": len(names)}
-
-
 def payload(item: dict) -> dict:
     """The item as the API sends it (see _payload)."""
     return _payload(item, _INDEX.refresh())
@@ -449,15 +355,6 @@ def payload(item: dict) -> dict:
 
 def get_payload(name: str) -> dict:
     return payload(get(name))
-
-
-def answer(name: str, body: dict) -> dict:
-    """Links the note to the answer of question `qid` (see _relate)."""
-    body = body if isinstance(body, dict) else {}
-    q = questions.by_id(body.get("qid") or "")
-    if q is None:
-        raise ValidationError(f"unknown question '{body.get('qid')}'")
-    return _relate(name, q["label"], body)
 
 
 def relate(name: str, body: dict) -> dict:
@@ -478,7 +375,7 @@ def _relate(name: str, label: str, body: dict) -> dict:
         target = get(body["target"])
     else:
         target = create({"text": body.get("text")})
-    updated = update(name, {"text": questions.add_relation(note["text"], label, target["file"].removesuffix(".txt"))})
+    updated = update(name, {"text": edits.add_relation(note["text"], label, target["file"].removesuffix(".txt"))})
     return {
         **payload(updated),
         "target": {"file": target["file"], "heading": dsl.parse(SCHEMA, target["text"]).heading},
@@ -524,7 +421,7 @@ def set_tag(name: str, body: dict) -> dict:
     tag = body.get("tag")
     if not isinstance(tag, str) or not dsl.is_tag(tag):
         raise ValidationError("invalid tag")
-    change = questions.add_tag if body.get("on") else questions.remove_tag
+    change = edits.add_tag if body.get("on") else edits.remove_tag
     return payload(update(name, {"text": change(SCHEMA, get(name)["text"], tag)}))
 
 
@@ -561,16 +458,10 @@ def backlink(name: str, body: dict) -> dict:
     target = name.removesuffix(".txt")
     if body.get("source"):
         source = get(body["source"])
-        update(source["file"], {"text": questions.add_relation(source["text"], label.strip(), target)})
+        update(source["file"], {"text": edits.add_relation(source["text"], label.strip(), target)})
     else:
-        create({"text": questions.add_relation(_text(body), label.strip(), target)})
+        create({"text": edits.add_relation(_text(body), label.strip(), target)})
     return backlinks(name)
-
-
-def disable(name: str) -> None:
-    """Tags the note so the questions view skips it."""
-    note = get(name)
-    update(name, {"text": questions.add_tag(SCHEMA, note["text"], questions.NO_QUESTIONS_TAG)})
 
 
 QUEUE_SIZE = 3
@@ -580,7 +471,7 @@ FLOAT_BATCH = 20
 def hide(name: str, hiding: views.Hiding) -> None:
     """Tags the note so the view `hiding` belongs to leaves it out."""
     note = get(name)
-    update(name, {"text": questions.add_tag(SCHEMA, note["text"], hiding.tag)})
+    update(name, {"text": edits.add_tag(SCHEMA, note["text"], hiding.tag)})
 
 
 def _draw(hiding: views.Hiding, size: int, q: str = "") -> dict:

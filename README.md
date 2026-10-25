@@ -1,6 +1,6 @@
 # dsl-crud
 
-Create, edit and delete the plain-text items read by [`../calendar`](../calendar): one `*.txt` file per item, directly inside a data folder, in the item language specified in [`spec/`](spec/). Small Flask app with a React frontend.
+Create, search, relate, edit, and delete plain-text items: one `*.txt` file per item, directly inside a data folder, in the item language specified in [`spec/`](spec/). Small Flask app with a React frontend.
 
 ## Run
 
@@ -38,11 +38,11 @@ Everywhere a note is shown it's the same component (`meta/note/Note.tsx`, [`docs
 
 Relationships, outgoing and incoming, are one widget below the note: each in two lines, the label in small caps after its arrow (→ from the note, ← to it, dashed ⇢ ⇠ for inline references) and, where editable, detach and delete buttons; a click on the label edits it; the other note follows inline. Below them a direction, label and note (picked from the search, or written as a new one) add another.
 
-The editor is [CodeMirror 6](https://codemirror.net). Typing `[[` in the body or `extra` searches existing notes; choose one with arrows/Enter or a tap. Selecting text before using the editor's Reference button keeps it as the display text, which also makes insertion practical on phone keyboards. Ctrl/Cmd-click on an inline reference or a relationship's `@target` opens that note in a new tab. A single pass over the text (`analyze` in `frontend/src/entities/item/dsl/analyze.ts`, mirroring `dsl.py`; tested against `spec/examples`) provides the highlighting (keywords, options and values by type, relationships, `data` and `extra` blocks, unknown keyword lines muted; hover for meanings) and inline lint for the errors and warnings of `spec/language.md`, also listed below it.
+The editor is [CodeMirror 6](https://codemirror.net). Typing `[[` in the body or `extra` searches existing notes; choose one with arrows/Enter or a tap. Selecting text before using the editor's Reference button keeps it as the display text, which also makes insertion practical on phone keyboards. Ctrl/Cmd-click on an inline reference or a relationship's `@target` opens that note in a new tab. A single pass over the text (`analyze` in `frontend/src/entities/item/dsl/analyze.ts`, mirroring `dsl_crud/core/dsl.py`; tested against `spec/examples`) provides the highlighting (keywords, options and values by type, relationships, `data` and `extra` blocks, unknown keyword lines muted; hover for meanings) and inline lint for the errors and warnings of `spec/language.md`, also listed below it.
 
 ## Search
 
-Every list of notes to pick from is one search (`search.py`, `GET /api/search`; `entities/item/search/NoteSearch.tsx`): the note sidebar, the Graph's right-click search, and the field linking a relationship's target. It runs on the server over `store.py`'s index, which keeps each item's text, words and problem flags in memory and re-reads a file only when its mtime changes, so a folder of many notes stays usable. Without a query it lists the newest notes.
+Every list of notes to pick from is one search (`dsl_crud/features/search`, `GET /api/search`; `entities/item/search/NoteSearch.tsx`): the note sidebar, the Graph's right-click search, and the field linking a relationship's target. It runs over the indexed item store in `dsl_crud/infrastructure`, which keeps each item's text, words and problem flags in memory and re-reads a file only when its mtime changes, so a folder of many notes stays usable. Without a query it lists the newest notes.
 
 The query syntax is behind the `?`: words match as prefixes (case and accents folded), `"exact phrase"`, `/regex/ims`, `-exclude`, `OR`, parentheses, `file:`, `body:`, `extra:`. The relationship field takes words and phrases only (a slash is part of a word there). ↑/↓ choose a result, Enter opens it (the first one when none is chosen).
 
@@ -60,19 +60,19 @@ New files are named `<slug of the first line>-<6 hex>.txt`; the name doesn't cha
 
 ## Semantic search
 
-The `semantic` toggle under the sidebar's search ranks the notes by similarity to the query instead of matching its text, as `../scripts/notes-semantic-search` did (`semantic.py`). Each note's body (not its keyword lines or `extra`) is embedded by `qwen3-embedding:0.6b` on the Ollama server below; the query gets the model's search instruction. Embeddings are cached by body hash in `~/.cache/dsl-crud/` and computed in the background on the first semantic search, so until that finishes only the notes embedded so far are ranked. Without the server or model it falls back to the query syntax and offers to download the model.
+The `semantic` toggle under the sidebar's search ranks the notes by similarity to the query instead of matching its text (`dsl_crud/features/search/semantic.py`). Each note's body (not its keyword lines or `extra`) is embedded by `qwen3-embedding:0.6b` on the Ollama server below; the query gets the model's search instruction. Embeddings are cached by body hash in `~/.cache/dsl-crud/` and computed in the background on the first semantic search, so until that finishes only the notes embedded so far are ranked. Without the server or model it falls back to the query syntax and offers to download the model.
 
 ## Questions
 
-The Questions tab shows a random note whose body contains `>` or `~`, that has at most one relationship and isn't tagged `no-questions` (`questions.is_candidate`). Below it are up to 3 of the questions in `questions.py`. An answer links the note with `-> <label> @<target>`, to an existing note picked from the search's suggestions or to a new note made from the text. The note itself can be edited in place. Skip shows another note. Disable adds the `no-questions` tag.
+The Questions tab shows a random note whose body contains `>` or `~`, that has at most one relationship and isn't tagged `no-questions`. Below it are up to 3 questions defined in `dsl_crud/features/questions/service.py`. An answer links the note with `-> <label> @<target>`, to an existing note picked from the search's suggestions or to a new note made from the text. The note itself can be edited in place. Skip shows another note. Disable adds the `no-questions` tag.
 
-When `questions.py` lists more than 3 questions, a local LLM chooses the 3 that fit the note best: `gemma3:4b` (`questions.MODEL`, tuned together with the prompt `prompts/pick-questions.md`) on an [Ollama](https://ollama.com) server. Without the server or the model it asks the first 3, and offers to download a missing model.
+When that module lists more than 3 questions, a local LLM chooses the 3 that fit the note best: `gemma3:4b`, tuned with `dsl_crud/features/questions/pick-questions.md`, on an [Ollama](https://ollama.com) server. Without the server or the model it asks the first 3, and offers to download a missing model.
 
-The server's URL is the only LLM setting (Settings, stored under `llm` in the config file); it defaults to `OLLAMA_HOST`, then `http://127.0.0.1:11434`. Each feature names its own model, and models are kept loaded for 30 minutes between calls (`llm.py`).
+The server's URL is the only LLM setting (Settings, stored under `llm` in the config file); it defaults to `OLLAMA_HOST`, then `http://127.0.0.1:11434`. Each feature names its own model, and models are kept loaded for 30 minutes between calls (`dsl_crud/infrastructure/ollama.py`).
 
 ## Calendar, Queue, Float, Tags, Suggest
 
-Ports of the `../dsl-mobile` apps calendar, queue and zero, of `../floating-notes` and of `../suggest`, one route each; what an item means to them is in `views.py`.
+Calendar, queue, float, tags, and suggest are derived item views; shared document interpretation is in `dsl_crud/core/documents.py`.
 
 - **Calendar**: `appointment` and `recurring` items, inline, by day or over a From..To range (this week, Sunday to Saturday, by default), toggled at the top; view, day and range are in the URL. An item's edit button opens it in a modal; `+` adds one, prefilled with `appointment <that day>`.
 - **Queue**: 3 random items (not explorations), Next draws others; the icon toggle beside Next shows them simply (the body only) or in full, kept for the session. An item's hide toggle tags it `no-q` (toggling again untags it); what it hides is set in code, see [`docs/hiding.md`](docs/hiding.md).
@@ -86,7 +86,7 @@ Ports of the `../dsl-mobile` apps calendar, queue and zero, of `../floating-note
 
 ## Sources
 
-Bibliographic sources, formerly `../sources`: `source` items (`sources.py`) whose `data` block holds the biblatex fields in `fields.py` (the subset needed for ACM/IEEE/APA plus `url`):
+Bibliographic sources are `source` items whose `data` block holds the biblatex fields defined by `dsl_crud/features/sources` (the subset needed for ACM/IEEE/APA plus `url`):
 
 ```
 Attention Is All You Need
@@ -114,19 +114,19 @@ While a source is edited, its update tool (beside the BibTeX one) merges the sin
 
 The note editor has the same BibTeX tool next to the media one: the clipboard's entries are staged with the same choice, and on Save the new ones are created and the note gets `-> source @<file>` to each (not twice). The shared code is `features/source-bibtex`; `POST /api/sources/match` (`{text}` BibTeX → each with its candidates) and `POST /api/sources/resolve` (`{entries: [{file} | {source}], text?, label?}` → the sources, and `text` related to them).
 
-Matching (`source_match.py`) compares an entry with every source. An equal DOI, ISBN (ISBN-10 as 13) or eprint (arXiv version dropped) means `same`. Otherwise, with case, accents and punctuation folded: an equal title, first author's family name and year are `same`; an equal URL, or a title ≥ 90% similar with the first author matching and the year at most 1 apart, `likely`; a title ≥ 75% similar `possible`. Titles are also compared without their subtitles, and one whose significant words (at least 2) are all in the other counts as 95% similar (shortened titles). A field missing on either side counts neither way, `others` in an author list is ignored, and two different DOIs or ISBNs lower a match to `possible`. `same` and `likely` are preselected; at most 3 candidates are shown.
+Matching (`dsl_crud/features/sources/matching.py`) compares an entry with every source. An equal DOI, ISBN (ISBN-10 as 13) or eprint (arXiv version dropped) means `same`. Otherwise, with case, accents and punctuation folded: an equal title, first author's family name and year are `same`; an equal URL, or a title ≥ 90% similar with the first author matching and the year at most 1 apart, `likely`; a title ≥ 75% similar `possible`. Titles are also compared without their subtitles, and one whose significant words (at least 2) are all in the other counts as 95% similar (shortened titles). A field missing on either side counts neither way, `others` in an author list is ignored, and two different DOIs or ISBNs lower a match to `possible`. `same` and `likely` are preselected; at most 3 candidates are shown.
 
 Settings → "bibtex export" takes any number of `.bib` paths (a directory gets `sources.bib`), stored under `bibtex` in the config file. All sources are written there as biblatex (LaTeX-escaped via pylatexenc, written with bibtexparser), as an export (below).
 
 ## Exports
 
-Files the app derives from the notes and writes outside the data folder: the BibTeX export (above) and the portfolio page (below). Each takes any number of paths in Settings (a directory gets the export's default file name), stored under its key in the config file, each shown with its last result. `exports.py` writes them 5 s after the last write through the API, on startup, and every 15 min. Unchanged files aren't rewritten; an existing file is only overwritten if it starts with the export's marker, so files not generated by the app never are. An export is an `exports.Export` registered by its module (`bibtex_export.py`, `portfolio.py`). An export may also write binary files beside its file (`assets`), all inside one subfolder it owns (`asset_dir`): they're written after the file itself, only when changed, and any other file in that subfolder is deleted.
+Files the app derives from the notes and writes outside the data folder: the BibTeX export (above) and the portfolio page (below). Each takes any number of paths in Settings (a directory gets the export's default file name), stored under its key in the config file, each shown with its last result. `dsl_crud/infrastructure/exports.py` writes them 5 s after the last write through the API, on startup, and every 15 min. Unchanged files aren't rewritten; an existing file is only overwritten if it starts with the export's marker, so files not generated by the app never are. Export definitions are registered explicitly by the application factory. An export may also write binary files beside its file (`assets`), all inside one subfolder it owns (`asset_dir`): they're written after the file itself, only when changed, and any other file in that subfolder is deleted.
 
 ## Portfolio
 
 The Portfolio tab manages the one note tagged `portfolio`, edited as in Explorations (written as focus leaves it). Opening the tab creates it when there's none, with a Jinja template `files/<note>.html.j2` named in a `media` clause; a tagged note without a template gets one. Opening it again changes nothing; two tagged notes are an error to fix by hand. The template is in the note's file list, edited in a text modal.
 
-The page (`portfolio.py`) is the template rendered with `title` (the first line, without leading `#`), `body` (the whole body as Markdown via markdown-it-py, CommonMark with tables, strikethrough and single newlines as breaks, like the app's own rendering) and `data` (the `data` block, or empty). `[[references]]` stay as written. The tool row's preview icon opens it in a new tab (`GET /api/portfolio/preview`); Settings → "portfolio export" sets where it's written (a directory gets `index.html`), and the tab shows each path's last result. The site's repository is left to you: commit and push from there.
+The page (`dsl_crud/features/portfolio/service.py`) is the template rendered with `title` (the first line, without leading `#`), `body` (the whole body as Markdown via markdown-it-py, CommonMark with tables, strikethrough and single newlines as breaks, like the app's own rendering) and `data` (the `data` block, or empty). `[[references]]` stay as written. The tool row's preview icon opens it in a new tab (`GET /api/portfolio/preview`); Settings → "portfolio export" sets where it's written (a directory gets `index.html`), and the tab shows each path's last result. The site's repository is left to you: commit and push from there.
 
 ### Cards
 
@@ -144,7 +144,7 @@ with, for example, `.cards { display: grid; grid-template-columns: repeat(auto-f
 
 ## Graph
 
-A port of `../dsl-graph`: notes as cards on a [React Flow](https://reactflow.dev) canvas, laid out by [ELK](https://eclipse.dev/elk/), their relationships as labeled edges (`graph.py` on the server, `frontend/src/pages/graph`). Only notes without errors and not hidden from it (explorations among them, [`docs/hiding.md`](docs/hiding.md)) are part of it; a relationship to anything else is left out until it's fixed.
+The Graph shows notes as cards on a [React Flow](https://reactflow.dev) canvas, laid out by [ELK](https://eclipse.dev/elk/), with relationships as labeled edges (`dsl_crud/features/graph` on the server, `frontend/src/pages/graph`). Only notes without errors and not hidden from it (explorations among them, [`docs/hiding.md`](docs/hiding.md)) are part of it; a relationship to anything else is left out until it's fixed.
 
 - **Pins**: a pinned note shows the notes up to its depth (the chevrons beside the pin) relationships away, in either direction. Picking a search result pins it at depth 2. The badge under a card counts its related notes not on the canvas; a click shows them. Pins are kept under `graph` in the config file.
 - **Sidebar**: the note sidebar's results have a pin icon. Its query (over the graph's notes) is also what the toolbar's random search result and pin-all act on.
@@ -162,8 +162,8 @@ The note editor accepts one image (downscaled to WebP) or short video as the dis
 
 Settings → "maintenance" lists, then on Delete removes (without undo):
 
-- **past appointments**: valid `appointment` items dated before today (a month-only date counts once the month is over), with their files unless another note names them (`maintenance.py`). Recurring and broken items are kept.
-- **orphaned files**: files in `images/` and `files/` that no note names, in a `media` clause or anywhere else in its text (`files.py`).
+- **past appointments**: valid `appointment` items dated before today (a month-only date counts once the month is over), with their files unless another note names them (`dsl_crud/features/maintenance`). Recurring and broken items are kept.
+- **orphaned files**: files in `images/` and `files/` that no note names, in a `media` clause or anywhere else in its text (`dsl_crud/infrastructure/media.py`).
 
 ## Spec
 

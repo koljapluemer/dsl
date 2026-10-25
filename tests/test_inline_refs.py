@@ -1,4 +1,4 @@
-import inline_refs
+from dsl_crud.core import inline_refs
 
 
 def refs(text):

@@ -4,14 +4,15 @@ import threading
 
 import pytest
 
-import store
-import views
+from dsl_crud.core import documents as views
+from dsl_crud.features.questions import service as questions
+from dsl_crud.infrastructure import config, items as store
 
 
 @pytest.fixture(autouse=True)
 def data_dir(tmp_path, monkeypatch):
-    monkeypatch.setattr(store, "CONFIG_PATH", tmp_path / "cfg" / "config.json")
-    store.set_path(str(tmp_path / "data"))
+    monkeypatch.setattr(config, "CONFIG_PATH", tmp_path / "cfg" / "config.json")
+    config.set_path(str(tmp_path / "data"))
     return tmp_path / "data"
 
 
@@ -20,12 +21,12 @@ def test_config_reads_stay_whole_during_writes(data_dir):
 
     def write():
         while not stop.is_set():
-            store._update_config({"graph": {"pins": [{"filename": "x.txt", "depth": 1}] * 50}})
+            config.update({"graph": {"pins": [{"filename": "x.txt", "depth": 1}] * 50}})
 
     t = threading.Thread(target=write)
     t.start()
     try:
-        paths = {store.get_path() for _ in range(2000)}
+        paths = {config.get_path() for _ in range(2000)}
     finally:
         stop.set()
         t.join()
@@ -156,31 +157,31 @@ def test_random_candidate(data_dir):
     store.create({"file": "b.txt", "text": "b ~ c\n-> r @a"})
     store.create({"file": "c.txt", "text": "plain"})
     store.create({"file": "d.txt", "text": "d > e\ntags no-questions"})
-    assert store.random_candidate(["a.txt"])["item"]["file"] == "b.txt"
-    assert store.random_candidate(["a.txt"])["item"]["refs"] == {"a": "a > b"}
-    assert store.random_candidate(["a.txt", "b.txt"])["item"]["file"] in ("a.txt", "b.txt")
-    assert store.random_candidate()["total"] == 2
+    assert questions.random_candidate(["a.txt"])["item"]["file"] == "b.txt"
+    assert questions.random_candidate(["a.txt"])["item"]["refs"] == {"a": "a > b"}
+    assert questions.random_candidate(["a.txt", "b.txt"])["item"]["file"] in ("a.txt", "b.txt")
+    assert questions.random_candidate()["total"] == 2
     store.delete("a.txt")
     store.delete("b.txt")
-    assert store.random_candidate() == {"item": None, "total": 0}
+    assert questions.random_candidate() == {"item": None, "total": 0}
 
 
 def test_answer_links_existing_and_new(data_dir):
     store.create({"file": "a.txt", "text": "a > b"})
     store.create({"file": "x.txt", "text": "X person"})
-    res = store.answer("a.txt", {"qid": "experts", "target": "x.txt"})
+    res = questions.answer("a.txt", {"qid": "experts", "target": "x.txt"})
     assert res["target"] == {"file": "x.txt", "heading": "X person"}
     assert res["refs"] == {"x": "X person"}
-    res = store.answer("a.txt", {"qid": "solves", "text": "Some problem"})
+    res = questions.answer("a.txt", {"qid": "solves", "text": "Some problem"})
     new = res["target"]["file"]
     assert (data_dir / "a.txt").read_text() == f"a > b\n-> experts on this: @x\n-> solves @{new[:-4]}\n"
     assert (data_dir / new).read_text() == "Some problem\n"
     with pytest.raises(store.ValidationError):
-        store.answer("a.txt", {"qid": "nope", "text": "t"})
+        questions.answer("a.txt", {"qid": "nope", "text": "t"})
     with pytest.raises(store.NotFound):
-        store.answer("a.txt", {"qid": "solves", "target": "missing.txt"})
+        questions.answer("a.txt", {"qid": "solves", "target": "missing.txt"})
     with pytest.raises(store.ValidationError):
-        store.answer("a.txt", {"qid": "solves", "text": " "})
+        questions.answer("a.txt", {"qid": "solves", "text": " "})
 
 
 def test_relate_with_any_label(data_dir):
@@ -265,17 +266,17 @@ def test_backlink(data_dir):
 
 def test_disable(data_dir):
     store.create({"file": "a.txt", "text": "a > b"})
-    store.disable("a.txt")
+    questions.disable("a.txt")
     assert (data_dir / "a.txt").read_text() == "a > b\ntags no-questions\n"
-    assert store.random_candidate()["total"] == 0
+    assert questions.random_candidate()["total"] == 0
 
 
 def test_set_llm(data_dir):
-    store.set_llm({"url": " http://h:1 "})
-    assert store._config()["llm"] == {"url": "http://h:1"}
-    store.set_llm({"url": ""})
-    assert store._config()["llm"] == {}
-    assert store.get_path() == data_dir
+    config.set_llm({"url": " http://h:1 "})
+    assert config.read()["llm"] == {"url": "http://h:1"}
+    config.set_llm({"url": ""})
+    assert config.read()["llm"] == {}
+    assert config.get_path() == data_dir
 
 
 def test_queue_skips_hidden_types_and_tags(data_dir):
@@ -366,8 +367,8 @@ def test_projects(data_dir):
 
 
 def test_item_endpoints(data_dir):
-    import app
-    client = app.app.test_client()
+    from dsl_crud.application import app
+    client = app.test_client()
     store.create({"file": "a.txt", "text": "a\n-> knows @x\n"})
     r = client.post("/api/items/a.txt/relabel", json={"label": "knows", "target": "x", "nextLabel": "met"})
     assert r.get_json()["text"] == "a\n-> met @x\n" and "refs" in r.get_json()

@@ -1,4 +1,4 @@
-"""Semantic search, after the legacy notes-semantic-search script: each note's
+"""Semantic search: each note's
 body is embedded (by the Ollama server, see llm) and notes are ranked by cosine
 similarity to the query's embedding. Embeddings are cached on disk by body
 hash and computed in the background, so until that's done a search ranks only
@@ -13,7 +13,7 @@ from pathlib import Path
 
 import numpy as np
 
-import llm
+from dsl_crud.infrastructure import ollama as llm
 
 # Multilingual; the notes aren't all English.
 MODEL = "qwen3-embedding:0.6b"

@@ -1,6 +1,6 @@
 import pytest
 
-import dsl
+from dsl_crud.core import dsl
 
 SCHEMA = dsl.load_schema()
 def errors(text: str) -> list[str]:

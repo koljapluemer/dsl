@@ -1,4 +1,4 @@
-from source_match import compare, doi, eprint, families, fold, isbn, match, title_similarity, url
+from dsl_crud.features.sources.matching import compare, doi, eprint, families, fold, isbn, match, title_similarity, url
 
 GEB = {
     "file": "geb.txt", "key": "hofstadter1979", "title": "Gödel, Escher, Bach: An Eternal Golden Braid",

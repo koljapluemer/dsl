@@ -12,7 +12,7 @@ from bibtexparser.middlewares import (
 from bibtexparser.model import Entry
 from pylatexenc.latex2text import LatexNodes2Text
 
-from fields import DATE_RE, ENTRY_TYPES, FIELDS, join_name
+from dsl_crud.features.sources.fields import DATE_RE, ENTRY_TYPES, FIELDS, join_name
 
 NAME_FIELDS = tuple(n for n, s in FIELDS.items() if s["type"] == "name")
 

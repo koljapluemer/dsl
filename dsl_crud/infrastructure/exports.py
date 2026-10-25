@@ -8,7 +8,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable
 
-import store
+from dsl_crud.infrastructure import config
+from dsl_crud.infrastructure.errors import ValidationError
 
 DEBOUNCE = 5  # seconds after the last change
 INTERVAL = 15 * 60  # full resync, picks up edits made outside the app
@@ -44,13 +45,13 @@ def register(export: Export) -> None:
 
 def paths(key: str) -> list[dict]:
     """The export's paths, each with its last result."""
-    return [{"path": p, "error": status.get(key, {}).get(p)} for p in store.get_export_paths(key)]
+    return [{"path": p, "error": status.get(key, {}).get(p)} for p in config.get_export_paths(key)]
 
 
 def set_paths(key: str, value) -> list[str]:
     if key not in EXPORTS:
-        raise store.ValidationError(f"unknown export '{key}'")
-    return store.set_export_paths(key, value, EXPORTS[key].default_name)
+        raise ValidationError(f"unknown export '{key}'")
+    return config.set_export_paths(key, value, EXPORTS[key].default_name)
 
 
 def _write(export: Export, path: str, text: str) -> None:
@@ -96,7 +97,7 @@ def _write_assets(export: Export, path: str, assets: dict[str, bytes]) -> None:
 
 
 def _sync(export: Export) -> dict[str, str | None]:
-    targets = store.get_export_paths(export.key)
+    targets = config.get_export_paths(export.key)
     if not targets:
         return {}
     try:

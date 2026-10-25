@@ -8,7 +8,7 @@ import threading
 import urllib.error
 import urllib.request
 
-import store
+from dsl_crud.infrastructure import config
 
 # Keeps the model loaded between calls, so only the first one waits for it to load.
 KEEP_ALIVE = "30m"
@@ -32,7 +32,7 @@ def default_url() -> str:
 
 
 def url() -> str:
-    cfg = store._config().get("llm")
+    cfg = config.read().get("llm")
     return _normalize((cfg.get("url") if isinstance(cfg, dict) else None) or default_url())
 
 

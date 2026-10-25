@@ -1,6 +1,6 @@
-import dsl
-import store
-import views
+from dsl_crud.core import documents as views
+from dsl_crud.core import dsl
+from dsl_crud.infrastructure import items as store
 
 parse = lambda text: dsl.parse(store.SCHEMA, text)
 

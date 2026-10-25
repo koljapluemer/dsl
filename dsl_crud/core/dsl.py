@@ -10,7 +10,7 @@ from pathlib import Path
 
 import yaml
 
-SPEC_PATH = Path(__file__).parent / "spec" / "keywords.yaml"
+SPEC_PATH = Path(__file__).parents[2] / "spec" / "keywords.yaml"
 
 ROLES = ("primary", "property", "modifier", "state")
 BLOCKS = ("text", "yaml")

@@ -1,4 +1,4 @@
-"""`source` items: bibliographic sources, their fields in the `data` block (see fields.py).
+"""`source` items: bibliographic sources, their fields in the `data` block.
 
 A source is read from its file's `data` and `extra` blocks and first line, and
 edited as text like any other note; this module only writes new ones (from
@@ -9,11 +9,10 @@ import re
 
 import yaml
 
-import dsl
-import questions
-import source_match
-import store
-from fields import ENTRY_TYPES, FIELDS, ValidationError, join_name, normalise
+from dsl_crud.core import dsl, edits as questions
+from dsl_crud.features.sources import matching as source_match
+from dsl_crud.features.sources.fields import ENTRY_TYPES, FIELDS, ValidationError, join_name, normalise
+from dsl_crud.infrastructure import items as store
 
 SOURCE_KEYWORD = "source"
 

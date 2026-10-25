@@ -2,15 +2,15 @@ import os
 
 import pytest
 
-import sources
-import store
-from fields import ValidationError, join_name, split_name
+from dsl_crud.features.sources import service as sources
+from dsl_crud.features.sources.fields import ValidationError, join_name, split_name
+from dsl_crud.infrastructure import config, items as store
 
 
 @pytest.fixture(autouse=True)
 def data_dir(tmp_path, monkeypatch):
-    monkeypatch.setattr(store, "CONFIG_PATH", tmp_path / "cfg" / "config.json")
-    store.set_path(str(tmp_path / "data"))
+    monkeypatch.setattr(config, "CONFIG_PATH", tmp_path / "cfg" / "config.json")
+    config.set_path(str(tmp_path / "data"))
     return tmp_path / "data"
 
 
@@ -94,8 +94,8 @@ def test_link(data_dir):
 
 
 def test_endpoints(data_dir):
-    import app
-    client = app.app.test_client()
+    from dsl_crud.application import app
+    client = app.test_client()
     bib = "@book{h, title={Gödel, Escher, Bach}, author={Hofstadter, Douglas}, year=1979, isbn={0-465-02656-7}}"
     [m] = client.post("/api/sources/match", json={"text": bib}).get_json()
     assert m["candidates"] == []
@@ -114,7 +114,7 @@ MERGE_TEXT = "Shitty title\n\nsource\ndata\nkey: shitty\nentrytype: misc\ndate: 
 
 
 def _entry(bib=MERGE_BIB):
-    import bibtex_import
+    from dsl_crud.features.sources import bibtex_import
     [entry] = bibtex_import.parse(bib)
     return entry
 
@@ -155,8 +155,8 @@ def test_merge_without_data_block_and_keys(data_dir):
 def test_merge_invalid(data_dir):
     with pytest.raises(ValidationError):
         sources.merge(None, "T\nsource\ndata\nkey: [\n", _entry())
-    import app
-    client = app.app.test_client()
+    from dsl_crud.application import app
+    client = app.test_client()
     r = client.post("/api/sources/merge", json={"text": "T\nsource\n", "bibtex": MERGE_BIB + MERGE_BIB.replace("{vaswani2017", "{b")})
     assert r.status_code == 400
     r = client.post("/api/sources/merge", json={"file": None, "text": "T\nsource\n", "bibtex": MERGE_BIB, "take": ["title"]})

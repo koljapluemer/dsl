@@ -1,6 +1,11 @@
 import pytest
 
-import exports
+from dsl_crud.infrastructure import exports
+from dsl_crud.features.portfolio import service as portfolio
+from dsl_crud.features.sources import bibtex_export
+
+exports.register(bibtex_export.definition())
+exports.register(portfolio.export_definition())
 
 
 @pytest.fixture(autouse=True)

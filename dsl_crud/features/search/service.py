@@ -10,10 +10,9 @@ from dataclasses import dataclass
 
 import regex
 
-import graph
-import llm
-import semantic
-import store
+from dsl_crud.core import documents
+from dsl_crud.features.search import semantic
+from dsl_crud.infrastructure import items as store, ollama as llm
 
 PAGE_SIZE = 40
 PIN_ALL_CAP = 100
@@ -46,7 +45,8 @@ SCOPES = {
     "all": lambda ix: ix.entries,
     "attention": lambda ix: {n: e for n, e in ix.entries.items() if e.flagged},
     "tasks": lambda ix: {n: e for n, e in ix.entries.items() if e.has_tasks},
-    "graph": lambda ix: graph._View(ix).notes,
+    "graph": lambda ix: {name: entry for name, entry in ix.entries.items()
+                         if entry.valid and not documents.GRAPH_HIDING.hides(entry.primary, entry.tags)},
 }
 
 

@@ -6,10 +6,9 @@ import re
 import time
 from pathlib import Path
 
-import dsl
-import file_kinds
-import store
-import views
+from dsl_crud.core import documents as views
+from dsl_crud.core import dsl, file_kinds
+from dsl_crud.infrastructure import items as store
 
 # Uploads go to IMAGES_DIR, files the app creates otherwise to FILES_DIR. The
 # app deletes files only inside these folders.

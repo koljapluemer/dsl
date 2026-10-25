@@ -1,7 +1,7 @@
 [Desktop Entry]
 Type=Application
 Name=dsl
-Exec=uv run --project /ABS/PATH/TO/dsl-crud /ABS/PATH/TO/dsl-crud/app.py
+Exec=uv --directory /ABS/PATH/TO/dsl-crud run python -m dsl_crud
 Icon=dsl-crud
 Terminal=false
 Categories=Office;

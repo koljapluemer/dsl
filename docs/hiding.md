@@ -5,7 +5,7 @@ it hides is fixed in code, not set by the user.
 
 ## The pattern
 
-`views.Hiding` (in `views.py`) describes one view:
+`documents.Hiding` (in `dsl_crud/core/documents.py`) describes one view:
 
 - `tag` — the view's own tag; the view's hide toggle adds it to a note
 - `types` — primary keywords whose notes the view leaves out
@@ -31,7 +31,7 @@ needs to know:
 - Queue: `store.queue_draw`.
 - Float: `store.float_draw`.
 - Graph: `graph._View`, so hidden notes are gone from the canvas, its search
-  (`search.py`'s `graph` scope) and random alike, and relationships to them are
+  (search's `graph` scope) and random alike, and relationships to them are
   left out like those to notes with errors. The sidebar's search still finds them.
 
 ## Hide toggle, hide button and undo
@@ -54,7 +54,7 @@ The note stays where it is on screen until the view draws again.
 
 ## Adding hiding to another view
 
-1. Add an instance next to the others in `views.py`.
+1. Add an instance next to the others in `dsl_crud/core/documents.py`.
 2. Filter that view's reads with `instance.hides(e.primary, e.tags)`.
 3. For a toggle: pass `tagToggles={[{ tag: instance.tag, icon, title }]}` to the
    note component; the tag needs no endpoint of its own.

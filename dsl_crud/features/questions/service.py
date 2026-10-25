@@ -6,10 +6,12 @@ import hashlib
 import json
 import re
 import threading
+import random
 from pathlib import Path
 
-import dsl
-import llm
+from dsl_crud.core import dsl, edits
+from dsl_crud.infrastructure import ollama as llm
+from dsl_crud.infrastructure import items
 
 QUESTIONS = [
     {"id": "experts", "question": "Who would be the experts on this?", "label": "experts on this:"},
@@ -29,7 +31,7 @@ QUESTIONS = [
 ASK_COUNT = 3
 # Tuned together with the prompt: small, fast without a GPU, and it keeps to the reply format.
 MODEL = "gemma3:4b"
-PROMPT_PATH = Path(__file__).parent / "prompts" / "pick-questions.md"
+PROMPT_PATH = Path(__file__).with_name("pick-questions.md")
 NO_QUESTIONS_TAG = "no-questions"
 TAGS_KEYWORD = "tags"
 # The body must contain one of these for a note to be asked about.
@@ -39,6 +41,30 @@ MAX_RELATIONS = 1
 
 def by_id(qid: str) -> dict | None:
     return next((q for q in QUESTIONS if q["id"] == qid), None)
+
+
+def random_candidate(exclude: list[str] = ()) -> dict:
+    entries = items._INDEX.refresh()
+    names = sorted(name for name, entry in entries.items()
+                   if any(marker in entry.body for marker in BODY_MARKERS)
+                   and len(entry.explicit_rels) <= MAX_RELATIONS
+                   and NO_QUESTIONS_TAG not in entry.tags)
+    pool = [name for name in names if name not in set(exclude)] or names
+    item = items._note(random.choice(pool), entries) if pool else None
+    return {"item": item, "total": len(names)}
+
+
+def answer(name: str, body: dict) -> dict:
+    body = body if isinstance(body, dict) else {}
+    question = by_id(body.get("qid") or "")
+    if question is None:
+        raise items.ValidationError(f"unknown question '{body.get('qid')}'")
+    return items._relate(name, question["label"], body)
+
+
+def disable(name: str) -> None:
+    note = items.get(name)
+    items.update(name, {"text": edits.add_tag(items.SCHEMA, note["text"], NO_QUESTIONS_TAG)})
 
 
 def is_candidate(doc: dsl.Document) -> bool:

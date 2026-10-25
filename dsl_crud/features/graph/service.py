@@ -8,11 +8,9 @@ import re
 from collections import deque
 from dataclasses import dataclass, field
 
-import dsl
-import files
-import questions
-import store
-import views
+from dsl_crud.core import documents as views
+from dsl_crud.core import dsl, edits as questions
+from dsl_crud.infrastructure import config, items as store, media as files
 
 MAX_DIRECT_RELATIONS = 28
 MAX_SECONDARY_RELATIONS = 12
@@ -172,7 +170,7 @@ def _valid_pins(raw) -> list[dict]:
 
 def pins() -> list[dict]:
     """The pins of the last graph shown."""
-    return _valid_pins((store._config().get("graph") or {}).get("pins"))
+    return _valid_pins((config.read().get("graph") or {}).get("pins"))
 
 
 def open_graph(raw_pins) -> dict:
@@ -180,7 +178,7 @@ def open_graph(raw_pins) -> dict:
     if not isinstance(raw_pins, list):
         raise store.ValidationError("pins must be a list")
     pinned = _valid_pins(raw_pins)
-    store._update_config({"graph": {"pins": pinned}})
+    config.update({"graph": {"pins": pinned}})
     return build(pinned)
 
 

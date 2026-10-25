@@ -1,16 +1,14 @@
 import pytest
 
-import bibtex_export
-import bibtex_import
-import exports
-import sources
-import store
+from dsl_crud.features.sources import bibtex_export, bibtex_import
+from dsl_crud.features.sources import service as sources
+from dsl_crud.infrastructure import config, exports, items as store
 
 
 @pytest.fixture(autouse=True)
 def data_dir(tmp_path, monkeypatch):
-    monkeypatch.setattr(store, "CONFIG_PATH", tmp_path / "cfg" / "config.json")
-    store.set_path(str(tmp_path / "data"))
+    monkeypatch.setattr(config, "CONFIG_PATH", tmp_path / "cfg" / "config.json")
+    config.set_path(str(tmp_path / "data"))
     return tmp_path / "data"
 
 

@@ -1,7 +1,7 @@
 [project]
 name = "dsl-crud"
 version = "0.1.0"
-description = "Edit dsl item files (as read by ../calendar) in a folder on disk"
+description = "Create, search, relate, and edit plain-text DSL items"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
@@ -20,12 +20,46 @@ cards = [
     "playwright>=1.64.1",
 ]
 dev = [
+    "import-linter>=2.15.0",
     "pytest>=9.1.1",
 ]
 
 [tool.uv]
-# `cards`: the portfolio's card collages (collage.py); left out on Termux, which only installs `dependencies`
+# `cards`: portfolio card collages; left out on Termux, which only installs `dependencies`
 default-groups = ["dev", "cards"]
 
 [tool.pytest.ini_options]
 pythonpath = ["."]
+
+[tool.importlinter]
+root_packages = ["dsl_crud"]
+include_external_packages = true
+
+[[tool.importlinter.contracts]]
+name = "Core is independent"
+type = "forbidden"
+source_modules = ["dsl_crud.core"]
+forbidden_modules = ["dsl_crud.infrastructure", "dsl_crud.features", "flask"]
+include_external_packages = true
+
+[[tool.importlinter.contracts]]
+name = "Infrastructure does not know features or Flask"
+type = "forbidden"
+source_modules = ["dsl_crud.infrastructure"]
+forbidden_modules = ["dsl_crud.features", "flask"]
+include_external_packages = true
+
+[[tool.importlinter.contracts]]
+name = "Feature slices are independent"
+type = "independence"
+modules = [
+    "dsl_crud.features.graph",
+    "dsl_crud.features.items",
+    "dsl_crud.features.maintenance",
+    "dsl_crud.features.portfolio",
+    "dsl_crud.features.questions",
+    "dsl_crud.features.search",
+    "dsl_crud.features.settings",
+    "dsl_crud.features.sources",
+    "dsl_crud.features.views",
+]

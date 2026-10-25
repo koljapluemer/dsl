@@ -1,12 +1,12 @@
 import pytest
 
-import exports
-import store
+from dsl_crud.infrastructure import config, exports
+from dsl_crud.infrastructure.errors import ValidationError
 
 
 @pytest.fixture(autouse=True)
 def setup(tmp_path, monkeypatch):
-    monkeypatch.setattr(store, "CONFIG_PATH", tmp_path / "cfg" / "config.json")
+    monkeypatch.setattr(config, "CONFIG_PATH", tmp_path / "cfg" / "config.json")
     monkeypatch.setattr(exports, "EXPORTS", {})
     monkeypatch.setattr(exports, "status", {})
 
@@ -36,7 +36,7 @@ def test_runner(tmp_path):
 
 def test_render_error_is_reported(tmp_path):
     def broken():
-        raise store.ValidationError("no note")
+        raise ValidationError("no note")
     exports.register(exports.Export("demo", ".txt", "out.txt", "#", broken))
     [path] = exports.set_paths("demo", [str(tmp_path)])
     exports.sync()
@@ -44,5 +44,5 @@ def test_render_error_is_reported(tmp_path):
 
 
 def test_unknown_export():
-    with pytest.raises(store.ValidationError):
+    with pytest.raises(ValidationError):
         exports.set_paths("nope", [])

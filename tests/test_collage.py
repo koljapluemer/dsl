@@ -2,7 +2,7 @@ import io
 
 import pytest
 
-import collage
+from dsl_crud.features.portfolio import collage
 
 pytestmark = pytest.mark.skipif(not collage.available()["available"], reason=str(collage.available()["reason"]))
 

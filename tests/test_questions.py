@@ -1,9 +1,8 @@
 import pytest
 
-import dsl
-import llm
-import questions
-import store
+from dsl_crud.core import dsl
+from dsl_crud.features.questions import service as questions
+from dsl_crud.infrastructure import items as store, ollama as llm
 
 SCHEMA = store.SCHEMA
 

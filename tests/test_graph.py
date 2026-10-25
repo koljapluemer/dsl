@@ -1,16 +1,15 @@
 import pytest
 
-import file_kinds
-import files
-import graph
-import store
+from dsl_crud.core import file_kinds
+from dsl_crud.features.graph import service as graph
+from dsl_crud.infrastructure import config, items as store, media as files
 
 
 @pytest.fixture(autouse=True)
 def data_dir(tmp_path, monkeypatch):
-    monkeypatch.setattr(store, "CONFIG_PATH", tmp_path / "cfg" / "config.json")
+    monkeypatch.setattr(config, "CONFIG_PATH", tmp_path / "cfg" / "config.json")
     monkeypatch.setattr(graph, "_undo", None)
-    store.set_path(str(tmp_path / "data"))
+    config.set_path(str(tmp_path / "data"))
     return tmp_path / "data"
 
 

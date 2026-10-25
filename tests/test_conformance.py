@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-import dsl
+from dsl_crud.core import dsl
 
 SCHEMA = dsl.load_schema()
 EXAMPLES = Path(__file__).parent.parent / "spec" / "examples"

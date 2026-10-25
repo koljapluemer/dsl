@@ -1,10 +1,9 @@
 import numpy as np
 import pytest
 
-import llm
-import semantic
-import search
-import store
+from dsl_crud.features.search import semantic
+from dsl_crud.features.search import service as search
+from dsl_crud.infrastructure import config, items as store, ollama as llm
 
 WORDS = ["cat", "dog", "car"]
 
@@ -20,8 +19,8 @@ def fake_embed(model, inputs):
 
 @pytest.fixture(autouse=True)
 def setup(tmp_path, monkeypatch):
-    monkeypatch.setattr(store, "CONFIG_PATH", tmp_path / "cfg" / "config.json")
-    store.set_path(str(tmp_path / "data"))
+    monkeypatch.setattr(config, "CONFIG_PATH", tmp_path / "cfg" / "config.json")
+    config.set_path(str(tmp_path / "data"))
     monkeypatch.setattr(semantic, "_EMBEDDINGS", semantic._Embeddings(tmp_path / "cache" / "e.npz"))
     monkeypatch.setattr(llm, "embed", fake_embed)
     return tmp_path

@@ -2,15 +2,15 @@ import os
 
 import pytest
 
-import graph
-import search
-import store
+from dsl_crud.features.graph import service as graph
+from dsl_crud.features.search import service as search
+from dsl_crud.infrastructure import config, items as store
 
 
 @pytest.fixture(autouse=True)
 def data_dir(tmp_path, monkeypatch):
-    monkeypatch.setattr(store, "CONFIG_PATH", tmp_path / "cfg" / "config.json")
-    store.set_path(str(tmp_path / "data"))
+    monkeypatch.setattr(config, "CONFIG_PATH", tmp_path / "cfg" / "config.json")
+    config.set_path(str(tmp_path / "data"))
     return tmp_path / "data"
 
 
