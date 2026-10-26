@@ -1,5 +1,5 @@
 import { useMemo, type MutableRefObject } from 'react';
-import { Prec } from '@codemirror/state';
+import { Prec, type Extension } from '@codemirror/state';
 import { EditorView, keymap } from '@codemirror/view';
 import { indentWithTab } from '@codemirror/commands';
 import { CodeMirrorHost } from '@/dumb/CodeMirrorHost';
@@ -21,22 +21,25 @@ type Props = {
   currentFile?: string | null;
   /** the CodeMirror view, for tools acting on it (see insertReference) */
   editorRef?: MutableRefObject<EditorView | null>;
+  /** Page-specific behavior layered after the shared DSL/reference extensions. */
+  extraExtensions?: Extension[];
 };
 
 /** An editor for item text, highlighted and linted as the item language. */
-export function ItemTextEditor({ value, autofocus, onChange, onSave, onPasteFiles, currentFile, editorRef }: Props) {
+export function ItemTextEditor({ value, autofocus, onChange, onSave, onPasteFiles, currentFile, editorRef, extraExtensions = [] }: Props) {
   const schema = useSchema();
   const hasPaste = !!onPasteFiles;
   const extensions = useMemo(() => [
     ...dslExtensions(schema),
     referenceCompletion(schema, currentFile),
     ...referenceLinks(schema),
+    ...extraExtensions,
     // Mod-Enter saves (see onKeyDown) instead of the default keymap's blank line
     Prec.high(keymap.of([{ key: 'Mod-Enter', run: () => true }])),
     // Tab/Shift-Tab indent the line(s) instead of moving focus; Esc then Tab still moves it
     keymap.of([indentWithTab]),
     ...(hasPaste ? [EditorView.domEventHandlers({ paste: (event) => pastedMedia(event.clipboardData).length > 0 })] : []),
-  ], [schema, hasPaste, currentFile]);
+  ], [schema, hasPaste, currentFile, extraExtensions]);
   return (
     <div
       onKeyDown={(event) => { if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) onSave(); }}

@@ -1,6 +1,6 @@
 import { Lexer, marked, Parser, type Token, type Tokens } from 'marked';
 import DOMPurify from 'dompurify';
-import { inlineReferences } from './inlineReference';
+import { inlineReferences, type InlineReference } from './inlineReference';
 import './markdown.css';
 
 // External links open in a new tab; note links are handled inside the app.
@@ -19,23 +19,25 @@ DOMPurify.addHook('afterSanitizeAttributes', (node) => {
 /** Where a note opens as a page of its own: the start page with it open in the sidebar (a new tab's address). */
 export const noteHref = (file: string) => `/?sopen=${encodeURIComponent(JSON.stringify([file]))}`;
 
-/** `s` with its inline note references as links (or struck through when missing). */
-function expandReferences(s: string, refs: Record<string, string | null>) {
+export type ReferenceHtml = (ref: InlineReference, heading: string | null | undefined) => string;
+
+/** `s` with its inline note references as links (or as a caller's sanitized HTML). */
+function expandReferences(s: string, refs: Record<string, string | null>, referenceHtml?: ReferenceHtml) {
   let expanded = s;
   for (const ref of inlineReferences(s).reverse()) {
     const heading = refs[ref.target];
     const label = escapeHtml(ref.label ?? heading ?? ref.target);
-    const replacement = heading === null
+    const replacement = referenceHtml?.(ref, heading) ?? (heading === null
       ? `<span class="ov-missing" title="no such note">${label}</span>`
-      : `<a class="link link-hover" data-note="${escapeHtml(ref.target)}" href="${noteHref(`${ref.target}.txt`)}">${label}</a>`;
+      : `<a class="link link-hover" data-note="${escapeHtml(ref.target)}" href="${noteHref(`${ref.target}.txt`)}">${label}</a>`);
     expanded = expanded.slice(0, ref.from) + replacement + expanded.slice(ref.to);
   }
   return expanded;
 }
 
 /** Markdown as sanitized HTML; single newlines break lines. */
-export const markdown = (s: string, refs: Record<string, string | null> = {}) =>
-  DOMPurify.sanitize(marked.parse(expandReferences(s, refs), { breaks: true, async: false }));
+export const markdown = (s: string, refs: Record<string, string | null> = {}, referenceHtml?: ReferenceHtml) =>
+  DOMPurify.sanitize(marked.parse(expandReferences(s, refs, referenceHtml), { breaks: true, async: false }));
 
 /**
  * One line of Markdown as sanitized inline HTML, cut after `chars` characters of
@@ -91,4 +93,4 @@ function leaf(value: string, state: Budget): Token[] {
   return [text(kept.slice(0, at)), html('<mark>'), text(kept.slice(at, end)), html('</mark>'), text(kept.slice(end))];
 }
 
-const escapeHtml = (s: string) => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
+export const escapeHtml = (s: string) => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);

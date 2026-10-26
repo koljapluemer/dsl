@@ -34,6 +34,10 @@ Conventions:
   links in `entities` reach it without importing `meta`.
 - Don't make a feature that only one page uses. Put it in the page's folder,
   split into files rather than one big page file.
+- Document is a workspace for any note, not an item type. Its occurrence
+  model, CodeMirror widgets, annotated preview and connector layout live in
+  `pages/document`; the shared note exposes only the editor/preview/draft
+  seams it needs. Inline-reference text remains the sole stored annotation.
 - No `index.ts` re-exports. Import from the defining file.
 - Messages go to the toast corner (`dumb/UndoToast.tsx`): `showNotice` for
   news, `showError` for what failed (`dumb/notice.ts`), and the undo offer.

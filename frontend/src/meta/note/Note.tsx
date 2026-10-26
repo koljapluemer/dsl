@@ -1,5 +1,6 @@
-import { useMemo, useRef, useState, type FocusEvent, type KeyboardEvent, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type FocusEvent, type KeyboardEvent, type ReactNode } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import type { Extension } from '@codemirror/state';
 import type { EditorView } from '@codemirror/view';
 import { BookDown, Check, Copy, Pencil, Trash2, Undo2, X } from 'lucide-react';
 import type { Item } from '@/api/types';
@@ -88,6 +89,10 @@ export type NoteProps = {
   onClose?: () => void;
   /** a click on a related or linked note; by default it opens in the sidebar */
   onRef?: (file: string) => void;
+  /** Page-specific editor behavior and preview, used by specialized note workspaces. */
+  editorExtensions?: Extension[];
+  renderPreview?: (item: Item) => ReactNode;
+  onTextChange?: (text: string) => void;
   /** Escape in an unedited editor; by default it leaves the editor */
   onEscape?: () => void;
   autofocus?: boolean;
@@ -121,7 +126,7 @@ function LoadedNote({
   initial = '', item: shown, adopt, render = 'full', modes: modesAsked = ALL_MODES, defaultMode = 'view', mode: modeAsked, onModeChange,
   persist, commit = 'explicit', relationships = true, relationshipsEditableInView = true, initialPending, tools = {}, tagToggles = [],
   extraTools = [], mediaPosition = 'top', inlineChars, inlineWhole, highlight, onClick, onEdit, save: write, onDelete, onSaved, onCreated, onDeleted, onClose,
-  onRef, onEscape, autofocus = false, fill = false, id, className = '',
+  onRef, editorExtensions, renderPreview, onTextChange, onEscape, autofocus = false, fill = false, id, className = '',
 }: NoteProps & { adopt: (item: Item) => void }) {
   const qc = useQueryClient();
   const schema = useSchema();
@@ -138,6 +143,7 @@ function LoadedNote({
   const blur = commit === 'blur' && !isNew;
 
   const draft = useNoteDraft(item, initial, initialPending);
+  useEffect(() => { onTextChange?.(draft.text); }, [draft.text, onTextChange]);
   const [busy, setBusy] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
   const [modal, setModal] = useState(false);
@@ -311,12 +317,16 @@ function LoadedNote({
         <p className="mb-2 text-sm text-error">{draft.media.error ?? draft.bib.error ?? update.error}</p>
       )}
       <ItemTextEditor value={draft.text} autofocus={focus} onChange={draft.setText} onSave={() => void save()} onPasteFiles={attach}
-                      currentFile={item?.file} editorRef={editorRef} />
+                      currentFile={item?.file} editorRef={editorRef} extraExtensions={editorExtensions} />
       <Problems text={draft.text} />
     </div>
   );
 
-  const preview = (text: string) => <NoteContent item={draftItem(text, item ?? undefined)} variant={render === 'simple' ? 'simple' : 'full'} onRef={ref} />;
+  const preview = (text: string) => {
+    const previewItem = draftItem(text, item ?? undefined);
+    return renderPreview?.(previewItem)
+      ?? <NoteContent item={previewItem} variant={render === 'simple' ? 'simple' : 'full'} onRef={ref} />;
+  };
   const content = mode === 'edit' ? editor
     : mode === 'split' ? <div className="grid gap-3 @3xl:grid-cols-2">{editor}<div className="min-w-0">{preview(draft.text)}</div></div>
     : preview(item?.text ?? initial);

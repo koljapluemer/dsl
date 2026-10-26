@@ -26,6 +26,14 @@ A view may have its own way to open a found note (`useSidebarAction` in `entitie
 
 The Desk tab is a workspace for several notes at once: a search result's icon in the sidebar opens it here, beside those already open (in the URL's `open`). One fills the pane, two sit side by side, more take further columns and rows as the width allows; on a narrow pane they stack. Each note offers edit, view and both, keeps its mode for the session, and is saved explicitly (Save/Discard); a click on a related or linked note opens that one on the desk too, and ✕ closes a note.
 
+## Document
+
+The Document tab is a long-form workspace for any note; it does not introduce a note type or change the item language. From the note sidebar's search, the document button opens a result in the central pane (`/document?open=<file>`). The note offers edit and preview modes, remembers the mode for the session, and writes edits when focus leaves it.
+
+Every inline reference in the body or `extra` is an annotation occurrence. On a wide pane the referenced notes appear as full view/edit cards in a left margin, in document order, and lines connect them to numbered anchors in the document. Repeated references get separate cards. Lines remain visible and become stronger near the pointer; selecting either end emphasizes it and moves to the other. `[[target]]` is a number in the editor until the caret or pointer is near it; `[[target|display text]]` keeps its display text and number. The stored syntax never changes, and a `source` is an ordinary referenced source note.
+
+On a narrow pane a button switches between Document and Annotations, keeping their positions. There are no connector lines while only one end can be shown.
+
 ## Explorations
 
 The Explorations tab lists the notes tagged `exploration` (`GET /api/explorations`), inline, the last edited first; they're left out of the Graph and the Queue ([`docs/hiding.md`](docs/hiding.md)). The field above the list starts a new one: what's typed becomes the start of its body, followed by `tags exploration`. The exploration picked (in the URL) fills the pane, in the note editor to begin with, which writes the edits when focus leaves it (or on Ctrl+Enter, Ctrl+S); there's no Save or Discard. On a narrow pane the list and the editor take turns. A search result that's an exploration opens here from the sidebar's icon.
@@ -59,7 +67,7 @@ New files are named `<slug of the first line>-<6 hex>.txt`; the name doesn't cha
 - **Ctrl/⌘+Enter** saves what's being edited: a note's editor (wherever the note is, Graph cards and modals too) and the Graph's edge labels. In a relationship's target field it creates a new note even when a result is chosen.
 - **Esc** never discards edits. It leaves a note's editor (saving it where edits are written as focus leaves) or a label editor, or closes a modal, only when nothing unsaved was edited; otherwise it shows a notice and does nothing (a click outside a modal does the same). In a search or filter field it just leaves the field.
 - Single keys, ignored while typing in a field, holding Ctrl/Alt/Meta, or with a modal open:
-  - `g` then a tab's key (in its tooltip) switches tab, `c` opens a new note (as the New note button), `/` focuses the page's filter, else the sidebar's search, `u` undoes the change the toast offers.
+  - `g` then a tab's key (in its tooltip) switches tab (`g w` opens Document), `c` opens a new note (as the New note button), `/` focuses the page's filter, else the sidebar's search, `u` undoes the change the toast offers.
   - Calendar: ←/→ a day (or the range's length), `t` today/this week, `a` add, `d`/`r` day/range view. Queue: `n` next. Questions: `s` skip, `e` edit, `d` disable. Suggest: Shift+N next.
 
 ## Semantic search

@@ -13,6 +13,7 @@ import { NoteSidebar } from './meta/note/NoteSidebar';
 export const TABS = [
   { to: '/', label: 'Home', key: 'h' },
   { to: '/desk', label: 'Desk', key: 'd' },
+  { to: '/document', label: 'Document', key: 'w' },
   { to: '/explorations', label: 'Explorations', key: 'e' },
   { to: '/graph', label: 'Graph', key: 'g' },
   { to: '/tasks', label: 'Tasks', key: 't' },
@@ -65,8 +66,8 @@ export function App() {
   for (const t of TABS) keys[`g ${t.key}`] = () => void navigate({ to: t.to });
   useHotkeys(keys);
 
-  // the desk, explorations, sources, the graph's canvas and the float stage take the whole pane; the other pages a readable column
-  const full = ['/desk', '/explorations', '/sources', '/graph', '/float'].includes(path);
+  // these workspaces take the whole pane; the other pages use a readable column
+  const full = ['/desk', '/document', '/explorations', '/sources', '/graph', '/float'].includes(path);
 
   return (
     // the note sidebar is beside every page on a wide screen, a drawer otherwise

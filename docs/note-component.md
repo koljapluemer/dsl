@@ -30,6 +30,7 @@ Defaults are full capabilities: anything not switched off is there.
 | `onEdit` | | the `edit` tool does this instead of opening its own modal (Float keeps the modal to pause its stage) |
 | `save`, `onDelete` | | write or delete instead of the items API (the Graph's own update and undo) |
 | `onSaved`, `onCreated`, `onDeleted`, `onClose`, `onEscape`, `onRef` | | `onRef`: a click on a related or linked note, by default the note opened in the sidebar (`useOpenNote`) |
+| `editorExtensions`, `renderPreview`, `onTextChange` | | seams for a specialized workspace to extend CodeMirror, replace the normal preview, and observe the current draft; Document uses all three |
 
 `NoteModal` is the note in a modal: in the editor first, explicit commit, and
 Save closes it with a notice, as delete does. The New note button (above
@@ -110,6 +111,7 @@ Choose `persist` to match the page:
 | New (button, `c`) | `NoteModal` for a new note: edit only |
 | Sidebar (every page) | full, view/edit, blur commit, persisted per note (`sidebar:<file>`), a tool opening it in `NoteModal`; the search results inline |
 | Desk | full, all modes, explicit commit, persisted per note (`desk:<file>`), `fill` in its grid cell; links open on the desk |
+| Document | full, edit/view, blur commit, edit first, persisted per view, no relationships widget; inline references in its editor and preview anchor full view/edit note cards in the left margin |
 | Explorations | full, blur commit, edit first, persisted per view; the list inline |
 | Graph | view/edit, the mode from the graph's interaction, no relationships (the edges are), its own save, delete and hide; grip and pin as extra tools; links open in the sidebar. A new note (double-click, Add note, a drag onto empty canvas) is the new-note modal; from a drag it starts with the relationship from the dragged note staged |
 | Tasks | full, blur commit, edit first, persisted per note |
