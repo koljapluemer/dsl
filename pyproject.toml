@@ -53,6 +53,7 @@ include_external_packages = true
 name = "Feature slices are independent"
 type = "independence"
 modules = [
+    "dsl_crud.features.canvas",
     "dsl_crud.features.graph",
     "dsl_crud.features.items",
     "dsl_crud.features.maintenance",

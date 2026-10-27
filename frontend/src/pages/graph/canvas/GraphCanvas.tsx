@@ -6,7 +6,7 @@ import { NoteNode } from './NoteNode';
 import { PaneSearchMenu } from './PaneSearchMenu';
 import { PendingConnectionEdge } from './PendingConnectionEdge';
 import { FOLLOWERS_STOP_GLIDING_CLASS_NAME } from './graph-node-style';
-import { GraphToolbar } from '../toolbar/GraphToolbar';
+import { Toolbar } from '@/dumb/toolbar/Toolbar';
 import { IDLE_INTERACTION, type Interaction } from './graph-interaction';
 import { useGraphToolbarGroups } from '../toolbar/useGraphToolbarGroups';
 import { useElkLayout } from '../layout/useElkLayout';
@@ -191,7 +191,7 @@ function FlowScene({
     >
       <Background gap={28} />
       <Panel position="top-left">
-        <GraphToolbar groups={toolbarGroups} />
+        <Toolbar label="Graph tools" groups={toolbarGroups} />
       </Panel>
       {graph.nodes.length === 0 && interaction.type === 'idle' ? (
         <Panel position="top-center">

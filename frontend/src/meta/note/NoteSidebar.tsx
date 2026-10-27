@@ -4,7 +4,7 @@ import type { SearchResult } from '@/api/types';
 import { useSlashFocus } from '@/dumb/keys';
 import { NoteSearch } from '@/entities/item/search/NoteSearch';
 import { useNoteSearch } from '@/entities/item/search/useNoteSearch';
-import { sidebarAction, useOpenNote, useSidebarSearch } from '@/entities/item/sidebar';
+import { sidebarActions, useOpenNote, useSidebarSearch } from '@/entities/item/sidebar';
 import { Note } from './Note';
 import { NoteModal } from './NoteModal';
 import { SemanticNote } from './SemanticNote';
@@ -21,7 +21,7 @@ const SIDEBAR_MODES = ['view', 'edit'] as const;
 export function NoteSidebar({ onNew }: { onNew: () => void }) {
   const { state, setState, open, setOpen } = useSidebarSearch();
   const found = useNoteSearch(state, { scope: 'all' });
-  const action = sidebarAction.use();
+  const actions = sidebarActions.use();
   const openNote = useOpenNote();
   const input = useSlashFocus(true);
   const [modal, setModal] = useState<string | null>(null);
@@ -33,11 +33,13 @@ export function NoteSidebar({ onNew }: { onNew: () => void }) {
   }, [latest]);
 
   const close = (file: string) => setOpen(open.filter((f) => f !== file));
-  const marked = { has: (file: string) => open.includes(file) || !!action?.marked?.has(file) };
-  const resultActions = action ? (result: SearchResult) => (
+  const marked = { has: (file: string) => open.includes(file) || actions.some((action) => action.marked?.has(file)) };
+  const resultActions = actions.length ? (result: SearchResult) => (
     <>
       <ToolButton title="open in the sidebar" onClick={() => openNote(result.file)}><ChevronDown size={14} /></ToolButton>
-      {(action.applies?.(result) ?? true) && <ToolButton title={action.title} onClick={() => action.run(result.file)}>{action.icon}</ToolButton>}
+      {actions.filter((action) => action.applies?.(result) ?? true).map((action) => (
+        <ToolButton key={action.title} title={action.title} onClick={() => action.run(result.file)}>{action.icon}</ToolButton>
+      ))}
     </>
   ) : undefined;
 

@@ -65,7 +65,7 @@ export function useSidebarSearch() {
 
 /**
  * A page's own way to open a found note (pin it, open it in its pane): with
- * one, the sidebar's results offer it beside opening them in the sidebar,
+ * one (or more), the sidebar's results offer it beside opening them in the sidebar,
  * instead of opening there on a click. `applies`: for which results; `marked`: those to set apart.
  */
 export type SidebarAction = {
@@ -76,10 +76,10 @@ export type SidebarAction = {
   marked?: { has: (file: string) => boolean };
 };
 
-export const sidebarAction = store<SidebarAction | null>(null);
+export const sidebarActions = store<readonly SidebarAction[]>([]);
 
-/** Offers `action` in the sidebar while the page is mounted. */
-export function useSidebarAction(action: SidebarAction) {
-  useEffect(() => { sidebarAction.set(action); });
-  useEffect(() => () => sidebarAction.set(null), []);
+/** Offers `action` (or several) in the sidebar while the page is mounted. */
+export function useSidebarAction(action: SidebarAction | readonly SidebarAction[]) {
+  useEffect(() => { sidebarActions.set(Array.isArray(action) ? action : [action as SidebarAction]); });
+  useEffect(() => () => sidebarActions.set([]), []);
 }

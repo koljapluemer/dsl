@@ -9,6 +9,7 @@ are in the top-level [`README.md`](../README.md).
 - [`backend-architecture.md`](backend-architecture.md) — backend feature slices, dependency rules, and composition
 - [`note-component.md`](note-component.md) — the one component every note is shown with: its parameters, relationships widget, modes, and each page's configuration
 - [`relationships.md`](relationships.md) — outgoing relationships and backlinks: endpoints and the `item-relate` widget
+- [`canvas.md`](canvas.md) — the Canvas tab: how a canvas is stored in a note's data, written, and kept consistent
 - [`hiding.md`](hiding.md) — which notes a view leaves out, the hide button, and its undo
 
 Elsewhere:

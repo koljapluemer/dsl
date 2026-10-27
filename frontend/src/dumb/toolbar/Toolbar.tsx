@@ -4,18 +4,18 @@ import { ToolbarButton } from './ToolbarButton';
 import type { ToolbarAction } from './types';
 
 /**
- * Vertical tool rail that floats over the graph canvas. Owns only its own
+ * Vertical tool rail that floats over a canvas (Graph, Canvas). Owns only its own
  * expand/collapse view state; every actual tool is injected as a {@link ToolbarAction}.
  * Groups are rendered in order, separated by a hairline divider.
  */
-export function GraphToolbar({ groups }: { groups: ToolbarAction[][] }) {
+export function Toolbar({ label, groups }: { label: string; groups: ToolbarAction[][] }) {
   const [expanded, setExpanded] = useState(false);
 
   return (
     <div
       role="toolbar"
       aria-orientation="vertical"
-      aria-label="Graph tools"
+      aria-label={label}
       className="flex flex-col gap-1  border border-base-300 bg-base-100/90 p-1 shadow-lg backdrop-blur"
     >
       <ToolbarButton

@@ -20,7 +20,7 @@ Vite + React + TypeScript in `frontend/`, with TanStack Router (the note sidebar
 
 Home (`/`) links to the other views. Beside every view, on the right, is the note sidebar (`meta/note/NoteSidebar.tsx`): a New note button, then a search over all notes (with the semantic toggle and orphan filter; its results are notes inline, the match marked) and, once notes are open, below it the notes opened from it, the last opened first. The search then takes half the column's height and the column scrolls. Each note shows rendered (view) or in the editor (edit, written as focus leaves it), with its relationships, keeps its mode for the session, opens in a modal from its ⤢ tool, and its ✕ closes it. A click on a related or linked note anywhere opens that note here. The sidebar's state is in the URL (`sq`, `ss`, `sorphan`, `spage`, `sopen`, kept across tabs), so `/?sopen=["<file>"]` is a note on its own (the old `/edit/<file>` leads there). On a phone the sidebar is a drawer, opened from the button beside the tabs or by opening a note; while it's closed, the + button at the bottom right adds a note.
 
-A view may have its own way to open a found note (`useSidebarAction` in `entities/item/sidebar.ts`): the Graph pins it, the Desk opens it among its notes, Explorations and Sources open it in their pane (explorations and sources only). There the results aren't clickable; each has ⌄ to open it in the sidebar and the view's icon.
+A view may have its own ways to open a found note (`useSidebarAction` in `entities/item/sidebar.ts`): the Graph pins it, the Desk opens it among its notes, Document opens it, Canvas opens it as a canvas or adds it to the one open, Explorations and Sources open it in their pane (explorations and sources only). There the results aren't clickable; each has ⌄ to open it in the sidebar and the view's icon.
 
 ## Desk
 
@@ -33,6 +33,14 @@ The Document tab is a long-form workspace for any note; it does not introduce a 
 Every inline reference in the body or `extra` is an annotation occurrence. On a wide pane the referenced notes appear as full view/edit cards in a left margin, in document order, and lines connect them to numbered anchors in the document. Repeated references get separate cards. Lines remain visible and become stronger near the pointer; selecting either end emphasizes it and moves to the other. `[[target]]` is a number in the editor until the caret or pointer is near it; `[[target|display text]]` keeps its display text and number. The stored syntax never changes, and a `source` is an ordinary referenced source note.
 
 On a narrow pane a button switches between Document and Annotations, keeping their positions. There are no connector lines while only one end can be shown.
+
+## Canvas
+
+The Canvas tab shows any note as an infinite canvas (`/canvas?open=<file>`, `frontend/src/pages/canvas`, `dsl_crud/features/canvas`): free Markdown text and linked notes, each at a position. The sidebar's results offer "open as canvas" and, while one is open, "add to this canvas". It's stored as `canvas` in the note's `data` block, written only once something changes ([`docs/canvas.md`](docs/canvas.md)).
+
+- Double-click the canvas to write text there; right-click it (or the toolbar's Add note) to search for notes to add there. The toolbar also adds text, opens the note in the sidebar, zooms and fits the view.
+- Each node: a grip to drag it, edit/view, delete (text) or detach (a note, which stays) and, as the note's own tool, delete the note; and a conversion. Text → note makes a new note with the text as its body; note → text copies the note's body into a text node, the note unchanged. Removals offer undo.
+- Changes are written shortly after they're made, one write at a time; a badge shows unsaved or saving ones. If the canvas was changed elsewhere since (by hand in the note's text), nothing more is written and Reload loads it again. A canvas that can't be read (invalid `data`, a malformed node) is read-only until it's fixed in the note.
 
 ## Explorations
 
@@ -67,7 +75,7 @@ New files are named `<slug of the first line>-<6 hex>.txt`; the name doesn't cha
 - **Ctrl/⌘+Enter** saves what's being edited: a note's editor (wherever the note is, Graph cards and modals too) and the Graph's edge labels. In a relationship's target field it creates a new note even when a result is chosen.
 - **Esc** never discards edits. It leaves a note's editor (saving it where edits are written as focus leaves) or a label editor, or closes a modal, only when nothing unsaved was edited; otherwise it shows a notice and does nothing (a click outside a modal does the same). In a search or filter field it just leaves the field.
 - Single keys, ignored while typing in a field, holding Ctrl/Alt/Meta, or with a modal open:
-  - `g` then a tab's key (in its tooltip) switches tab (`g w` opens Document), `c` opens a new note (as the New note button), `/` focuses the page's filter, else the sidebar's search, `u` undoes the change the toast offers.
+  - `g` then a tab's key (in its tooltip) switches tab (`g w` opens Document, `g v` Canvas), `c` opens a new note (as the New note button), `/` focuses the page's filter, else the sidebar's search, `u` undoes the change the toast offers.
   - Calendar: ←/→ a day (or the range's length), `t` today/this week, `a` add, `d`/`r` day/range view. Queue: `n` next. Questions: `s` skip, `e` edit, `d` disable. Suggest: Shift+N next.
 
 ## Semantic search
@@ -160,7 +168,7 @@ The Graph shows notes as cards on a [React Flow](https://reactflow.dev) canvas, 
 
 - **Pins**: a pinned note shows the notes up to its depth (the chevrons beside the pin) relationships away, in either direction. Picking a search result pins it at depth 2. The badge under a card counts its related notes not on the canvas; a click shows them. Pins are kept under `graph` in the config file.
 - **Sidebar**: the note sidebar's results have a pin icon. Its query (over the graph's notes) is also what the toolbar's random search result and pin-all act on.
-- **Canvas**: right-click opens a quick search at the cursor; each pick pins a note, and it stays open for several picks. Double-click adds a note (the new-note modal). Drag from a card's edge dot onto another card to relate them, or onto empty canvas for a new note in the modal, its relationship from the dragged note staged (relabel, turn or drop it there). Drag a card by its grip to move it; it keeps its spot while it's on the canvas.
+- **The graph's canvas**: right-click opens a quick search at the cursor; each pick pins a note, and it stays open for several picks. Double-click adds a note (the new-note modal). Drag from a card's edge dot onto another card to relate them, or onto empty canvas for a new note in the modal, its relationship from the dragged note staged (relabel, turn or drop it there). Drag a card by its grip to move it; it keeps its spot while it's on the canvas.
 - **Cards**: the note component, viewed or edited (text with errors isn't saved), without the relationships widget (the edges are the relationships), with the grip, pin, hide (tags it `no-graph`) and delete tools, both with undo. A click on a solid edge label edits or deletes its explicit relationships (with undo). Inline relationships are unlabeled dashed arrows; clicking one edits its source note. A note link in a card opens that note in the sidebar. An explicit relationship suppresses an inline graph edge in the same direction.
 - The toolbar: add note, unpin all, pin a random orphan, open a random note or search result, pin all search results (the first 100, without neighbors), zoom and fit.
 

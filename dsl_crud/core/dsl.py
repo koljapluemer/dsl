@@ -69,6 +69,11 @@ def load_yaml(text: str):
     return yaml.load(text, Loader=_CoreLoader)
 
 
+def compose_yaml(text: str) -> yaml.Node | None:
+    """The YAML node tree in the core schema, with source positions; raises yaml.YAMLError."""
+    return yaml.compose(text, Loader=_CoreLoader)
+
+
 def _types(keyword: str, raw) -> list[str]:
     types = raw if isinstance(raw, list) else [raw]
     for t in types:
@@ -208,18 +213,13 @@ def parse(schema: dict, text: str) -> Document:
     if first is None:
         return Document(diagnostics=[Diagnostic("empty")])
 
-    boundary = next((i for i in range(first + 1, len(lines)) if is_section_opener(schema, lines[i])), len(lines))
+    boundary = _boundary(schema, lines, first)
     p = _SectionParser(schema["keywords"])
-    i = boundary
-    while i < len(lines):
-        keyword = block_keyword(schema, lines[i])
+    for i, end, keyword in _section_parts(schema, lines, boundary):
         if keyword is None:
             p.line(lines[i], i + 1)
-            i += 1
-            continue
-        end = next((j for j in range(i + 1, len(lines)) if ends_block(schema, lines[j])), len(lines))
-        p.block(keyword, _trim_blank_ends(lines[i + 1 : end]), i + 1)
-        i = end
+        else:
+            p.block(keyword, _trim_blank_ends(lines[i + 1 : end]), i + 1)
     p.check_excludes()
 
     return Document(
@@ -232,6 +232,35 @@ def parse(schema: dict, text: str) -> Document:
         data=p.data,
         diagnostics=p.diagnostics,
     )
+
+
+def _boundary(schema: dict, lines: list[str], first: int) -> int:
+    return next((i for i in range(first + 1, len(lines)) if is_section_opener(schema, lines[i])), len(lines))
+
+
+def _section_parts(schema: dict, lines: list[str], boundary: int):
+    """`(line, end, keyword)` for each line of the keyword section, a block
+    (`keyword` set, its content up to `end`) taken as one."""
+    i = boundary
+    while i < len(lines):
+        keyword = block_keyword(schema, lines[i])
+        if keyword is None:
+            yield i, i + 1, None
+            i += 1
+            continue
+        end = next((j for j in range(i + 1, len(lines)) if ends_block(schema, lines[j])), len(lines))
+        yield i, end, keyword
+        i = end
+
+
+def block_span(schema: dict, text: str, keyword: str) -> tuple[int, int] | None:
+    """The line indices of the first `keyword` block in `text`: its keyword's
+    line and the line after its content; None when there is none."""
+    lines = [l.replace("\r", "") for l in text.split("\n")]
+    first = next((i for i, l in enumerate(lines) if l.strip()), None)
+    if first is None:
+        return None
+    return next(((i, end) for i, end, k in _section_parts(schema, lines, _boundary(schema, lines, first)) if k == keyword), None)
 
 
 def _trim_blank_ends(lines: list[str]) -> list[str]:

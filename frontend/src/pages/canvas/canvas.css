@@ -1,0 +1,15 @@
+@import '@xyflow/react/dist/style.css';
+
+/* a node's width; its height follows its content */
+.canvas-node { width: 20rem; }
+.canvas-note { width: 23rem; }
+.canvas-node .cm-editor { max-height: 32rem; }
+
+/* React Flow sets `user-select: none` on every node; Chromium then won't let
+   CodeMirror's contenteditable be focused or edited (as in graph.css). */
+.canvas-node .cm-editor,
+.canvas-node .cm-content {
+  -webkit-user-select: text;
+  user-select: text;
+  cursor: text;
+}

@@ -38,6 +38,8 @@ Conventions:
   model, CodeMirror widgets, annotated preview and connector layout live in
   `pages/document`; the shared note exposes only the editor/preview/draft
   seams it needs. Inline-reference text remains the sole stored annotation.
+- Canvas is likewise a workspace for any note (`pages/canvas`, [`canvas.md`](canvas.md)).
+  The tool rail floating over Graph and Canvas is `dumb/toolbar`.
 - No `index.ts` re-exports. Import from the defining file.
 - Messages go to the toast corner (`dumb/UndoToast.tsx`): `showNotice` for
   news, `showError` for what failed (`dumb/notice.ts`), and the undo offer.

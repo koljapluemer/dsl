@@ -5,6 +5,7 @@ from pathlib import Path
 
 from flask import Flask, abort, jsonify, request, send_from_directory
 
+from dsl_crud.features.canvas.routes import blueprint as canvas
 from dsl_crud.features.graph.routes import blueprint as graph
 from dsl_crud.features.items.routes import blueprint as items_routes
 from dsl_crud.features.maintenance.routes import blueprint as maintenance
@@ -27,7 +28,7 @@ def create_app() -> Flask:
     exports.register(bibtex_export.definition())
     exports.register(portfolio_service.export_definition())
     app = Flask(__name__, static_folder=None)
-    for blueprint in (settings, search, questions, views, sources, graph, maintenance, items_routes, portfolio):
+    for blueprint in (settings, search, questions, views, sources, graph, canvas, maintenance, items_routes, portfolio):
         app.register_blueprint(blueprint)
     app.register_error_handler(items.ValidationError, _invalid)
     app.register_error_handler(fields.ValidationError, _invalid)

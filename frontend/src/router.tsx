@@ -5,6 +5,8 @@ import { schemaQuery } from './entities/item/schema';
 import { SIDEBAR_KEYS, validateSidebarSearch, type SidebarSearch } from './entities/item/sidebar';
 import { settingsQuery } from './entities/settings/queries';
 import { CalendarPage } from './pages/calendar/CalendarPage';
+import { CanvasPage } from './pages/canvas/CanvasPage';
+import { validateCanvasSearch } from './pages/canvas/search';
 import { validateCalendarSearch } from './pages/calendar/search';
 import { DeskPage } from './pages/desk/DeskPage';
 import { validateDeskSearch } from './pages/desk/search';
@@ -48,6 +50,7 @@ const tree = root.addChildren([
   createRoute({ getParentRoute: () => root, path: '/edit/$file', beforeLoad: ({ params }) => { throw redirect({ to: '/', search: { sopen: [params.file] } }); } }),
   createRoute({ getParentRoute: () => root, path: '/desk', validateSearch: validateDeskSearch, component: DeskPage }),
   createRoute({ getParentRoute: () => root, path: '/document', validateSearch: validateDocumentSearch, component: DocumentPage }),
+  createRoute({ getParentRoute: () => root, path: '/canvas', validateSearch: validateCanvasSearch, component: CanvasPage }),
   createRoute({ getParentRoute: () => root, path: '/explorations', validateSearch: validateExplorationsSearch, component: ExplorationsPage }),
   createRoute({ getParentRoute: () => root, path: '/graph', component: GraphPage }),
   createRoute({ getParentRoute: () => root, path: '/tasks', component: TasksPage }),

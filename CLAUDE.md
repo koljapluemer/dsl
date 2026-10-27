@@ -8,3 +8,4 @@
 - this repo should stand on its own, not having explicit or implicit dependencies to other projects or repos or local settings.
 
 - make sure that UIs, especially forms, work on mobile. usually following daisy standards w/ little customization gets us there.
+- if triggering toasts, use the standard existing toast pattern

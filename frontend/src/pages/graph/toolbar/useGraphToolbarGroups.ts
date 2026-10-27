@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { useReactFlow } from '@xyflow/react';
 import { FilePlus, Layers, Maximize, Pin, PinOff, Search, Unplug, ZoomIn, ZoomOut } from 'lucide-react';
-import type { ToolbarAction } from './types';
+import type { ToolbarAction } from '@/dumb/toolbar/types';
 
 const ZOOM_DURATION_MS = 150;
 const FIT_VIEW_DURATION_MS = 200;
