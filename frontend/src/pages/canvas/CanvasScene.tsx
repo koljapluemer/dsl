@@ -82,6 +82,12 @@ function Scene({ file, stored, openAction, onReload }: Props) {
   /** this scene's undo offers: dropped when it's gone (but a deleted note's restore is kept, without its node) */
   const offers = useRef(new Map<() => Promise<unknown>, (() => Promise<unknown>) | null>());
 
+  // a failed write says so in the toast corner; the badge keeps showing it until a write succeeds
+  useEffect(() => {
+    if (save.status === 'error') showError(`Canvas not saved: ${save.error}`);
+    if (save.status === 'conflict') showError('The canvas was changed elsewhere; changes here since the last save aren\'t written. Reload loads it.');
+  }, [save]);
+
   // every change but the load is written
   useEffect(() => {
     if (doc !== loaded) saver.change(toWire(doc));
@@ -314,7 +320,7 @@ function Scene({ file, stored, openAction, onReload }: Props) {
             <Toolbar label="Canvas tools" groups={toolbar} />
           </Panel>
           <Panel position="top-right">
-            <SaveState status={save.status} error={save.error} onRetry={() => saver.flush(true)} onReload={onReload} />
+            <SaveState status={save.status} onRetry={() => saver.flush(true)} onReload={onReload} />
           </Panel>
           {problems.length > 0 && (
             <Panel position="top-center">
@@ -343,23 +349,14 @@ function Scene({ file, stored, openAction, onReload }: Props) {
   );
 }
 
-function SaveState({ status, error, onRetry, onReload }: { status: string; error: string | null; onRetry: () => void; onReload: () => void }) {
+/** How saving stands, beside the toolbar: nothing when saved; a failed write or a conflict with what to do about it. */
+function SaveState({ status, onRetry, onReload }: { status: string; onRetry: () => void; onReload: () => void }) {
+  if (status === 'saved') return null;
   if (status === 'conflict') {
-    return (
-      <div role="alert" className="alert alert-error max-w-sm text-sm">
-        <span>The canvas was changed elsewhere; changes here since the last save aren't written.</span>
-        <button type="button" className="btn btn-sm" onClick={onReload}>Reload</button>
-      </div>
-    );
+    return <button type="button" className="btn btn-error btn-xs" title="load the canvas as stored" onClick={onReload}>Changed elsewhere: reload</button>;
   }
   if (status === 'error') {
-    return (
-      <div role="alert" className="alert alert-error max-w-sm text-sm">
-        <span>Not saved: {error}</span>
-        <button type="button" className="btn btn-sm" onClick={onRetry}>Retry</button>
-      </div>
-    );
+    return <button type="button" className="btn btn-error btn-xs" title="write the canvas again" onClick={onRetry}>Not saved: retry</button>;
   }
-  if (status === 'saved') return null;
   return <span className="badge badge-ghost badge-sm">{status === 'saving' ? 'saving…' : 'unsaved'}</span>;
 }

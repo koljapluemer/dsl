@@ -30,6 +30,13 @@ def test_set_data_key_keeps_other_keys_and_comments():
     assert doc.extra == ["free"]
 
 
+@pytest.mark.parametrize("text", ["a", "a\n", "\n", "a\n\n", "a\nb", " lead\nx", "trail \nx", "x\n\n\ny", "  ", "a\n  "])
+def test_set_data_key_round_trips_any_text(text):
+    value = {"nodes": [{"id": "i", "x": 0, "y": 0, "text": text}]}
+    for host in ("Host\n", "Host\ndata\ncanvas: 1\nafter: 2\n"):
+        assert dsl.parse(SCHEMA, edits.set_data_key(SCHEMA, host, "canvas", value)).data["canvas"] == value
+
+
 def test_set_data_key_adds_the_key_or_the_block():
     assert dsl.parse(SCHEMA, edits.set_data_key(SCHEMA, "T\ndata\nz: 1\n", "canvas", {"nodes": []})).data == {"z": 1, "canvas": {"nodes": []}}
     added = edits.set_data_key(SCHEMA, "T\nbody\nextra\nlong text\n", "canvas", {"nodes": NODES})

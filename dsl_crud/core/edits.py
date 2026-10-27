@@ -50,9 +50,11 @@ class _Dumper(yaml.SafeDumper):
     pass
 
 
-# multi-line strings as literal blocks, so they read as they were written
+# multi-line strings as literal blocks, so they read as they were written; not
+# one ending in a newline, which the block wouldn't keep (dsl.parse reads a
+# block without its final newline), so that's quoted
 _Dumper.add_representer(str, lambda dumper, value: dumper.represent_scalar(
-    "tag:yaml.org,2002:str", value, style="|" if "\n" in value else None))
+    "tag:yaml.org,2002:str", value, style="|" if "\n" in value and not value.endswith("\n") else None))
 
 
 def _dump(mapping: dict) -> list[str]:

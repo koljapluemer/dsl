@@ -40,7 +40,7 @@ The Canvas tab shows any note as an infinite canvas (`/canvas?open=<file>`, `fro
 
 - Double-click the canvas to write text there; right-click it (or the toolbar's Add note) to search for notes to add there. The toolbar also adds text, opens the note in the sidebar, zooms and fits the view.
 - Each node: a grip to drag it, edit/view, delete (text) or detach (a note, which stays) and, as the note's own tool, delete the note; and a conversion. Text → note makes a new note with the text as its body; note → text copies the note's body into a text node, the note unchanged. Removals offer undo.
-- Changes are written shortly after they're made, one write at a time; a badge shows unsaved or saving ones. If the canvas was changed elsewhere since (by hand in the note's text), nothing more is written and Reload loads it again. A canvas that can't be read (invalid `data`, a malformed node) is read-only until it's fixed in the note.
+- Changes are written shortly after they're made, one write at a time; a badge shows unsaved or saving ones, a failed write shows in the toast corner and as a retry button beside the toolbar. Ctrl+Enter or Esc finishes editing a text node. If the canvas was changed elsewhere since (by hand in the note's text), nothing more is written and Reload loads it again. A canvas that can't be read (invalid `data`, a malformed node) is read-only until it's fixed in the note.
 
 ## Explorations
 

@@ -1,9 +1,12 @@
 import { memo, type KeyboardEvent, type ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import type { Node, NodeProps } from '@xyflow/react';
+import { Prec } from '@codemirror/state';
+import { keymap } from '@codemirror/view';
 import { Eye, FileText, GripVertical, Pencil, Trash2, Type, Unlink } from 'lucide-react';
 import { ApiError } from '@/api/client';
 import { CodeMirrorHost } from '@/dumb/CodeMirrorHost';
+import { isSubmit } from '@/dumb/keys';
 import { Markdown } from '@/dumb/Markdown';
 import { deletedItems } from '@/entities/item/deleted';
 import { itemQuery } from '@/entities/item/queries';
@@ -17,7 +20,8 @@ export type CanvasFlowNode = Node<{ node: CanvasNode }, 'text' | 'note'>;
 
 const NOTE_MODES = ['view', 'edit'] as const;
 const VIEW_ONLY = ['view'] as const;
-const NO_EXTENSIONS: never[] = [];
+// Mod-Enter finishes the edit (see `keys`) instead of the default keymap's blank line, as in the note editor
+const TEXT_EXTENSIONS = [Prec.high(keymap.of([{ key: 'Mod-Enter', run: () => true }]))];
 
 /** The only place a node is dragged by (React Flow's `dragHandle`), so the rest stays free for selecting text. */
 const grip = (
@@ -55,7 +59,7 @@ const TextView = memo(function TextView({ id, text, editing, busy, readOnly, act
   const keys = (event: KeyboardEvent) => {
     // the canvas would act on them too
     event.stopPropagation();
-    if (event.key === 'Escape') actions.toIdle();
+    if (event.key === 'Escape' || isSubmit(event)) actions.toIdle();
   };
   const tools = readOnly ? [] : [
     grip,
@@ -71,7 +75,7 @@ const TextView = memo(function TextView({ id, text, editing, busy, readOnly, act
     <Frame tools={tools}>
       {editing ? (
         <div className="nodrag nowheel nopan" onKeyDown={keys}>
-          <CodeMirrorHost value={text} extensions={NO_EXTENSIONS} onChange={(next) => actions.setText(id, next)} onSave={actions.toIdle} />
+          <CodeMirrorHost value={text} extensions={TEXT_EXTENSIONS} onChange={(next) => actions.setText(id, next)} onSave={actions.toIdle} />
         </div>
       ) : (
         <div onDoubleClick={readOnly || busy ? undefined : (event) => { event.stopPropagation(); actions.startEdit(id); }}>
