@@ -13,6 +13,7 @@ TAGS_KEYWORD = "tags"
 MEDIA_KEYWORD = "media"
 ISSUE_KEYWORD = "issue"
 SOURCE_KEYWORD = "source"
+PUBLISH_KEYWORD = "publish"
 # a note shown as a project in the projects tab, which issues belong to
 PROJECT_TAG = "project"
 # an issue belongs to the projects its relationships with this label point to
@@ -89,6 +90,13 @@ def when(doc: dsl.Document) -> dict | None:
         until = c.options.get("until")
         return {"recurring": dsl.WEEKDAYS.index(c.args[0]) + 1, "until": _iso_date(until) if until else None}
     return None
+
+
+def route(doc: dsl.Document) -> str | None:
+    """Where the item is published: its `publish` clause's route, None when it
+    has none or it's invalid."""
+    clause = _clause(doc, PUBLISH_KEYWORD)
+    return clause.args[0] if clause else None
 
 
 def source_key(schema: dict, doc: dsl.Document, file: str) -> str | None:

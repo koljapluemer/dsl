@@ -48,6 +48,6 @@ export function insertReference(view: EditorView) {
 function referencePosition(schema: Schema, text: string, pos: number) {
   const { lines, starts, first, boundary, parts } = outline(schema, text);
   if (first >= 0 && pos >= starts[first] && (boundary >= starts.length || pos < starts[boundary])) return true;
-  return parts.some(({ line, end, keyword }) => keyword === 'extra' && pos > starts[line] + lines[line].length
+  return parts.some(({ line, end, keyword }) => !!keyword && schema.keywords[keyword].block === 'text' && pos > starts[line] + lines[line].length
     && (end >= starts.length || pos < starts[end]));
 }

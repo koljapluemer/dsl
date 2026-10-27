@@ -1,0 +1,4 @@
+Note
+publish Essays/x.html
+Text
+publish

@@ -1,10 +1,17 @@
-import type { Role, Schema } from '@/api/types';
+import type { KeywordDef, Role, Schema } from '@/api/types';
 
 const OPENING_ROLES: Role[] = ['primary', 'property'];
 export const ALL_ROLES: Role[] = ['primary', 'property', 'modifier', 'state'];
 
-/** The block keyword a line consists of, or undefined; mirrors dsl._block_keyword. */
-export const blockKeyword = (schema: Schema, line: string) => (schema.keywords[line.trimEnd()]?.block ? line.trimEnd() : undefined);
+/** Whether a block keyword's line opens its block: followed by its args, or alone without any; mirrors dsl._opens_block. */
+const opensBlock = (def: KeywordDef, line: string, name: string) => def.args.length > 0 || line.trimEnd() === name;
+
+/** The block keyword a line opens a block of, or undefined; mirrors dsl.block_keyword. */
+export function blockKeyword(schema: Schema, line: string): string | undefined {
+  const kw = /^([a-z]+)(?=\s|$)/.exec(line);
+  const def = kw && schema.keywords[kw[1]];
+  return def && def.block && opensBlock(def, line, kw[1]) ? kw[1] : undefined;
+}
 
 /** Whether a line at column 0 starts a keyword, relationship or state line of one of `roles`; mirrors dsl._starts_line_of. */
 export function startsLineOf(schema: Schema, line: string, roles: Role[]): boolean {
@@ -15,7 +22,7 @@ export function startsLineOf(schema: Schema, line: string, roles: Role[]): boole
   const kw = /^([a-z]+)(?=\s|$)/.exec(line);
   const def = kw && kws[kw[1]];
   if (!def || !roles.includes(def.role)) return false;
-  return !def.block || line.trimEnd() === kw[1];
+  return !def.block || opensBlock(def, line, kw[1]);
 }
 
 /** Whether a body line (after the first) starts the keyword section; mirrors dsl.is_section_opener. */

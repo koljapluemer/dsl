@@ -24,6 +24,8 @@ data                               ← block keyword
 title: Example                     ← block content (YAML), up to the next keyword
 extra                              ← block keyword
 Long-form text, kept verbatim      ← block content, up to the next keyword or the end of the file
+publish essays/hci                 ← block keyword with an argument
+Text as published                  ← block content
 ```
 
 An item has up to two parts, in this order:
@@ -43,7 +45,7 @@ optional.
 
 ### Inline relationships
 
-Body and `extra` text may refer to another item inline:
+Body text and `text` blocks (`extra`, `publish`) may refer to another item inline:
 
 ```
 This follows [[three-laws-a1b2c3]].
@@ -56,7 +58,7 @@ optional, non-empty display label; without it frontends show the target's
 current heading. Inline relationships are directional and unlabeled: display
 text is not a semantic relationship label.
 
-Inline relationships are recognized only in the body and `extra`, and not
+Inline relationships are recognized only in the body and `text` blocks, and not
 inside Markdown code spans or fenced code blocks. Escape the first `[` (`\[[`)
 to keep the syntax as text. Malformed references remain ordinary text, and a
 valid reference to a missing item does not make the item invalid.
@@ -70,7 +72,8 @@ opener**. A section opener starts at column 0 and is one of:
   `keywords.yaml`), followed by whitespace or the end of the line
 - a [relationship line](#relationship-lines): `->` followed by whitespace,
   whose last token starts with `@`
-- a [block keyword](#block-keywords) alone on its line
+- a [block keyword](#block-keywords) alone on its line, or, when it takes
+  args, followed by whitespace or the end of the line
 - a [state line](#state-lines): `(` directly followed by a keyword whose role
   is `state`, then whitespace, `)` or the end of the line
 
@@ -84,16 +87,24 @@ Writers that produce body text indent such lines by one space.
 
 ### Block keywords
 
-A keyword with a `block` entry in `keywords.yaml` (`data`, `extra`) takes no
-arguments and holds a multi-line **block**. Its line holds only the keyword at
-column 0 (trailing whitespace allowed): `extra credit` is not a block keyword.
+A keyword with a `block` entry in `keywords.yaml` (`data`, `extra`,
+`publish`) holds a multi-line **block**. Its line starts with the keyword at
+column 0:
+
+- Without `args` (`data`, `extra`), the line holds only the keyword (trailing
+  whitespace allowed): `extra credit` is not a block keyword.
+- With `args` (`publish`), the keyword is followed by whitespace or the end of
+  the line, and the rest of the line is its args, parsed like a
+  [clause](#keyword-section)'s (`missing_arg`, `invalid_value`, and
+  `unexpected_token` for anything after them). The line is a clause of the
+  item; the block is its content either way.
 
 The block is every line after the keyword up to, not including, the first
 **terminator**, or up to the end of the file. A terminator is a line that
 starts at column 0 and is:
 
 - a known keyword of any role, followed by whitespace or the end of the line
-  (a block keyword only when it is alone on its line),
+  (a block keyword without args only when it is alone on its line),
 - a [relationship line](#relationship-lines) with a valid `@target`,
 - a [state line](#state-lines) whose keyword has the role `state`.
 
@@ -110,7 +121,7 @@ The `block` entry says how the content is read:
 
 | `block` | content                                                                    |
 | ------- | -------------------------------------------------------------------------- |
-| `text`  | free text, never parsed (`extra`)                                          |
+| `text`  | free text, never parsed (`extra`, `publish`)                               |
 | `yaml`  | a YAML 1.2 document whose top level is a mapping, read with a safe loader that accepts no custom tags (`data`) |
 
 YAML scalars follow the 1.2 core schema: `2017-06-12` is a string, not a
@@ -126,7 +137,7 @@ line. Frontends keep the text of blocks they don't edit.
 Each line is trimmed, and blank lines are ignored. Lines may come in any
 order. A line is:
 
-- a [block keyword](#block-keywords) alone on its line, which starts a block
+- a [block keyword](#block-keywords) line, which starts a block
   (its content lines are not parsed as section lines),
 - a [relationship line](#relationship-lines) when it starts with `->`
   followed by whitespace or the end of the line,
@@ -237,6 +248,7 @@ type `path`.
 | `path`    | `images/a.webp` | a file relative to the item's folder, `/` as separator. Not empty, no leading `/`, no `\`, no `..` segment. Quote it when it contains spaces. |
 | `text`    | `clean up` | the rest of the line, trimmed, not empty. |
 | `tags`    | `break 10k do-this` | the rest of the line, split on whitespace: one or more tags, each made of `a-z`, `0-9` and `-` only. |
+| `route`   | `essays/a-cool-essay` | a published address: one or more segments of `a-z`, `0-9` and `-`, joined by `/`. No leading or trailing `/`, no empty segment. Not quoted. |
 
 `text` and `tags` are **rest-of-line** types: their words are never read as
 keywords, and they must be the keyword's only argument and its only type.
@@ -265,7 +277,7 @@ Errors are identified by these codes, plus the line they occur on.
 | `conflicting_keywords` | two keywords listed in each other's `excludes` both appear             |
 | `invalid_relation`     | see [Relationship lines](#relationship-lines)                          |
 | `invalid_state`        | see [State lines](#state-lines)                                        |
-| `empty_extra`          | an `extra` block has no non-blank line                                 |
+| `empty_extra`          | a `text` block (`extra`, `publish`) has no non-blank line              |
 | `empty_data`           | a `data` block has no non-blank line                                   |
 | `invalid_yaml`         | a `data` block is not valid YAML or not a mapping                      |
 
@@ -292,6 +304,7 @@ result matches every key the JSON lists; absent keys aren't checked.
 | `state`     | `[{keyword, line, args, options}]`, like `clauses`              |
 | `unknown`   | unknown keyword lines from the keyword on; whole state lines    |
 | `extra`     | the `extra` block's lines joined with `\n`, or `null` when there is none |
+| `publish`   | `{route, text}`: the `publish` clause's route (`null` when it's invalid) and its block's lines joined with `\n`; `null` when there is none |
 | `data`      | the `data` block parsed as YAML, or `null` when there is none or it is invalid |
 | `errors`    | `[{code, line}]`, sorted by line (`null` first), then code      |
 | `warnings`  | `[{code, line}]`, sorted the same way                            |

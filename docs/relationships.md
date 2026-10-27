@@ -2,7 +2,7 @@
 
 A relationship is either an explicit line `-> label @target` (or `-> @target`)
 in the keyword section, or an inline reference `[[target]]` / `[[target|text]]`
-in the body or `extra`. API relationship values always carry `inline: boolean`;
+in the body or a `text` block (`extra`, `publish`). API relationship values always carry `inline: boolean`;
 display text never becomes a semantic label.
 
 A note's **backlinks** are relationships in other notes whose target is it.
@@ -61,7 +61,7 @@ looks and when changes are staged or written at once):
 In the item editor, `referenceLinks` (`entities/item/dsl/referenceLinks.ts`)
 marks inline references as targets and opens a Ctrl/Cmd-clicked inline
 reference or `@target` in a new tab. `itemInlineReferences` (`inlineRefs.ts`)
-finds the inline references that count, in the body and `extra`; the editor
+finds the inline references that count, in the body and `text` blocks; the editor
 and the widget both use it.
 
 Features can't import each other, so deleting a note is passed in as

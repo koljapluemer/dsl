@@ -90,6 +90,8 @@ class _Entry:
     extra_compact: str
     body_words: frozenset[str]
     extra_words: frozenset[str]
+    # where it's published (see views.route)
+    route: str | None
 
 
 UNLABELED_RELATION = "related"
@@ -107,7 +109,7 @@ def _entry(mtime_ns: int, item: dict) -> "_Entry":
     doc = dsl.parse(SCHEMA, text)
     extra = "\n".join(doc.extra or [])
     body = "\n".join(doc.body)
-    inline = {r.target for text in (body, extra) for r in inline_refs.references(text)}
+    inline = {r.target for text in (body, *dsl.text_blocks(SCHEMA, doc)) for r in inline_refs.references(text)}
     explicit = tuple((r.label or UNLABELED_RELATION, f"{r.target}.txt") for r in doc.relations)
     return _Entry(
         mtime_ns,
@@ -132,6 +134,7 @@ def _entry(mtime_ns: int, item: dict) -> "_Entry":
         _SPACE_RE.sub(" ", extra).strip(),
         frozenset(words(body)),
         frozenset(words(extra)),
+        views.route(doc),
     )
 
 
@@ -268,14 +271,15 @@ def list_page(attention: bool | None = None, page: int = 0, seed: int = 0, tasks
 
 def _payload(item: dict, entries: dict[str, _Entry]) -> dict:
     """The item as the API sends it, with ``refs``: every explicit or inline
-    target's current heading, None for a missing one; and ``sourceKey``
-    (see views.source_key)."""
+    target's current heading, None for a missing one; ``sourceKey``
+    (see views.source_key); and ``route`` (see views.route)."""
     doc = dsl.parse(SCHEMA, item["text"])
     targets = ({r.target for r in doc.relations}
-               | {r.target for text in ("\n".join(doc.body), "\n".join(doc.extra or []))
+               | {r.target for text in ("\n".join(doc.body), *dsl.text_blocks(SCHEMA, doc))
                   for r in inline_refs.references(text)})
     item["refs"] = {t: e.heading if (e := entries.get(f"{t}.txt")) else None for t in sorted(targets)}
     item["sourceKey"] = views.source_key(SCHEMA, doc, item["file"])
+    item["route"] = views.route(doc)
     return item
 
 
@@ -509,6 +513,13 @@ def explorations() -> list[dict]:
     """Every item tagged views.EXPLORATION_TAG, the last edited first."""
     entries = _INDEX.refresh()
     names = sorted((n for n, e in entries.items() if views.EXPLORATION_TAG in e.tags), key=lambda n: (-entries[n].mtime_ns, n))
+    return [_note(n, entries) for n in names]
+
+
+def published() -> list[dict]:
+    """Every item with a valid `publish` route, by route."""
+    entries = _INDEX.refresh()
+    names = sorted((n for n, e in entries.items() if e.route), key=lambda n: (entries[n].route, n))
     return [_note(n, entries) for n in names]
 
 

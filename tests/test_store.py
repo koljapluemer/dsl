@@ -320,6 +320,16 @@ def test_explorations_last_edited_first_and_not_in_queue(data_dir):
     assert [i["file"] for i in store.queue_draw()["items"]] == ["c.txt"]
 
 
+def test_published_by_route_with_inline_refs(data_dir):
+    store.create({"file": "a.txt", "text": "a\npublish essays/z\nsee [[c]]"})
+    store.create({"file": "b.txt", "text": "b\npublish index\ntext"})
+    store.create({"file": "c.txt", "text": "c\npublish Bad/route\ntext"})
+    store.create({"file": "d.txt", "text": "d\nextra\nnot published"})
+    published = store.published()
+    assert [(i["file"], i["route"]) for i in published] == [("a.txt", "essays/z"), ("b.txt", "index")]
+    assert published[0]["refs"] == {"c": "c"}
+
+
 def test_goals_without_an_image_by_heading(data_dir):
     store.create({"file": "a.txt", "text": "b goal\ntags goal"})
     store.create({"file": "b.txt", "text": "A goal\ntags x goal\nmedia clip.mp4\nmedia notes.pdf"})

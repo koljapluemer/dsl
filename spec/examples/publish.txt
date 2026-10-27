@@ -1,0 +1,8 @@
+My shorthand note
+tags essay
+publish essays/a-cool-essay
+Clean prose, see [[other-a1b2c3]].
+
+Second paragraph.
+extra
+more notes

@@ -30,6 +30,10 @@ def tagged(): return jsonify(items.tagged_items(request.args.get("tag", "")))
 def explorations(): return jsonify(items.explorations())
 
 
+@blueprint.get("/api/published")
+def published(): return jsonify(items.published())
+
+
 @blueprint.get("/api/goals")
 def goals(): return jsonify(items.goals())
 

@@ -33,13 +33,23 @@ export function analyze(schema: Schema, text: string): Analysis {
     const def = schema.keywords[keyword];
     const from = starts[line];
     const to = from + lines[line].trimEnd().length;
-    segments.push({ from, to, cls: `tok-${def.role}`, title: def.meaning.trim() });
-    if (pass.keywords.includes(keyword)) problems.push({ from, to, severity: 'error', message: `duplicate_keyword: ${keyword}` });
-    pass.keywords.push(keyword);
+    const duplicate = pass.keywords.includes(keyword);
+    if (duplicate) {
+      segments.push({ from, to, cls: `tok-${def.role}`, title: def.meaning.trim() });
+      problems.push({ from, to, severity: 'error', message: `duplicate_keyword: ${keyword}` });
+    } else if (def.args.length) {
+      // its args are on its line, a clause like any other
+      const toks = tokenize(lines[line], from);
+      const next = clause(pass, toks, 0, to);
+      if (next >= 0 && next < toks.length) problems.push({ from: toks[next].from, to, severity: 'error', message: 'unexpected_token' });
+    } else {
+      segments.push({ from, to, cls: `tok-${def.role}`, title: def.meaning.trim() });
+      pass.keywords.push(keyword);
+    }
     if (lines.slice(line + 1, end).some((l) => l.trim())) {
       const blockTo = end < lines.length ? starts[end] - 1 : text.length;
       segments.push({ from: to + 1, to: blockTo, cls: 'tok-extra' });
-    } else {
+    } else if (!duplicate) {
       const code = def.block === 'yaml' ? 'empty_data' : 'empty_extra';
       problems.push({ from, to, severity: 'error', message: `${code}: no content after ${keyword}` });
     }

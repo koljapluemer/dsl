@@ -1,0 +1,6 @@
+{
+  "body": "Note",
+  "clauses": [],
+  "publish": { "route": null, "text": "Text" },
+  "errors": [{ "code": "invalid_value", "line": 2 }, { "code": "duplicate_keyword", "line": 4 }]
+}

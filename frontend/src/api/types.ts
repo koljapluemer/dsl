@@ -1,4 +1,4 @@
-export type ValueType = 'date' | 'month' | 'weekday' | 'path' | 'text' | 'tags';
+export type ValueType = 'date' | 'month' | 'weekday' | 'path' | 'text' | 'tags' | 'route';
 export type ArgDef = { name: string; type: ValueType[] };
 export type Role = 'primary' | 'property' | 'modifier' | 'state';
 export type KeywordDef = {
@@ -17,11 +17,12 @@ export type Diagnostic = { code: string; line: number | null; detail: string | n
  * A note as the API sends it, wherever it's shown: `refs` maps its relationship and inline
  * reference targets to their headings (null for a missing one); `files` are the paths in the data
  * folder its `media` clauses name, `media` its cover (the first image or video);
- * `sourceKey` a source's BibTeX key, null for any other note.
+ * `sourceKey` a source's BibTeX key, null for any other note; `route` where it's published
+ * (its `publish` clause's route), null for none.
  */
 export type Item = {
   file: string; text: string; media: string | null; files: string[]; errors: Diagnostic[]; warnings: Diagnostic[];
-  refs: Record<string, string | null>; sourceKey: string | null;
+  refs: Record<string, string | null>; sourceKey: string | null; route: string | null;
 };
 export type ItemPage = { items: Item[]; total: number; page: number; page_size: number };
 

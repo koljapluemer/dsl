@@ -20,6 +20,13 @@ def _diagnostics(ds: list[dsl.Diagnostic]) -> list[dict]:
     return sorted(({"code": d.code, "line": d.line} for d in ds), key=lambda d: (d["line"] or 0, d["code"]))
 
 
+def _publish(doc: dsl.Document) -> dict | None:
+    if "publish" not in doc.blocks:
+        return None
+    route = next((c.args[0] for c in doc.clauses if c.keyword == "publish"), None)
+    return {"route": route, "text": "\n".join(doc.blocks["publish"])}
+
+
 def _result(doc: dsl.Document) -> dict:
     return {
         "body": "\n".join(doc.body) if doc.body else None,
@@ -28,6 +35,7 @@ def _result(doc: dsl.Document) -> dict:
         "state": [_clause(c) for c in doc.state],
         "unknown": doc.unknown,
         "extra": None if doc.extra is None else "\n".join(doc.extra),
+        "publish": _publish(doc),
         "data": doc.data,
         "errors": _diagnostics(doc.errors),
         "warnings": _diagnostics(doc.warnings),

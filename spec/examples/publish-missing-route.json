@@ -1,0 +1,6 @@
+{
+  "body": "Note",
+  "clauses": [],
+  "publish": { "route": null, "text": "Text" },
+  "errors": [{ "code": "missing_arg", "line": 2 }]
+}

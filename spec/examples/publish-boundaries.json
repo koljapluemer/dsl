@@ -1,0 +1,11 @@
+{
+  "body": "Note\n publish indented stays in the body",
+  "clauses": [
+    { "keyword": "publish", "line": 5, "args": ["a/b"], "options": {} },
+    { "keyword": "tasks", "line": 8, "args": ["fix"], "options": {} }
+  ],
+  "extra": "first",
+  "publish": { "route": "a/b", "text": "second\n publish indented stays" },
+  "errors": [],
+  "warnings": []
+}

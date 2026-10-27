@@ -1,0 +1,7 @@
+{
+  "body": "Note",
+  "clauses": [{ "keyword": "publish", "line": 2, "args": ["index"], "options": {} }],
+  "publish": { "route": "index", "text": "Text" },
+  "extra": null,
+  "errors": [{ "code": "unexpected_token", "line": 2 }]
+}

@@ -1,0 +1,11 @@
+{
+  "body": "My shorthand note",
+  "clauses": [
+    { "keyword": "tags", "line": 2, "args": ["essay"], "options": {} },
+    { "keyword": "publish", "line": 3, "args": ["essays/a-cool-essay"], "options": {} }
+  ],
+  "publish": { "route": "essays/a-cool-essay", "text": "Clean prose, see [[other-a1b2c3]].\n\nSecond paragraph." },
+  "extra": "more notes",
+  "errors": [],
+  "warnings": []
+}

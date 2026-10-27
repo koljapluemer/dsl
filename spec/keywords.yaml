@@ -10,7 +10,8 @@
 #   options:  named optional sub-keywords, each followed by one value:
 #             {<option>: {type, meaning}}
 #   block:    text | yaml — the keyword holds a multi-line block (see
-#                        language.md, "Block keywords"); takes no args
+#                        language.md, "Block keywords"); its args, if any,
+#                        are on the keyword's line
 #   line_start: true — the keyword must be the first token of its line (see
 #                        language.md, "Keyword section")
 #   repeat:   true — the keyword may appear more than once in an item
@@ -19,7 +20,7 @@
 #
 # A type is one name from language.md, or a list of them.
 
-version: 8
+version: 9
 
 changes:
   - version: 1
@@ -49,6 +50,11 @@ changes:
     note: >
       Breaking: the primary project is gone; a project is an item tagged
       `project`.
+  - version: 9
+    note: >
+      Block keywords may take args, on the keyword's line. New value type
+      route; new block keyword publish. Inline relationships count in every
+      `text` block.
 
 keywords:
   appointment:
@@ -128,3 +134,13 @@ keywords:
     role: property
     block: text
     meaning: Long-form free text about the item, kept verbatim.
+
+  publish:
+    role: property
+    block: text
+    args:
+      - { name: route, type: route }
+    meaning: >
+      The item's text as published, at `route` (e.g. `essays/a-cool-essay`):
+      long-form free text, kept verbatim, written for readers rather than as
+      a note.

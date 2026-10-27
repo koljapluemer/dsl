@@ -16,7 +16,7 @@ ROLES = ("primary", "property", "modifier", "state")
 BLOCKS = ("text", "yaml")
 EMPTY_BLOCK_CODE = {"text": "empty_extra", "yaml": "empty_data"}
 OPENING_ROLES = ("primary", "property")
-VALUE_TYPES = ("date", "month", "weekday", "path", "text", "tags")
+VALUE_TYPES = ("date", "month", "weekday", "path", "text", "tags", "route")
 WEEKDAYS = ("mo", "tu", "we", "th", "fr", "sa", "su")
 
 # Core schema: `2017-06-12` stays a string (PyYAML implements 1.1, which resolves timestamps).
@@ -36,6 +36,7 @@ _RELATION_OPENER = re.compile(r"^->\s")
 _DATE = re.compile(r"^(\d{2})-(\d{2})-(\d{2})$")
 _MONTH = re.compile(r"^(\d{2})-(\d{2})$")
 _TAG = re.compile(r"^[a-z0-9-]+$")
+_ROUTE = re.compile(r"^[a-z0-9-]+(?:/[a-z0-9-]+)*$")
 
 
 def load_schema(path: Path = SPEC_PATH) -> dict:
@@ -91,6 +92,8 @@ def value_type(token: str, types: list[str], quoted: bool = False) -> str | None
             return t
         if quoted:
             continue
+        if t == "route" and _ROUTE.match(token):
+            return t
         if t == "weekday" and token in WEEKDAYS:
             return t
         if t == "month" and (m := _MONTH.match(token)) and 1 <= int(m[2]) <= 12:
@@ -132,14 +135,20 @@ def _starts_line_of(schema: dict, line: str, roles: tuple[str, ...]) -> bool:
         spec = kws.get(m[1])
         if spec is None or spec["role"] not in roles:
             return False
-        return not spec["block"] or line.rstrip() == m[1]
+        return not spec["block"] or _opens_block(spec, line, m[1])
     return False
+
+
+def _opens_block(spec: dict, line: str, name: str) -> bool:
+    """A block keyword with args is followed by them; one without stands alone."""
+    return bool(spec["args"]) or line.rstrip() == name
 
 
 def block_keyword(schema: dict, line: str) -> str | None:
     """The keyword a line opens a block of, if it does."""
-    name = line.rstrip()
-    return name if schema["keywords"].get(name, {}).get("block") else None
+    m = _KEYWORD_OPENER.match(line)
+    spec = schema["keywords"].get(m[1]) if m else None
+    return m[1] if spec and spec["block"] and _opens_block(spec, line, m[1]) else None
 
 
 @dataclass
@@ -219,7 +228,7 @@ def parse(schema: dict, text: str) -> Document:
         if keyword is None:
             p.line(lines[i], i + 1)
         else:
-            p.block(keyword, _trim_blank_ends(lines[i + 1 : end]), i + 1)
+            p.block(keyword, lines[i], _trim_blank_ends(lines[i + 1 : end]), i + 1)
     p.check_excludes()
 
     return Document(
@@ -320,9 +329,12 @@ class _SectionParser:
         self.unknown.append(raw)
         self.diagnostics.append(Diagnostic("unknown_keyword", line, keyword))
 
-    def block(self, keyword: str, content: list[str], no: int) -> None:
+    def block(self, keyword: str, raw: str, content: list[str], no: int) -> None:
+        """A block, from its keyword's line `raw` (holding its args, if any)."""
         if keyword in self._seen:
             return self._error("duplicate_keyword", no, keyword)
+        if self.kws[keyword]["args"]:
+            self._block_clause(raw.strip(), no)
         self._seen.add(keyword)
         kind = self.kws[keyword]["block"]
         self.blocks[keyword] = content
@@ -330,6 +342,15 @@ class _SectionParser:
             return self._error(EMPTY_BLOCK_CODE[kind], no, keyword)
         if kind == "yaml":
             self._yaml(keyword, "\n".join(content), no)
+
+    def _block_clause(self, line: str, no: int) -> None:
+        toks = _tokenize(line)
+        clause, i = self._clause(toks, 0, no, line)
+        if clause is None:
+            return
+        self.clauses.append(clause)
+        if i < len(toks):
+            self._error("unexpected_token", no, toks[i][0])
 
     def _yaml(self, keyword: str, text: str, no: int) -> None:
         try:
@@ -460,6 +481,12 @@ class _SectionParser:
                 first, second = self.clauses[a].keyword, self.clauses[b].keyword
                 if second in self.kws[first]["excludes"] or first in self.kws[second]["excludes"]:
                     self._error("conflicting_keywords", self.clauses[b].line, f"{first}, {second}")
+
+
+def text_blocks(schema: dict, doc: Document) -> list[str]:
+    """The content of each `text` block (`extra` among them), where inline
+    relationships count besides the body."""
+    return ["\n".join(lines) for k, lines in doc.blocks.items() if schema["keywords"][k]["block"] == "text"]
 
 
 def diagnostics(doc: Document) -> dict:
