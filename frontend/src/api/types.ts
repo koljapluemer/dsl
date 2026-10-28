@@ -42,6 +42,10 @@ export type ExportKey = 'bibtex' | 'portfolio';
 export type Settings = { path: string | null; exports: Record<ExportKey, { path: string; error: string | null }[]>; thea: TheaSettings };
 /** how viz blocks are generated: the claude CLI command, its model ('' for its default), a cap per run in estimated USD (API prices, not what a subscription pays), a time limit */
 export type TheaSettings = { cli: string; model: string; budget_usd: number | null; timeout_min: number };
+/** whether Typst files can be built here (not on Termux), and why not */
+export type TypstStatus = { available: boolean; reason: string | null };
+/** a Typst file's build: Typst's errors, null when it built; whether its PDF exists */
+export type TypstBuild = { errors: string | null; pdf: boolean };
 export type TheaStatus = { available: boolean; reason: string | null; settings: TheaSettings };
 /** a viz block's generation, by its block's name; `id` is the version made, once done */
 export type TheaJob = {

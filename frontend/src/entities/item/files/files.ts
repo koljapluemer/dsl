@@ -1,18 +1,20 @@
 import type { Extension } from '@codemirror/state';
 import { IMAGE_EXTENSIONS } from './kinds/image';
 import { JINJA_EXTENSIONS, jinjaEditor } from './kinds/jinja';
+import { TYPST_EXTENSIONS } from './kinds/typst';
 import { VIDEO_EXTENSIONS } from './kinds/video';
 
 /**
  * What the app does with a file a note names, by its extension (as file_kinds.py):
- * images and videos are `shown` as its media, kinds with an `editor` are edited as text.
+ * images and videos are `shown` as its media, kinds with an `editor` are edited as text (Typst in its own modal).
  */
-export type FileKind = { name: 'image' | 'video' | 'jinja' | 'other'; extensions: string[]; shown?: boolean; editor?: () => Extension[] };
+export type FileKind = { name: 'image' | 'video' | 'jinja' | 'typst' | 'other'; extensions: string[]; shown?: boolean; editor?: () => Extension[] };
 
 const KINDS: FileKind[] = [
   { name: 'image', extensions: IMAGE_EXTENSIONS, shown: true },
   { name: 'video', extensions: VIDEO_EXTENSIONS, shown: true },
   { name: 'jinja', extensions: JINJA_EXTENSIONS, editor: jinjaEditor },
+  { name: 'typst', extensions: TYPST_EXTENSIONS, editor: () => [] },
 ];
 const OTHER: FileKind = { name: 'other', extensions: [] };
 

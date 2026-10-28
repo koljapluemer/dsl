@@ -36,6 +36,10 @@ def path(rel: str) -> Path:
     return p
 
 
+def exists(rel: str) -> bool:
+    return _resolve(rel).is_file()
+
+
 def read(rel: str) -> bytes:
     return path(rel).read_bytes()
 
@@ -52,15 +56,20 @@ def read_text(rel: str) -> str:
     return path(rel).read_text(encoding="utf-8")
 
 
+def write(rel: str, data: bytes) -> None:
+    """Replaces the file at once (a reader never sees it half written), creating it (and its folder) when needed."""
+    p = _resolve(rel)
+    p.parent.mkdir(parents=True, exist_ok=True)
+    tmp = p.with_name(f".{p.name}.tmp")
+    tmp.write_bytes(data)
+    tmp.replace(p)
+
+
 def write_text(rel: str, text: str) -> None:
     """Writes a file of a text kind, creating it (and its folder) when needed."""
     if not file_kinds.kind(rel).text:
         raise store.ValidationError(f"'{rel}' isn't a text file")
-    p = _resolve(rel)
-    p.parent.mkdir(parents=True, exist_ok=True)
-    tmp = p.with_name(f".{p.name}.tmp")
-    tmp.write_text(text, encoding="utf-8")
-    tmp.replace(p)
+    write(rel, text.encode("utf-8"))
 
 
 def _managed(rel: str) -> bool:
@@ -68,25 +77,49 @@ def _managed(rel: str) -> bool:
     return len(parts) > 1 and parts[0] in MANAGED_DIRS
 
 
-def referenced(rel: str, entries: dict, ignoring: str | None = None) -> bool:
+def typst_texts(entries: dict, ignoring: str | None = None) -> list[str]:
+    """The lowercased texts of the Typst files items (but `ignoring`) name, read
+    now: a Typst file changes without its item's mtime changing."""
+    out = []
+    for name, e in entries.items():
+        if name == ignoring:
+            continue
+        for rel in e.files:
+            if file_kinds.kind(rel) is file_kinds.TYPST:
+                try:
+                    out.append(path(rel).read_text(encoding="utf-8").lower())
+                except (store.NotFound, store.ValidationError, OSError, UnicodeDecodeError):
+                    continue
+    return out
+
+
+def referenced(rel: str, entries: dict, ignoring: str | None = None, typst: list[str] | None = None) -> bool:
     """Whether an item other than `ignoring` names `rel`, in a `media` clause or
-    anywhere in its text, or, for a file in a viz version's folder, has a viz
-    block keeping that version (see thea.kept)."""
+    anywhere in its text or its Typst files' (`typst`: their typst_texts, read
+    when not given), or names the Typst file a PDF is compiled from, or, for a
+    file in a viz version's folder, has a viz block keeping that version (see thea.kept)."""
     low = rel.lower()
     viz = thea.dir_id(rel)
-    return any(rel in e.files or low in e.lower or (viz is not None and viz in e.thea_dirs)
-               for name, e in entries.items() if name != ignoring)
+    source = file_kinds.typst_source(rel)
+    if any(rel in e.files or low in e.lower or (viz is not None and viz in e.thea_dirs) or (source is not None and source in e.files)
+           for name, e in entries.items() if name != ignoring):
+        return True
+    return any(low in text for text in (typst_texts(entries, ignoring) if typst is None else typst))
 
 
 def release(rel: str, ignoring: str | None = None) -> None:
-    """Deletes a file in a managed folder once no item (but `ignoring`) names it."""
+    """Deletes a file in a managed folder once no item (but `ignoring`) names it,
+    with the PDF compiled from it, for a Typst file."""
     if _managed(rel) and not referenced(rel, store._INDEX.refresh(), ignoring):
         _resolve(rel).unlink(missing_ok=True)
+        if file_kinds.kind(rel) is file_kinds.TYPST:
+            _resolve(file_kinds.pdf_of(rel)).unlink(missing_ok=True)
 
 
 def orphaned() -> list[str]:
     """Files in the managed folders that no item names."""
     entries = store._INDEX.refresh()
+    typst = typst_texts(entries)
     out = []
     for folder in MANAGED_DIRS:
         d = store._dir() / folder
@@ -94,7 +127,7 @@ def orphaned() -> list[str]:
             continue
         for p in d.rglob("*"):
             rel = p.relative_to(store._dir()).as_posix()
-            if p.is_file() and not p.name.startswith(".") and not referenced(rel, entries):
+            if p.is_file() and not p.name.startswith(".") and not referenced(rel, entries, typst=typst):
                 out.append(rel)
     return sorted(out)
 

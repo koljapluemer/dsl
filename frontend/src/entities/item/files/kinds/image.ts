@@ -1,10 +1,14 @@
-/** Images, as file_kinds.IMAGE: shown as a note's attachment, downscaled to WebP before they're written. */
+/**
+ * Images, as file_kinds.IMAGE: shown as a note's attachment, downscaled to WebP before they're written,
+ * losslessly from lossless sources (PNG, GIF, BMP: screenshots, diagrams), lossily from photos.
+ */
 export const IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'];
 
 const MAX_EDGE = 1920;
 const QUALITY = 0.82;
+const LOSSLESS_SOURCES = ['image/png', 'image/gif', 'image/bmp'];
 
-/** Downscales and re-encodes an image before it reaches the synced media folder. */
+/** Downscales and re-encodes an image before it reaches the synced media folder (quality 1 is lossless WebP in Chromium). */
 export async function compressImage(file: File): Promise<Blob> {
   const bitmap = await createImageBitmap(file);
   const scale = Math.min(1, MAX_EDGE / Math.max(bitmap.width, bitmap.height));
@@ -15,8 +19,9 @@ export async function compressImage(file: File): Promise<Blob> {
   if (!context) throw new Error('Canvas 2D context is unavailable.');
   context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
   bitmap.close();
+  const quality = LOSSLESS_SOURCES.includes(file.type) ? 1 : QUALITY;
   return new Promise((resolve, reject) => {
-    canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error('The image could not be encoded.'))), 'image/webp', QUALITY);
+    canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error('The image could not be encoded.'))), 'image/webp', quality);
   });
 }
 

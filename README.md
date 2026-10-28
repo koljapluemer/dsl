@@ -184,16 +184,18 @@ A fenced block marked `thea` in a note's body, `extra` or `publish` block (```` 
 
 ## Files
 
-A note names files in the data folder with `media` clauses, any number of them ([`docs/files.md`](docs/files.md)). Its images and videos are shown above it, in order (several in a row scrolled sideways, enlarged into a view stepping through them); the first is its cover, the thumbnail in lists. Its other files are listed below its content: Jinja templates as buttons opening them in a text editor (Save ✓, Ctrl+S or Ctrl+Enter), anything else as a link.
+A note names files in the data folder with `media` clauses, any number of them ([`docs/files.md`](docs/files.md)). Its images and videos are shown above it, in order (several in a row scrolled sideways, enlarged into a view stepping through them); the first is its cover, the thumbnail in lists. Its other files are listed below its content: Jinja templates as buttons opening them in a text editor (Save ✓, Ctrl+S or Ctrl+Enter), Typst documents likewise (see below), anything else as a link.
 
-The note editor accepts any number of images (downscaled to WebP) and short videos, by paste or upload; on touch devices they also take a photo with the camera. Each is added after the note's others, removed on its own, and reordered by moving its `media` line. Uploads go into `images/` in the data folder as `<note>-<ms>.<ext>`; a file in `images/` or `files/` is deleted when it is removed and no other note names it.
+The note editor accepts any number of images (downscaled to WebP, losslessly from PNG, GIF and BMP) and short videos, by paste or upload; on touch devices they also take a photo with the camera. Each is added after the note's others, removed on its own, and reordered by moving its `media` line. Uploads go into `images/` in the data folder as `<note>-<ms>.<ext>`; a file in `images/` or `files/` is deleted when it is removed and no other note names it.
 
-## Maintenance
+### Typst documents
+
+The editor's Typst tool attaches a new Typst document to the note (`files/<note>-<6 hex>.typ`, in a `media` clause) and opens it: the source beside its PDF (one at a time on a narrow screen). Saving writes it and builds the PDF next to it (`files/<note>-<6 hex>.pdf`); Typst's errors show above the source, and the PDF stays as it was. Paths in it are from the data folder: the image tools insert one of the note's images as `#image("/images/…")`, or upload (or paste) one, attaching it to the note first, so only while the note has no unsaved edits. Building needs the `typst` dependency group (the Python bindings; a uv default group). Termux doesn't install it, so there Typst files are read-only and the tool is missing.
 
 Settings → "maintenance" lists, then on Delete removes (without undo):
 
 - **past appointments**: valid `appointment` items dated before today (a month-only date counts once the month is over), with their files unless another note names them (`dsl_crud/features/maintenance`). Recurring and broken items are kept.
-- **orphaned files**: files in `images/` and `files/` that no note names, in a `media` clause or anywhere else in its text, and viz versions no viz block keeps (`dsl_crud/infrastructure/media.py`).
+- **orphaned files**: files in `images/` and `files/` that no note names, in a `media` clause or anywhere else in its text or its Typst files, PDFs of Typst files no note names, and viz versions no viz block keeps (`dsl_crud/infrastructure/media.py`).
 
 ## Spec
 
@@ -215,7 +217,7 @@ Clone the repo into Termux's home (not shared storage: it can't hold executables
 ./termux.sh
 ```
 
-The first run installs Python, numpy (Termux's package) and a venv in `~/.venvs/dsl-crud`; the other dependencies follow `pyproject.toml` (without the `cards` group: no card collages on the phone). The phone doesn't build the frontend: `frontend/dist` is committed and automatically refreshed after frontend changes reach `main`. Every run starts the server and opens the browser. Set the data folder to the notes under `/storage/emulated/0/...`. One-tap start with Termux:Widget: `mkdir -p ~/.shortcuts && ln -s ~/dsl-crud/termux.sh ~/.shortcuts/dsl`.
+The first run installs Python, numpy (Termux's package) and a venv in `~/.venvs/dsl-crud`; the other dependencies follow `pyproject.toml` (without the `cards` and `typst` groups: no card collages, and Typst files read-only, on the phone). The phone doesn't build the frontend: `frontend/dist` is committed and automatically refreshed after frontend changes reach `main`. Every run starts the server and opens the browser. Set the data folder to the notes under `/storage/emulated/0/...`. One-tap start with Termux:Widget: `mkdir -p ~/.shortcuts && ln -s ~/dsl-crud/termux.sh ~/.shortcuts/dsl`.
 
 ## Test
 

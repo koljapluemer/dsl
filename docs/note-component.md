@@ -43,7 +43,7 @@ for a new note; every `edit` tool and the sidebar's ⤢ tool open it.
 - **Header**: the tool row on the left; the mode toggle (or Save/Discard,
   or the spinner of a blur save) and close on the right.
 - **Tools**, all icon buttons (`TOOL` in `tools.tsx`):
-  - edit and split only: `media` (upload, any number at once, and the camera on touch devices; pasting works too), `reference` (`[[`), `viz` (an empty ```` ```thea ```` block, its placeholder spec selected), `bibtex` (sources from the clipboard)
+  - edit and split only: `media` (upload, any number at once, and the camera on touch devices; pasting works too), `typst` (a new Typst document attached to the saved note, opened in its modal; only where Typst is installed), `reference` (`[[`), `viz` (an empty ```` ```thea ```` block, its placeholder spec selected), `bibtex` (sources from the clipboard)
   - edit and split, sources only: `bibtexUpdate` (fills in the source from the clipboard's BibTeX, the conflicting fields chosen above the editor)
   - `copyKey`: a source's BibTeX key
   - tag toggles
@@ -64,7 +64,8 @@ for a new note; every `edit` tool and the sidebar's ⤢ tool open it.
   - split: editor and preview side by side, stacked when the note is narrow (a container query)
 - **Files**: below the content, the saved note's files besides its images
   and videos (`FileList`, `entities/item/files`, [`files.md`](files.md)): files edited as text (Jinja templates) as buttons
-  opening `TextFileModal` (`features/file-edit`), other files as links.
+  opening `TextFileModal` (`features/file-edit`), Typst files as buttons opening
+  `TypstModal` (beside it) with a link to their PDF, other files as links.
 - **Relationships**: below the content (see below).
 - **Inline** (`NoteLine`, `entities/item`): the first line of the body,
   rendered as Markdown. It's cut after `inlineChars` characters of its text,

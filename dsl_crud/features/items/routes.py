@@ -64,7 +64,11 @@ def add_backlink(name): return jsonify(items.backlink(name, request.get_json(sil
 
 
 @blueprint.get("/api/files/<path:rel>")
-def get_file(rel): return send_file(media.path(rel), conditional=True)
+def get_file(rel):
+    response = send_file(media.path(rel), conditional=True)
+    # revalidated each time (cheaply, by ETag), so a rebuilt PDF or an edited file never shows stale
+    response.cache_control.no_cache = True
+    return response
 
 
 @blueprint.put("/api/files/<path:rel>")

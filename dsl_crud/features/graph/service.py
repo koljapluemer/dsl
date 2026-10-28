@@ -9,7 +9,7 @@ from collections import deque
 from dataclasses import dataclass, field
 
 from dsl_crud.core import documents as views
-from dsl_crud.core import dsl, edits as questions
+from dsl_crud.core import dsl, edits as questions, file_kinds
 from dsl_crud.infrastructure import config, items as store, media as files
 
 MAX_DIRECT_RELATIONS = 28
@@ -278,7 +278,9 @@ def delete(name: str) -> None:
     e = _require(name)
     text = store.get(name)["text"]
     kept = []
-    for rel in e.files:
+    # a Typst file's PDF goes with it (files.release), so the undo restores both
+    derived = [file_kinds.pdf_of(rel) for rel in e.files if file_kinds.kind(rel) is file_kinds.TYPST]
+    for rel in [*derived, *e.files]:
         try:
             kept.append((rel, files.read(rel)))
         except (store.NotFound, store.ValidationError):

@@ -187,6 +187,16 @@ def test_delete_and_undo_with_several_files(data_dir):
     assert (data_dir / rel).read_bytes() == b"bytes" and files.read_text("files/a.j2") == "{{ body }}"
 
 
+def test_delete_and_undo_with_a_typst_file_and_its_pdf(data_dir):
+    note("a", "A\nmedia files/a.typ")
+    files.write_text("files/a.typ", "= A")
+    (data_dir / "files/a.pdf").write_bytes(b"%PDF")
+    graph.delete("a.txt")
+    assert not (data_dir / "files/a.typ").exists() and not (data_dir / "files/a.pdf").exists()
+    graph.undo()
+    assert files.read_text("files/a.typ") == "= A" and (data_dir / "files/a.pdf").read_bytes() == b"%PDF"
+
+
 def test_hidden_notes_leave_the_graph_and_hide_undoes(data_dir):
     note("a", "A\n-> knows @b\n-> at @c")
     note("b", "B")

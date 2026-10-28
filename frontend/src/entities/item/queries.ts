@@ -1,6 +1,6 @@
 import { queryOptions } from '@tanstack/react-query';
 import { api, enc } from '@/api/client';
-import type { Backlink, Item, ItemPage } from '@/api/types';
+import type { Backlink, Item, ItemPage, TypstStatus } from '@/api/types';
 import { isDeleted } from './deleted';
 import { fileUrl } from './files/files';
 
@@ -42,4 +42,9 @@ export const textFileQuery = (path: string) => queryOptions({
     if (!res.ok) throw new Error(`${path}: ${res.statusText}`);
     return res.text();
   },
+});
+
+/** Whether Typst files can be built here (see TypstStatus). */
+export const typstStatusQuery = queryOptions({
+  queryKey: ['typst', 'status'], queryFn: () => api<TypstStatus>('GET', '/api/typst/status'), staleTime: 60_000,
 });

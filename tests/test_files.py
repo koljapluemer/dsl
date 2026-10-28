@@ -114,3 +114,33 @@ def test_orphaned(data_dir):
 
 def test_orphaned_without_folders():
     assert files.orphaned() == []
+
+
+def test_a_typst_files_pdf_is_kept_while_the_typst_file_is_named(data_dir):
+    for rel in ["files/doc.typ", "files/doc.pdf", "files/gone.pdf"]:
+        (data_dir / rel).parent.mkdir(parents=True, exist_ok=True)
+        (data_dir / rel).write_bytes(b"x")
+    note("a", "A\nmedia files/doc.typ")
+    assert files.orphaned() == ["files/gone.pdf"]
+    store.update("a.txt", {"text": "A"})
+    assert files.orphaned() == ["files/doc.pdf", "files/doc.typ", "files/gone.pdf"]
+
+
+def test_a_file_a_named_typst_file_mentions_is_kept(data_dir):
+    note("a", "A")
+    rel = files.attach("a.txt", b"x", "image/png")["files"][-1]
+    files.write_text("files/doc.typ", f'#image("/{rel}")')
+    files.add("a.txt", "files/doc.typ")
+    files.remove("a.txt", rel)
+    assert (data_dir / rel).exists()
+    assert files.orphaned() == []
+    files.remove("a.txt", "files/doc.typ")
+    assert files.orphaned() == [rel]
+
+
+def test_releasing_a_typst_file_deletes_its_pdf(data_dir):
+    note("a", "A\nmedia files/doc.typ")
+    files.write_text("files/doc.typ", "x")
+    (data_dir / "files/doc.pdf").write_bytes(b"x")
+    files.remove("a.txt", "files/doc.typ")
+    assert not (data_dir / "files/doc.typ").exists() and not (data_dir / "files/doc.pdf").exists()

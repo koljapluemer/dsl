@@ -23,10 +23,13 @@ dev = [
     "import-linter>=2.15.0",
     "pytest>=9.1.1",
 ]
+typst = [
+    "typst>=0.15",
+]
 
 [tool.uv]
-# `cards`: portfolio card collages; left out on Termux, which only installs `dependencies`
-default-groups = ["dev", "cards"]
+# `cards`: portfolio card collages, `typst`: Typst documents; left out on Termux, which only installs `dependencies`
+default-groups = ["dev", "cards", "typst"]
 
 [tool.pytest.ini_options]
 pythonpath = ["."]
@@ -63,5 +66,6 @@ modules = [
     "dsl_crud.features.settings",
     "dsl_crud.features.sources",
     "dsl_crud.features.thea",
+    "dsl_crud.features.typst",
     "dsl_crud.features.views",
 ]

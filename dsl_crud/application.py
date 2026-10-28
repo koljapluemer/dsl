@@ -18,8 +18,9 @@ from dsl_crud.features.sources import fields
 from dsl_crud.features.sources import bibtex_export
 from dsl_crud.features.sources.routes import blueprint as sources
 from dsl_crud.features.thea.routes import blueprint as thea
+from dsl_crud.features.typst.routes import blueprint as typst
 from dsl_crud.features.views.routes import blueprint as views
-from dsl_crud.infrastructure import chromium, exports, items
+from dsl_crud.infrastructure import chromium, exports, items, typst as typst_compiler
 
 ROOT = Path(__file__).parent.parent
 
@@ -28,12 +29,13 @@ def create_app() -> Flask:
     exports.register(bibtex_export.definition())
     exports.register(portfolio_service.export_definition())
     app = Flask(__name__, static_folder=None)
-    for blueprint in (settings, search, questions, views, sources, graph, canvas, maintenance, items_routes, portfolio, thea):
+    for blueprint in (settings, search, questions, views, sources, graph, canvas, maintenance, items_routes, portfolio, thea, typst):
         app.register_blueprint(blueprint)
     app.register_error_handler(items.ValidationError, _invalid)
     app.register_error_handler(fields.ValidationError, _invalid)
     app.register_error_handler(items.Conflict, _conflict)
     app.register_error_handler(chromium.Unavailable, _unavailable)
+    app.register_error_handler(typst_compiler.Unavailable, _unavailable)
     app.register_error_handler(items.NotFound, _not_found)
     app.after_request(_export_after_change)
     dist = Path(os.environ.get("DSL_FRONTEND_DIST", ROOT / "frontend" / "dist")).resolve()

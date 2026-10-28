@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { fileName, fileUrl, kindOf, mediaFiles, mediaKind, shownFiles } from './files';
+import { pdfOf } from './kinds/typst';
 
 describe('files', () => {
   it('knows a kind by its extension, as file_kinds.py', () => {
@@ -7,8 +8,15 @@ describe('files', () => {
     expect(kindOf('images/a.mov').name).toBe('video');
     expect(kindOf('files/page.html.j2').name).toBe('jinja');
     expect(kindOf('files/page.html.j2').editor).toBeDefined();
+    expect(kindOf('files/doc-a1b2c3.typ').name).toBe('typst');
+    expect(kindOf('files/doc-a1b2c3.typ').editor).toBeDefined();
     expect(kindOf('files/cv.pdf').name).toBe('other');
     expect(kindOf('files/README').name).toBe('other');
+  });
+
+  it('knows the PDF a Typst file is compiled to', () => {
+    expect(pdfOf('files/doc-a1b2c3.typ')).toBe('files/doc-a1b2c3.pdf');
+    expect(pdfOf('files/v1.2/doc.typ')).toBe('files/v1.2/doc.pdf');
   });
 
   it('names and addresses a file', () => {

@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useRef, useState, type FocusEvent, type KeyboardEvent, type ReactNode } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { Extension } from '@codemirror/state';
 import type { EditorView } from '@codemirror/view';
-import { BookDown, ChartSpline, Check, Copy, Pencil, Trash2, Undo2, X } from 'lucide-react';
+import { BookDown, ChartSpline, Check, Copy, FilePlus2, Pencil, Trash2, Undo2, X } from 'lucide-react';
 import type { Item } from '@/api/types';
 import { showError, showNotice, UNSAVED } from '@/dumb/notice';
 import { analyze } from '@/entities/item/dsl/analyze';
@@ -11,17 +11,18 @@ import { insertViz } from '@/entities/item/dsl/thea';
 import { hasTag } from '@/entities/item/dsl/tags';
 import { draftItem } from '@/entities/item/draftItem';
 import { FileList } from '@/entities/item/files/FileList';
-import { fileUrl, mediaKind, shownFiles } from '@/entities/item/files/files';
+import { fileUrl, kindOf, mediaKind, shownFiles } from '@/entities/item/files/files';
 import { MediaGallery, type GalleryMedia } from '@/entities/item/files/MediaGallery';
-import { itemsChanged, removeMedia, saveItem, setTag } from '@/entities/item/mutations';
+import { createTypst, itemsChanged, removeMedia, saveItem, setTag } from '@/entities/item/mutations';
 import { NoteContent } from '@/entities/item/NoteContent';
 import { NoteLine } from '@/entities/item/NoteLine';
 import { deletedItems } from '@/entities/item/deleted';
-import { itemQuery } from '@/entities/item/queries';
+import { itemQuery, typstStatusQuery } from '@/entities/item/queries';
 import { useSchema } from '@/entities/item/schema';
 import { useOpenNote } from '@/entities/item/sidebar';
 import { useDeleteItem } from '@/features/item-delete/useDeleteItem';
 import { TextFileModal } from '@/features/file-edit/TextFileModal';
+import { TypstModal } from '@/features/file-edit/TypstModal';
 import { ItemTextEditor } from '@/features/item-edit/ItemTextEditor';
 import { MediaPicker, stagedMedia } from '@/features/item-media/MediaAttachmentField';
 import { persistMedia, type MediaDraft } from '@/features/item-media/useMediaAttachments';
@@ -233,9 +234,30 @@ function LoadedNote({
 
   const want = (tool: ToolId, applies: boolean) => applies && (tools[tool] ?? (tool !== 'edit' || render !== 'full'));
   const attach = (files: File[]) => void draft.media.attachFiles(files);
+  const typst = useQuery({ ...typstStatusQuery, enabled: editing && !!item }).data?.available;
+  // the note as written is what's attached to, at once: explicit edits must be saved first, blur-committed ones are
+  async function newTypst() {
+    if (draft.dirty && (!blur || !(await save()))) return;
+    try {
+      const created = await createTypst(item!.file);
+      adopt(created.item);
+      draft.reset(created.item);
+      void itemsChanged(qc);
+      setTextFile(created.path);
+    } catch (e) { showError(e); }
+  }
+  const adoptFromFile = (changed: Item) => {
+    adopt(changed);
+    draft.reset(changed);
+    void itemsChanged(qc);
+  };
   const toolRow: ReactNode[] = [
     ...extraTools.map((t) => <Extra key={t.key} tool={t} />),
     want('media', editing) && <MediaPicker key="media" onAttach={attach} className={TOOL} />,
+    want('typst', editing && !!item && !!typst) && (
+      <ToolButton key="typst" title={!blur && draft.dirty ? 'new Typst document (save the note first)' : 'new Typst document, built to a PDF'}
+                  disabled={!blur && draft.dirty} onClick={() => void newTypst()}><FilePlus2 size={14} /></ToolButton>
+    ),
     want('reference', editing) && (
       <ToolButton key="reference" title="insert note reference" onClick={() => editorRef.current && insertReference(editorRef.current)}>[[</ToolButton>
     ),
@@ -367,7 +389,9 @@ function LoadedNote({
       {problem && <p className="mb-2 text-sm text-error">{problem}</p>}
       <div className={fill ? 'min-h-0 flex-1 overflow-y-auto' : ''}>{body}</div>
       {modalNote}
-      {textFile && <TextFileModal path={textFile} onClose={() => setTextFile(null)} />}
+      {textFile && (item && kindOf(textFile).name === 'typst'
+        ? <TypstModal path={textFile} note={item} noteDirty={draft.dirty} onItem={adoptFromFile} onClose={() => setTextFile(null)} />
+        : <TextFileModal path={textFile} onClose={() => setTextFile(null)} />)}
     </div>
   );
 }
