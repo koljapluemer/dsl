@@ -1,0 +1,7 @@
+{
+  "body": "Note",
+  "clauses": [{ "keyword": "tasks", "line": 9, "args": ["real"], "options": {} }],
+  "extra": "before\n```thea brave-otter-2\nmedia chart.png\ntasks none\n```\nafter",
+  "errors": [],
+  "warnings": []
+}

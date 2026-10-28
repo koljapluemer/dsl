@@ -122,7 +122,7 @@ const NoteView = memo(function NoteView({ id, file, editing, busy, readOnly, act
   ];
   return (
     <article className="canvas-node canvas-note cursor-auto select-text rounded-box border border-base-300 bg-base-100 p-3 text-left shadow-lg">
-      <Note file={file} modes={readOnly ? VIEW_ONLY : NOTE_MODES} mode={editing ? 'edit' : 'view'} commit="blur" relationships={false}
+      <Note file={file} modes={readOnly ? VIEW_ONLY : NOTE_MODES} mode={editing ? 'edit' : 'view'} commit="blur" relationships={false} compactViz
             onModeChange={(next) => (next === 'edit' ? actions.startEdit(id) : actions.toIdle())} onEscape={actions.toIdle}
             extraTools={tools} tools={{ delete: !readOnly && !busy }} onDelete={() => actions.deleteNote(id)} />
     </article>

@@ -8,7 +8,8 @@ blueprint = Blueprint("settings", __name__)
 def _settings():
     path = config.get_path()
     return jsonify(path=str(path) if path else None,
-                   exports={key: exports.paths(key) for key in exports.EXPORTS})
+                   exports={key: exports.paths(key) for key in exports.EXPORTS},
+                   thea=config.get_thea())
 
 
 @blueprint.get("/api/settings")
@@ -22,12 +23,16 @@ def put_settings():
         if not isinstance(body["llm"], dict):
             raise items.ValidationError("llm must be an object")
         config.set_llm(body["llm"])
+    if "thea" in body:
+        if not isinstance(body["thea"], dict):
+            raise items.ValidationError("thea must be an object")
+        config.set_thea(body["thea"])
     if "exports" in body:
         if not isinstance(body["exports"], dict):
             raise items.ValidationError("exports must be an object")
         for key, value in body["exports"].items():
             exports.set_paths(key, value)
-    if "path" in body or not body.keys() & {"llm", "exports"}:
+    if "path" in body or not body.keys() & {"llm", "thea", "exports"}:
         path = (body.get("path") or "").strip()
         if not path:
             raise items.ValidationError("path required")

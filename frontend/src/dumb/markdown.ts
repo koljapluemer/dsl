@@ -1,4 +1,4 @@
-import { Lexer, marked, Parser, type Token, type Tokens } from 'marked';
+import { Lexer, Marked, marked, Parser, type Token, type Tokens } from 'marked';
 import DOMPurify from 'dompurify';
 import { inlineReferences, type InlineReference } from './inlineReference';
 import './markdown.css';
@@ -38,6 +38,33 @@ function expandReferences(s: string, refs: Record<string, string | null>, refere
 /** Markdown as sanitized HTML; single newlines break lines. */
 export const markdown = (s: string, refs: Record<string, string | null> = {}, referenceHtml?: ReferenceHtml) =>
   DOMPurify.sanitize(marked.parse(expandReferences(s, refs, referenceHtml), { breaks: true, async: false }));
+
+// the fence kinds the current `slotted` call leaves slots for
+let slotKinds: readonly string[] = [];
+const slotting = new Marked({
+  renderer: {
+    code({ text, lang }) {
+      const info = (lang ?? '').trim();
+      const kind = info.split(/\s+/)[0];
+      if (!slotKinds.includes(kind)) return false;
+      return `<div data-fence="${escapeHtml(kind)}" data-info="${escapeHtml(info)}" data-code="${escapeHtml(text)}"></div>\n`;
+    },
+  },
+});
+
+/**
+ * As `markdown`, but a fenced code block whose info string starts with one of
+ * `kinds` becomes an empty slot, `<div data-fence data-info data-code>`, for
+ * the caller to fill (see Markdown's `fences`).
+ */
+export function slotted(s: string, refs: Record<string, string | null>, kinds: readonly string[]) {
+  slotKinds = kinds;
+  try {
+    return DOMPurify.sanitize(slotting.parse(expandReferences(s, refs), { breaks: true, async: false }));
+  } finally {
+    slotKinds = [];
+  }
+}
 
 /**
  * One line of Markdown as sanitized inline HTML, cut after `chars` characters of

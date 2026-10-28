@@ -1,0 +1,8 @@
+Note with code
+```
+tags not-a-tag
+-> not a @relation
+extra
+```
+after the fence
+tags real

@@ -1,0 +1,10 @@
+{
+  "body": "Note",
+  "clauses": [
+    { "keyword": "publish", "line": 2, "args": ["a/b"], "options": {} },
+    { "keyword": "tags", "line": 8, "args": ["y"], "options": {} }
+  ],
+  "publish": { "route": "a/b", "text": "~~~~\ntags x\n```\nstill inside\n~~~~" },
+  "errors": [],
+  "warnings": []
+}

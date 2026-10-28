@@ -55,6 +55,7 @@ function NoteCardInner({
         mode={editing ? 'edit' : 'view'}
         onModeChange={(next) => (next === 'edit' ? onEdit(note.filename) : onCancelEdit())}
         relationships={false}
+        compactViz
         save={(text, media) => onSaveEdit(note.filename, text, media)}
         onEscape={onCancelEdit}
         extraTools={[

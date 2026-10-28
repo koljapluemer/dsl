@@ -1,0 +1,6 @@
+{
+  "body": "Note",
+  "clauses": [{ "keyword": "tags", "line": 5, "args": ["x"], "options": {} }],
+  "errors": [{ "code": "invalid_yaml", "line": 2 }],
+  "warnings": []
+}

@@ -3,7 +3,7 @@ import pytest
 from dsl_crud.features.portfolio import collage
 
 from dsl_crud.features.portfolio import service as portfolio
-from dsl_crud.infrastructure import config, exports, items as store, media as files
+from dsl_crud.infrastructure import chromium, config, exports, items as store, media as files
 
 
 @pytest.fixture(autouse=True)
@@ -92,7 +92,7 @@ def add_card(data_dir, name="c.txt", text="# Card [[x|ref]]\n\nmedia images/p.pn
 
 @pytest.fixture
 def unavailable(monkeypatch):
-    monkeypatch.setattr(collage, "_missing", lambda: "Chromium missing")
+    monkeypatch.setattr(chromium, "missing", lambda: "Chromium missing")
 
 
 def test_render_cards(data_dir):

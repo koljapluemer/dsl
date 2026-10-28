@@ -8,7 +8,6 @@ chromium`); `available` says whether this install has them. Renders are cached
 on disk by what goes into them."""
 
 import base64
-import functools
 import hashlib
 import html
 import io
@@ -16,6 +15,8 @@ import json
 import mimetypes
 import os
 from pathlib import Path
+
+from dsl_crud.infrastructure import chromium
 
 # bump when the page or its layout changes, so cached pages are rendered again
 VERSION = 5
@@ -25,32 +26,9 @@ CACHE_DIR = Path(os.environ.get("XDG_CACHE_HOME", Path.home() / ".cache")) / "ds
 WIDTH, HEIGHT = 1754, 1240
 CSS_WIDTH, CSS_HEIGHT = 1123, 794
 THUMB_WIDTH = 420
-INSTALL_HINT = "uv run playwright install chromium"
 
-
-class Unavailable(RuntimeError):
-    pass
-
-
-@functools.cache
-def _missing() -> str | None:
-    """Why collages can't be rendered here, None if they can. Checked once per process."""
-    try:
-        import PIL  # noqa: F401
-        from playwright.sync_api import sync_playwright
-    except ImportError as e:
-        return f"{e.name} isn't installed (the `cards` dependency group)"
-    try:
-        with sync_playwright() as p:
-            p.chromium.launch().close()
-    except Exception as e:  # noqa: BLE001 - any failure to start means unavailable
-        return f"Chromium doesn't start ({str(e).strip().splitlines()[0]}); run `{INSTALL_HINT}`"
-    return None
-
-
-def available() -> dict:
-    reason = _missing()
-    return {"available": reason is None, "reason": reason}
+Unavailable = chromium.Unavailable
+available = chromium.available
 
 
 _STYLE = """
@@ -275,25 +253,15 @@ class Session:
     """Renders cards, starting Chromium on the first one not in the cache; use as a context manager."""
 
     def __enter__(self):
-        self._playwright = self._browser = None
+        self._browser = chromium.Browser("card collages").__enter__()
         return self
 
     def __exit__(self, *exc):
-        if self._browser:
-            self._browser.close()
-        if self._playwright:
-            self._playwright.stop()
+        self._browser.__exit__(*exc)
 
     def _page(self):
-        if self._browser is None:
-            reason = _missing()
-            if reason:
-                raise Unavailable(f"card collages unavailable: {reason}")
-            from playwright.sync_api import sync_playwright
-            self._playwright = sync_playwright().start()
-            self._browser = self._playwright.chromium.launch()
-        return self._browser.new_page(viewport={"width": CSS_WIDTH, "height": CSS_HEIGHT},
-                                      device_scale_factor=WIDTH / CSS_WIDTH)
+        return self._browser.page(viewport={"width": CSS_WIDTH, "height": CSS_HEIGHT},
+                                  device_scale_factor=WIDTH / CSS_WIDTH)
 
     def layout(self, title: str, body_html: str, images: list[Path]) -> tuple[bytes, dict]:
         """The page as PNG, and what the layout chose (`size`, `fits`)."""

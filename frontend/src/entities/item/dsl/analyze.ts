@@ -20,10 +20,13 @@ type Pass = Analysis & { schema: Schema; keywords: string[]; clauses: string[] }
  * validity is only checked by the server.
  */
 export function analyze(schema: Schema, text: string): Analysis {
-  const { lines, starts, first, parts } = outline(schema, text);
+  const { lines, starts, first, parts, unclosed } = outline(schema, text);
   const pass: Pass = { schema, segments: [], problems: [], keywords: [], clauses: [] };
   const { segments, problems } = pass;
   if (first < 0) return { segments, problems };
+  for (const line of unclosed) {
+    problems.push({ from: starts[line], to: starts[line] + lines[line].length, severity: 'warning', message: 'unclosed_fence: the fence never closes, so lines after it are parsed as usual' });
+  }
 
   for (const { line, end, keyword } of parts) {
     if (!keyword) {

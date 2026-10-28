@@ -58,10 +58,19 @@ module in `kinds/` for what only it does.
 - `POST /api/items/<name>/media` (the upload's bytes and type): adds it as the item's last `media`.
 - `DELETE /api/items/<name>/media?p=<path>`: drops the item's `media` clause naming the path.
 
+## Viz blocks
+
+A viz block's versions are folders `files/thea/<name>-<version>/` (sources,
+`index.html`, `thumb.webp`, `thea.json`), named by the block's header rather
+than by `media` clauses ([`thea.md`](thea.md)). When a note names no image or
+video, its first viz's thumbnail is its cover.
+
 ## When files are deleted
 
 `files.referenced` is the one rule for whether a file is still needed: another
-item names it in a `media` clause or mentions its path anywhere in its text. A
+item names it in a `media` clause or mentions its path anywhere in its text,
+or, for a file in a viz version's folder, has a viz block whose current
+version is that one or the next (`thea.kept`). A
 file in `images/` or `files/` that nothing references is deleted
 
 - when one of the item's images or videos is removed,

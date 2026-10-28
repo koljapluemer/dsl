@@ -15,7 +15,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from dsl_crud.core import documents as views
-from dsl_crud.core import dsl, edits, file_kinds, inline_refs
+from dsl_crud.core import dsl, edits, file_kinds, inline_refs, thea
 from dsl_crud.infrastructure import config
 from dsl_crud.infrastructure.errors import Conflict, NotFound, ValidationError
 
@@ -42,7 +42,16 @@ def _file(name: str) -> Path:
 
 def _item(path: Path, text: str) -> dict:
     doc = dsl.parse(SCHEMA, text)
-    return {"file": path.name, "text": text, "media": views.media(doc), "files": views.files(doc), **dsl.diagnostics(doc)}
+    cover = views.media(doc) or _thea_thumb(path.parent, text)
+    return {"file": path.name, "text": text, "media": cover, "files": views.files(doc), **dsl.diagnostics(doc)}
+
+
+def _thea_thumb(folder: Path, text: str) -> str | None:
+    """The thumbnail of the item's first generated viz: its cover when it names no image or video."""
+    for b in thea.blocks(SCHEMA, text) if "thea" in text else ():
+        if b.id and (folder / (rel := f"{thea.DIR}/{b.id}/thumb.webp")).is_file():
+            return rel
+    return None
 
 
 def _read(path: Path) -> dict:
@@ -92,6 +101,9 @@ class _Entry:
     extra_words: frozenset[str]
     # where it's published (see views.route)
     route: str | None
+    # its viz blocks' names, and the version folders they keep (see thea.kept)
+    thea_names: frozenset[str]
+    thea_dirs: frozenset[str]
 
 
 UNLABELED_RELATION = "related"
@@ -110,6 +122,7 @@ def _entry(mtime_ns: int, item: dict) -> "_Entry":
     extra = "\n".join(doc.extra or [])
     body = "\n".join(doc.body)
     inline = {r.target for text in (body, *dsl.text_blocks(SCHEMA, doc)) for r in inline_refs.references(text)}
+    vizzes = thea.blocks(SCHEMA, text) if "thea" in text else []
     explicit = tuple((r.label or UNLABELED_RELATION, f"{r.target}.txt") for r in doc.relations)
     return _Entry(
         mtime_ns,
@@ -135,6 +148,8 @@ def _entry(mtime_ns: int, item: dict) -> "_Entry":
         frozenset(words(body)),
         frozenset(words(extra)),
         views.route(doc),
+        frozenset(b.name for b in vizzes if b.name),
+        thea.kept([b.id for b in vizzes if b.id]),
     )
 
 

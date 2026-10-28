@@ -1,0 +1,8 @@
+{
+  "body": "Note with code\n```\ntags not-a-tag\n-> not a @relation\nextra\n```\nafter the fence",
+  "clauses": [{ "keyword": "tags", "line": 8, "args": ["real"], "options": {} }],
+  "relations": [],
+  "extra": null,
+  "errors": [],
+  "warnings": []
+}

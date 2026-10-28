@@ -10,7 +10,7 @@ definitions, the export-after-write hook, and the frontend fallback.
 | Area | Responsibility | May import |
 |---|---|---|
 | `core` | DSL parsing, document interpretation, text edits, inline references, file kinds | standard library and third-party libraries |
-| `infrastructure` | configuration, indexed item files, attachments, exports, Ollama | `core` |
+| `infrastructure` | configuration, indexed item files, attachments, exports, Ollama, headless Chromium (`chromium.py`, for the portfolio's cards and viz blocks) | `core` |
 | `features/<name>` | one user-facing capability, with its HTTP adapter in `routes.py` | `core`, `infrastructure`, and its own package |
 | `application.py`, `web.py`, `__main__.py` | composition, shared HTTP helpers, process startup | every layer as needed |
 

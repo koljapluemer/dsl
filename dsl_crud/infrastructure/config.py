@@ -46,6 +46,32 @@ def set_llm(value: dict) -> None:
     update({"llm": {"url": url.strip()} if url and url.strip() else {}})
 
 
+THEA_DEFAULTS = {"cli": "claude", "model": "", "budget_usd": None, "timeout_min": 20}
+
+
+def get_thea() -> dict:
+    """How viz blocks are generated (see docs/thea.md): the claude CLI's
+    command, its model ("" for the CLI's default), a cap per run in USD as the
+    CLI estimates it at API prices (with a subscription nothing is billed;
+    it bounds usage), None for none, and a time limit in minutes."""
+    value = read().get("thea")
+    return THEA_DEFAULTS | (value if isinstance(value, dict) else {})
+
+
+def set_thea(value: dict) -> None:
+    current = get_thea()
+    cli, model = value.get("cli", current["cli"]), value.get("model", current["model"])
+    budget, timeout = value.get("budget_usd", current["budget_usd"]), value.get("timeout_min", current["timeout_min"])
+    if not isinstance(cli, str) or not isinstance(model, str):
+        raise ValidationError("thea.cli and thea.model must be strings")
+    if budget is not None and (isinstance(budget, bool) or not isinstance(budget, (int, float)) or budget <= 0):
+        raise ValidationError("thea.budget_usd must be a positive number or null")
+    if isinstance(timeout, bool) or not isinstance(timeout, int) or not 1 <= timeout <= 240:
+        raise ValidationError("thea.timeout_min must be a whole number of minutes, 1 to 240")
+    update({"thea": {"cli": cli.strip() or THEA_DEFAULTS["cli"], "model": model.strip(),
+                     "budget_usd": budget, "timeout_min": timeout}})
+
+
 def get_export_paths(key: str) -> list[str]:
     return list(read().get(key) or [])
 

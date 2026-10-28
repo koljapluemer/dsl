@@ -62,5 +62,6 @@ modules = [
     "dsl_crud.features.search",
     "dsl_crud.features.settings",
     "dsl_crud.features.sources",
+    "dsl_crud.features.thea",
     "dsl_crud.features.views",
 ]

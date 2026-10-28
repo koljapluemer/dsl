@@ -20,7 +20,7 @@
 #
 # A type is one name from language.md, or a list of them.
 
-version: 9
+version: 10
 
 changes:
   - version: 1
@@ -55,6 +55,12 @@ changes:
       Block keywords may take args, on the keyword's line. New value type
       route; new block keyword publish. Inline relationships count in every
       `text` block.
+  - version: 10
+    note: >
+      Lines inside a closed Markdown fence, in the body or a `text` block,
+      never open the keyword section or end the block. New warning
+      unclosed_fence. A body or block line at column 0 that only looked like
+      a keyword because it sat in a fence now stays text.
 
 keywords:
   appointment:

@@ -37,6 +37,8 @@ _DATE = re.compile(r"^(\d{2})-(\d{2})-(\d{2})$")
 _MONTH = re.compile(r"^(\d{2})-(\d{2})$")
 _TAG = re.compile(r"^[a-z0-9-]+$")
 _ROUTE = re.compile(r"^[a-z0-9-]+(?:/[a-z0-9-]+)*$")
+FENCE = re.compile(r"^[ \t]{0,3}(`{3,}|~{3,})")
+WARNINGS = ("unknown_keyword", "unclosed_fence")
 
 
 def load_schema(path: Path = SPEC_PATH) -> dict:
@@ -159,7 +161,7 @@ class Diagnostic:
 
     @property
     def is_error(self) -> bool:
-        return self.code != "unknown_keyword"
+        return self.code not in WARNINGS
 
 
 @dataclass
@@ -222,9 +224,10 @@ def parse(schema: dict, text: str) -> Document:
     if first is None:
         return Document(diagnostics=[Diagnostic("empty")])
 
-    boundary = _boundary(schema, lines, first)
+    unclosed: list[int] = []
+    boundary = _boundary(schema, lines, first, unclosed)
     p = _SectionParser(schema["keywords"])
-    for i, end, keyword in _section_parts(schema, lines, boundary):
+    for i, end, keyword in _section_parts(schema, lines, boundary, unclosed):
         if keyword is None:
             p.line(lines[i], i + 1)
         else:
@@ -239,17 +242,43 @@ def parse(schema: dict, text: str) -> Document:
         unknown=p.unknown,
         blocks=p.blocks,
         data=p.data,
-        diagnostics=p.diagnostics,
+        diagnostics=p.diagnostics + [Diagnostic("unclosed_fence", i + 1) for i in sorted(set(unclosed))],
     )
 
 
-def _boundary(schema: dict, lines: list[str], first: int) -> int:
-    return next((i for i in range(first + 1, len(lines)) if is_section_opener(schema, lines[i])), len(lines))
+def fence_end(lines: list[str], i: int) -> int | None:
+    """The index of the line closing the fence that lines[i] opens; None when
+    it opens none or the fence isn't closed."""
+    m = FENCE.match(lines[i])
+    if not m:
+        return None
+    char, length = m[1][0], len(m[1])
+    closing = re.compile(rf"^[ \t]{{0,3}}{re.escape(char)}{{{length},}}[ \t]*$")
+    return next((j for j in range(i + 1, len(lines)) if closing.match(lines[j])), None)
 
 
-def _section_parts(schema: dict, lines: list[str], boundary: int):
+def _past_fence(lines: list[str], i: int, unclosed: list[int] | None) -> int:
+    """The line after lines[i], or after the closed fence it opens: lines in a
+    fence are never section openers or terminators."""
+    end = fence_end(lines, i)
+    if end is not None:
+        return end + 1
+    if unclosed is not None and FENCE.match(lines[i]):
+        unclosed.append(i)
+    return i + 1
+
+
+def _boundary(schema: dict, lines: list[str], first: int, unclosed: list[int] | None = None) -> int:
+    i = _past_fence(lines, first, unclosed)
+    while i < len(lines) and not is_section_opener(schema, lines[i]):
+        i = _past_fence(lines, i, unclosed)
+    return min(i, len(lines))
+
+
+def _section_parts(schema: dict, lines: list[str], boundary: int, unclosed: list[int] | None = None):
     """`(line, end, keyword)` for each line of the keyword section, a block
-    (`keyword` set, its content up to `end`) taken as one."""
+    (`keyword` set, its content up to `end`) taken as one. Fences are skipped
+    in `text` blocks."""
     i = boundary
     while i < len(lines):
         keyword = block_keyword(schema, lines[i])
@@ -257,9 +286,26 @@ def _section_parts(schema: dict, lines: list[str], boundary: int):
             yield i, i + 1, None
             i += 1
             continue
-        end = next((j for j in range(i + 1, len(lines)) if ends_block(schema, lines[j])), len(lines))
+        text = schema["keywords"][keyword]["block"] == "text"
+        end = i + 1
+        while end < len(lines) and not ends_block(schema, lines[end]):
+            end = _past_fence(lines, end, unclosed) if text else end + 1
         yield i, end, keyword
         i = end
+
+
+def text_spans(schema: dict, text: str) -> list[tuple[str | None, int, int]]:
+    """`(keyword, start, end)` line indices of the body (keyword None) and of
+    each `text` block's content: the Markdown parts of `text`."""
+    lines = [l.replace("\r", "") for l in text.split("\n")]
+    first = next((i for i, l in enumerate(lines) if l.strip()), None)
+    if first is None:
+        return []
+    boundary = _boundary(schema, lines, first)
+    return [(None, first, boundary)] + [
+        (k, i + 1, end) for i, end, k in _section_parts(schema, lines, boundary)
+        if k is not None and schema["keywords"][k]["block"] == "text"
+    ]
 
 
 def block_span(schema: dict, text: str, keyword: str) -> tuple[int, int] | None:

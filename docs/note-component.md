@@ -30,6 +30,7 @@ Defaults are full capabilities: anything not switched off is there.
 | `onEdit` | | the `edit` tool does this instead of opening its own modal (Float keeps the modal to pause its stage) |
 | `save`, `onDelete` | | write or delete instead of the items API (the Graph's own update and undo) |
 | `onSaved`, `onCreated`, `onDeleted`, `onClose`, `onEscape`, `onRef` | | `onRef`: a click on a related or linked note, by default the note opened in the sidebar (`useOpenNote`) |
+| `compactViz` | | viz blocks as their thumbnails, not live ([`thea.md`](thea.md)); Graph and Canvas cards |
 | `editorExtensions`, `renderPreview`, `onTextChange` | | seams for a specialized workspace to extend CodeMirror, replace the normal preview, and observe the current draft; Document uses all three |
 
 `NoteModal` is the note in a modal: in the editor first, explicit commit, and
@@ -42,7 +43,7 @@ for a new note; every `edit` tool and the sidebar's ⤢ tool open it.
 - **Header**: the tool row on the left; the mode toggle (or Save/Discard,
   or the spinner of a blur save) and close on the right.
 - **Tools**, all icon buttons (`TOOL` in `tools.tsx`):
-  - edit and split only: `media` (upload, any number at once, and the camera on touch devices; pasting works too), `reference` (`[[`), `bibtex` (sources from the clipboard)
+  - edit and split only: `media` (upload, any number at once, and the camera on touch devices; pasting works too), `reference` (`[[`), `viz` (an empty ```` ```thea ```` block, its placeholder spec selected), `bibtex` (sources from the clipboard)
   - edit and split, sources only: `bibtexUpdate` (fills in the source from the clipboard's BibTeX, the conflicting fields chosen above the editor)
   - `copyKey`: a source's BibTeX key
   - tag toggles

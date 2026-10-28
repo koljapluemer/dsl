@@ -1,0 +1,15 @@
+{
+  "name": "thea-viz",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs",
+    "lint": "oxlint --deny-warnings src && tsc --noEmit",
+    "check": "node build.mjs && \"${DSL_PYTHON:?run by the app}\" \"${DSL_CHECK:?run by the app}\" dist/index.html"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.2",
+    "oxlint": "1.90.0",
+    "typescript": "7.0.2"
+  }
+}

@@ -66,7 +66,7 @@ valid reference to a missing item does not make the item invalid.
 ### Boundary
 
 The boundary is the first line after the first body line that is a **section
-opener**. A section opener starts at column 0 and is one of:
+opener**, outside a closed [fence](#fences). A section opener starts at column 0 and is one of:
 
 - a keyword whose `role` opens a section (`primary` or `property`, see
   `keywords.yaml`), followed by whitespace or the end of the line
@@ -85,6 +85,23 @@ existing data before adding one.
 **Escaping**: to keep a body line that would be a section opener, indent it.
 Writers that produce body text indent such lines by one space.
 
+### Fences
+
+A Markdown fenced code block in the body or a `text` block is opaque: none of
+its lines is a section opener or a [block terminator](#block-keywords), so code
+needs no escaping. A fence opens on a line with at most three spaces of
+indentation followed by three or more `` ` `` or `~`, and closes on the next
+line holding only (after at most three spaces) at least as many of the same
+character, plus trailing whitespace. The first body line may open one.
+
+A fence that never closes is not opaque: the lines after it are parsed as
+usual, and it is an `unclosed_fence` warning. This way typing an opening fence
+never swallows the keyword section. Fences in a `yaml` block (`data`) are
+YAML like any other text.
+
+Frontends may give fences meaning by their info string (the text after the
+opening marker); that is outside this language.
+
 ### Block keywords
 
 A keyword with a `block` entry in `keywords.yaml` (`data`, `extra`,
@@ -100,7 +117,8 @@ column 0:
   item; the block is its content either way.
 
 The block is every line after the keyword up to, not including, the first
-**terminator**, or up to the end of the file. A terminator is a line that
+**terminator**, or up to the end of the file. In a `text` block, lines inside a
+closed [fence](#fences) are never terminators. A terminator is a line that
 starts at column 0 and is:
 
 - a known keyword of any role, followed by whitespace or the end of the line
@@ -286,6 +304,7 @@ Errors are identified by these codes, plus the line they occur on.
 | code              | when                                     |
 | ----------------- | ---------------------------------------- |
 | `unknown_keyword` | see [Unknown keywords](#unknown-keywords) |
+| `unclosed_fence`  | see [Fences](#fences)                     |
 
 Frontends should show both invalid items and warnings in a "needs attention"
 view rather than hiding them.

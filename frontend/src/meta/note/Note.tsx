@@ -2,11 +2,12 @@ import { useEffect, useMemo, useRef, useState, type FocusEvent, type KeyboardEve
 import { useQueryClient } from '@tanstack/react-query';
 import type { Extension } from '@codemirror/state';
 import type { EditorView } from '@codemirror/view';
-import { BookDown, Check, Copy, Pencil, Trash2, Undo2, X } from 'lucide-react';
+import { BookDown, ChartSpline, Check, Copy, Pencil, Trash2, Undo2, X } from 'lucide-react';
 import type { Item } from '@/api/types';
 import { showError, showNotice, UNSAVED } from '@/dumb/notice';
 import { analyze } from '@/entities/item/dsl/analyze';
 import { insertReference } from '@/entities/item/dsl/referenceCompletion';
+import { insertViz } from '@/entities/item/dsl/thea';
 import { hasTag } from '@/entities/item/dsl/tags';
 import { draftItem } from '@/entities/item/draftItem';
 import { FileList } from '@/entities/item/files/FileList';
@@ -98,6 +99,8 @@ export type NoteProps = {
   autofocus?: boolean;
   /** fills its box, the note scrolling inside */
   fill?: boolean;
+  /** viz blocks as their thumbnails, not live (graph nodes, canvas cards) */
+  compactViz?: boolean;
   id?: string;
   className?: string;
 };
@@ -126,7 +129,7 @@ function LoadedNote({
   initial = '', item: shown, adopt, render = 'full', modes: modesAsked = ALL_MODES, defaultMode = 'view', mode: modeAsked, onModeChange,
   persist, commit = 'explicit', relationships = true, relationshipsEditableInView = true, initialPending, tools = {}, tagToggles = [],
   extraTools = [], mediaPosition = 'top', inlineChars, inlineWhole, highlight, onClick, onEdit, save: write, onDelete, onSaved, onCreated, onDeleted, onClose,
-  onRef, editorExtensions, renderPreview, onTextChange, onEscape, autofocus = false, fill = false, id, className = '',
+  onRef, editorExtensions, renderPreview, onTextChange, onEscape, autofocus = false, fill = false, compactViz = false, id, className = '',
 }: NoteProps & { adopt: (item: Item) => void }) {
   const qc = useQueryClient();
   const schema = useSchema();
@@ -236,6 +239,11 @@ function LoadedNote({
     want('reference', editing) && (
       <ToolButton key="reference" title="insert note reference" onClick={() => editorRef.current && insertReference(editorRef.current)}>[[</ToolButton>
     ),
+    want('viz', editing) && (
+      <ToolButton key="viz" title="insert a viz block (generated from its spec)" onClick={() => editorRef.current && insertViz(editorRef.current)}>
+        <ChartSpline size={14} />
+      </ToolButton>
+    ),
     want('bibtex', editing) && <BibtexPicker key="bibtex" onPick={() => void draft.bib.fromClipboard()} className={TOOL} />,
     want('bibtexUpdate', editing && !!item?.sourceKey) && (
       <ToolButton key="bibtexUpdate" title="update this source from BibTeX in the clipboard"
@@ -325,7 +333,7 @@ function LoadedNote({
   const preview = (text: string) => {
     const previewItem = draftItem(text, item ?? undefined);
     return renderPreview?.(previewItem)
-      ?? <NoteContent item={previewItem} variant={render === 'simple' ? 'simple' : 'full'} onRef={ref} />;
+      ?? <NoteContent item={previewItem} variant={render === 'simple' ? 'simple' : 'full'} onRef={ref} compactViz={compactViz} savedText={item?.text} />;
   };
   const content = mode === 'edit' ? editor
     : mode === 'split' ? <div className="grid gap-3 @3xl:grid-cols-2">{editor}<div className="min-w-0">{preview(draft.text)}</div></div>

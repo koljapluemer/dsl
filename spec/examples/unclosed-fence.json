@@ -1,0 +1,6 @@
+{
+  "body": "Note\n```\nstill body",
+  "clauses": [{ "keyword": "tags", "line": 4, "args": ["x"], "options": {} }],
+  "errors": [],
+  "warnings": [{ "code": "unclosed_fence", "line": 2 }]
+}

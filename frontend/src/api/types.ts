@@ -39,7 +39,17 @@ export type Answered = Item & { target: Suggestion };
 /** the exports (exports.py), by their key */
 export type ExportKey = 'bibtex' | 'portfolio';
 /** `exports`: each export's target paths, each with its last export's error */
-export type Settings = { path: string | null; exports: Record<ExportKey, { path: string; error: string | null }[]> };
+export type Settings = { path: string | null; exports: Record<ExportKey, { path: string; error: string | null }[]>; thea: TheaSettings };
+/** how viz blocks are generated: the claude CLI command, its model ('' for its default), a cap per run in estimated USD (API prices, not what a subscription pays), a time limit */
+export type TheaSettings = { cli: string; model: string; budget_usd: number | null; timeout_min: number };
+export type TheaStatus = { available: boolean; reason: string | null; settings: TheaSettings };
+/** a viz block's generation, by its block's name; `id` is the version made, once done */
+export type TheaJob = {
+  name: string; file: string; state: 'queued' | 'running' | 'done' | 'failed'; step: string; error: string | null;
+  id: string | null; started: number; finished: number | null; cost_usd: number | null;
+};
+/** what a viz version was generated from (its thea.json) */
+export type TheaMeta = { spec: string; model: string | null; created: string; cost_usd: number | null; turns: number | null };
 /** what Settings → maintenance would delete */
 export type Maintenance = { pastAppointments: Item[]; orphanedFiles: string[] };
 /** the note tagged portfolio and its template's path */

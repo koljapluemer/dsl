@@ -6,6 +6,7 @@ import { saveSettings, settingsQuery } from '@/entities/settings/queries';
 import { ExportSettings } from './ExportSettings';
 import { LlmSettings } from './LlmSettings';
 import { MaintenanceSettings } from './MaintenanceSettings';
+import { TheaSettings } from './TheaSettings';
 
 export function SettingsPage() {
   const qc = useQueryClient();
@@ -31,6 +32,7 @@ export function SettingsPage() {
         </div>
       </fieldset>
       <LlmSettings />
+      {path && <TheaSettings />}
       {path && <ExportSettings exportKey="bibtex" legend="bibtex export" placeholder="~/path/to/sources.bib" />}
       {path && <ExportSettings exportKey="portfolio" legend="portfolio export" placeholder="~/path/to/site/index.html" />}
       {path && <MaintenanceSettings />}

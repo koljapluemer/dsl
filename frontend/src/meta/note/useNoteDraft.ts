@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import type { Item } from '@/api/types';
+import { carryHeaders } from '@/entities/item/dsl/thea';
 import { shownFiles } from '@/entities/item/files/files';
+import { useSchema } from '@/entities/item/schema';
 import { mediaChanged, mediaDraft, useMediaAttachments } from '@/features/item-media/useMediaAttachments';
 import type { PendingOp } from '@/features/item-relate/relationModel';
 import { useBibtexSources } from '@/features/source-bibtex/useBibtexSources';
@@ -13,6 +15,7 @@ const sameFiles = (a: string[], b: string[]) => a.length === b.length && a.every
  * follows a newer note while nothing is edited; `reset` starts it over.
  */
 export function useNoteDraft(item: Item | null, initial: string, initialPending: PendingOp[] = []) {
+  const schema = useSchema();
   const [base, setBase] = useState({ text: item?.text ?? initial, media: item ? shownFiles(item) : [] });
   const [text, setText] = useState(base.text);
   const media = useMediaAttachments(base.media);
@@ -31,11 +34,19 @@ export function useNoteDraft(item: Item | null, initial: string, initialPending:
     if (!keepPending) setPending([]);
   }
 
-  // a newer note while nothing is edited (another view wrote it): start from it
+  // a newer note while nothing is edited (another view wrote it): start from it; while
+  // something is, keep the viz headers a generation rewrote (docs/thea.md)
   const [seen, setSeen] = useState(item);
   if (item !== seen) {
     setSeen(item);
     if (item && !dirty && (item.text !== base.text || !sameFiles(shownFiles(item), base.media))) reset(item);
+    else if (item && dirty && item.text !== base.text) {
+      const carried = carryHeaders(schema, text, base.text, item.text);
+      if (carried !== text) {
+        setText(carried);
+        setBase({ ...base, text: carryHeaders(schema, base.text, base.text, item.text) });
+      }
+    }
   }
 
   return { text, setText, media, mediaEdits, bib, pending, setPending, dirty, reset };

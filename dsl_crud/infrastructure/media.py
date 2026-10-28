@@ -7,7 +7,7 @@ import time
 from pathlib import Path
 
 from dsl_crud.core import documents as views
-from dsl_crud.core import dsl, file_kinds
+from dsl_crud.core import dsl, file_kinds, thea
 from dsl_crud.infrastructure import items as store
 
 # Uploads go to IMAGES_DIR, files the app creates otherwise to FILES_DIR. The
@@ -69,9 +69,13 @@ def _managed(rel: str) -> bool:
 
 
 def referenced(rel: str, entries: dict, ignoring: str | None = None) -> bool:
-    """Whether an item other than `ignoring` names `rel`, in a `media` clause or anywhere in its text."""
+    """Whether an item other than `ignoring` names `rel`, in a `media` clause or
+    anywhere in its text, or, for a file in a viz version's folder, has a viz
+    block keeping that version (see thea.kept)."""
     low = rel.lower()
-    return any(rel in e.files or low in e.lower for name, e in entries.items() if name != ignoring)
+    viz = thea.dir_id(rel)
+    return any(rel in e.files or low in e.lower or (viz is not None and viz in e.thea_dirs)
+               for name, e in entries.items() if name != ignoring)
 
 
 def release(rel: str, ignoring: str | None = None) -> None:
@@ -99,7 +103,17 @@ def delete_orphaned() -> int:
     rels = orphaned()
     for rel in rels:
         _resolve(rel).unlink(missing_ok=True)
+    _prune(store._dir() / thea.DIR)
     return len(rels)
+
+
+def _prune(folder: Path) -> None:
+    """Removes the empty folders below `folder`."""
+    if not folder.is_dir():
+        return
+    for d in sorted((p for p in folder.rglob("*") if p.is_dir()), key=lambda p: len(p.parts), reverse=True):
+        if not any(d.iterdir()):
+            d.rmdir()
 
 
 # --- the `media` clauses ---------------------------------------------------------
