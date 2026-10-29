@@ -42,18 +42,19 @@ function Frame({ tools, children }: { tools: ReactNode[]; children: ReactNode })
   );
 }
 
-export function TextNode({ data }: NodeProps<CanvasFlowNode>) {
+export function TextNode({ data, width }: NodeProps<CanvasFlowNode>) {
   const { interaction, readOnly, actions } = useCanvas();
   const node = data.node;
   if (node.kind !== 'text') return null;
   const id = node.id;
-  return <TextView id={id} text={node.text} editing={interaction.type === 'editing' && interaction.id === id}
+  // React Flow hides a node until it's measured, and a hidden editor can't take focus
+  return <TextView id={id} text={node.text} editing={interaction.type === 'editing' && interaction.id === id} shown={width !== undefined}
                    busy={interaction.type === 'busy' && interaction.id === id} readOnly={readOnly} actions={actions} />;
 }
 
 // memoized: a drag re-renders every node each frame, but not what they show
-const TextView = memo(function TextView({ id, text, editing, busy, readOnly, actions }: {
-  id: string; text: string; editing: boolean; busy: boolean; readOnly: boolean; actions: CanvasActions;
+const TextView = memo(function TextView({ id, text, editing, shown, busy, readOnly, actions }: {
+  id: string; text: string; editing: boolean; shown: boolean; busy: boolean; readOnly: boolean; actions: CanvasActions;
 }) {
   const openNote = useOpenNote();
   const keys = (event: KeyboardEvent) => {
@@ -75,7 +76,7 @@ const TextView = memo(function TextView({ id, text, editing, busy, readOnly, act
     <Frame tools={tools}>
       {editing ? (
         <div className="nodrag nowheel nopan" onKeyDown={keys}>
-          <CodeMirrorHost value={text} extensions={TEXT_EXTENSIONS} onChange={(next) => actions.setText(id, next)} onSave={actions.toIdle} />
+          <CodeMirrorHost value={text} extensions={TEXT_EXTENSIONS} autofocus={shown} onChange={(next) => actions.setText(id, next)} onSave={actions.toIdle} />
         </div>
       ) : (
         <div onDoubleClick={readOnly || busy ? undefined : (event) => { event.stopPropagation(); actions.startEdit(id); }}>
