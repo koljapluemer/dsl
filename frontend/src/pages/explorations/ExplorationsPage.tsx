@@ -1,10 +1,11 @@
 import { useState, type FormEvent } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useSearch } from '@tanstack/react-router';
-import { PanelLeft, Plus } from 'lucide-react';
+import { Compass, PanelLeft, Plus } from 'lucide-react';
 import { useSlashFocus } from '@/dumb/keys';
+import { showError } from '@/dumb/notice';
 import { hasTag } from '@/entities/item/dsl/tags';
-import { itemsChanged, saveItem } from '@/entities/item/mutations';
+import { itemsChanged, saveItem, setTag } from '@/entities/item/mutations';
 import { NoteLine } from '@/entities/item/NoteLine';
 import { itemQuery } from '@/entities/item/queries';
 import { useSchema } from '@/entities/item/schema';
@@ -15,7 +16,8 @@ import './explorations.css';
 
 /**
  * The notes tagged `exploration`, inline, beside the one open, in the editor
- * to begin with and saved as focus leaves it; the field above the list starts a new one.
+ * to begin with and saved as focus leaves it; the field above the list starts a new one,
+ * and from the sidebar any note is tagged `exploration` (unless it is) and opens here.
  */
 export function ExplorationsPage() {
   const qc = useQueryClient();
@@ -34,9 +36,22 @@ export function ExplorationsPage() {
     setListing(!file);
     void navigate({ to: '.', search: { open: file } });
   };
+
+  /** Tags the note `exploration` unless it is, then opens it. */
+  async function openAsExploration(file: string) {
+    try {
+      const current = await qc.fetchQuery({ ...itemQuery(file), staleTime: 0 });
+      if (!hasTag(schema, current.text, EXPLORATION_TAG)) {
+        qc.setQueryData(itemQuery(file).queryKey, await setTag(file, EXPLORATION_TAG, true));
+        void itemsChanged(qc);
+      }
+      show(file);
+    } catch (e) { showError(e); }
+  }
+
   useSidebarAction({
-    icon: <PanelLeft size={14} />, title: 'open here', run: show,
-    applies: (r) => hasTag(schema, r.text, EXPLORATION_TAG), marked: { has: (file) => file === open },
+    icon: <Compass size={14} />, title: 'open as exploration', run: (file) => void openAsExploration(file),
+    marked: { has: (file) => file === open },
   });
 
   async function create(event: FormEvent) {
