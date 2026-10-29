@@ -1,9 +1,12 @@
 """Headless Chromium through Playwright, for pages rendered to images (the
-portfolio's cards, viz thumbnails and checks). Needs the `cards` dependency
-group and `uv run playwright install chromium`; `available` says whether this
-install has them (not on Termux)."""
+portfolio's cards, viz thumbnails and checks) and to PDFs (note export). Needs
+the `cards` dependency group and `uv run playwright install chromium`;
+`available` says whether this install has them (not on Termux)."""
 
+import base64
 import functools
+import mimetypes
+from pathlib import Path
 
 INSTALL_HINT = "uv run playwright install chromium"
 
@@ -26,6 +29,16 @@ def missing() -> str | None:
     except Exception as e:  # noqa: BLE001 - any failure to start means unavailable
         return f"Chromium doesn't start ({str(e).strip().splitlines()[0]}); run `{INSTALL_HINT}`"
     return None
+
+
+def data_uri(path: Path) -> str | None:
+    """The file as a `data:` URI, to put in a page without a server; None if it can't be read."""
+    try:
+        data = path.read_bytes()
+    except OSError:
+        return None
+    mime = mimetypes.guess_type(path.name)[0] or "application/octet-stream"
+    return f"data:{mime};base64,{base64.b64encode(data).decode()}"
 
 
 def available() -> dict:

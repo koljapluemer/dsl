@@ -8,7 +8,7 @@ Create, search, relate, edit, and delete plain-text items: one `*.txt` file per 
 just run
 ```
 
-Opens http://127.0.0.1:8766. On first start, set the data folder (stored in `~/.config/dsl-crud/config.json`). The portfolio's card collages also need Chromium: `just chromium`, once.
+Opens http://127.0.0.1:8766. On first start, set the data folder (stored in `~/.config/dsl-crud/config.json`). The portfolio's card collages and PDF export also need Chromium: `just chromium`, once.
 
 Flask serves the committed frontend build from `frontend/dist`. `just run` uses that build, while `just build` creates an ignored feature-branch build in `frontend/dist-dev` and `just run-build` serves it. `just dev` runs Flask and Vite's dev server (http://127.0.0.1:5173, hot reload, `/api` proxied to Flask) together. `just check` lints, typechecks, builds and tests both sides. After frontend source reaches `main`, GitHub Actions regenerates and commits `frontend/dist`; `just build-release` is the manual equivalent.
 
@@ -54,7 +54,7 @@ A note shows rendered: body and `extra` content as markdown (marked + DOMPurify)
 
 ## Editing
 
-Everywhere a note is shown it's the same component (`meta/note/Note.tsx`, [`docs/note-component.md`](docs/note-component.md)); pages only set its parameters. Its tools are icon buttons at the top left (attach an image or video, take a photo on touch devices, insert a reference, insert a viz block, add sources from BibTeX, update a source from BibTeX, copy a source's key, the page's tag toggles, edit in a modal, delete); at the top right a toggle switches between edit, view and both side by side, where the page offers more than one. Where edits are saved explicitly, Save (✓, Ctrl+Enter or Ctrl+S) and Discard (↶) take the toggle's place as soon as something is edited, and nothing - relationships included - is written until Save; elsewhere (the sidebar, Explorations, Tasks, Sources, Published, Portfolio) edits are written as focus leaves the note. The New note button above the sidebar's search (on a phone the + button at the bottom right; or `c`) opens a new note in a modal, which closes on Save with a notice; so does editing a note from a list (Calendar, Goals, Projects, Float, Tags, Portfolio's cards).
+Everywhere a note is shown it's the same component (`meta/note/Note.tsx`, [`docs/note-component.md`](docs/note-component.md)); pages only set its parameters. Its tools are icon buttons at the top left (attach an image or video, take a photo on touch devices, insert a reference, insert a viz block, add sources from BibTeX, update a source from BibTeX, copy a source's key, export as PDF, the page's tag toggles, edit in a modal, delete); at the top right a toggle switches between edit, view and both side by side, where the page offers more than one. Where edits are saved explicitly, Save (✓, Ctrl+Enter or Ctrl+S) and Discard (↶) take the toggle's place as soon as something is edited, and nothing - relationships included - is written until Save; elsewhere (the sidebar, Explorations, Tasks, Sources, Published, Portfolio) edits are written as focus leaves the note. The New note button above the sidebar's search (on a phone the + button at the bottom right; or `c`) opens a new note in a modal, which closes on Save with a notice; so does editing a note from a list (Calendar, Goals, Projects, Float, Tags, Portfolio's cards).
 
 Relationships, outgoing and incoming, are one widget below the note: each in two lines, the label in small caps after its arrow (→ from the note, ← to it, dashed ⇢ ⇠ for inline references) and, where editable, detach and delete buttons; a click on the label edits it; the other note follows inline. Below them a direction, label and note (picked from the search, or written as a new one) add another.
 
@@ -197,6 +197,10 @@ Settings → "maintenance" lists, then on Delete removes (without undo):
 - **past appointments**: valid `appointment` items dated before today (a month-only date counts once the month is over), with their files unless another note names them (`dsl_crud/features/maintenance`). Recurring and broken items are kept.
 - **orphaned files**: files in `images/` and `files/` that no note names, in a `media` clause or anywhere else in its text or its Typst files, PDFs of Typst files no note names, and viz versions no viz block keeps (`dsl_crud/infrastructure/media.py`).
 
+## PDF export
+
+A note's PDF tool (in every mode, on the note as saved: explicit edits must be saved first, blur-committed ones are) opens a dialog: the content (main and `extra`, the default when there's an `extra`, or either alone), whether to include the note's images (on; above the text) and the paper (A4 or Letter). Export downloads `<note>.pdf` (`GET /api/items/<file>/pdf?content=both|body|extra&images=1|0&paper=A4|Letter`, `dsl_crud/features/pdf`). The text is the same Markdown rendering as the portfolio's, `[[references]]` as their display text or the target's heading, main and `extra` separated by a rule; a built viz block is its thumbnail, an unbuilt one is left out. It's printed by headless Chromium, like the card collages, so it needs the `cards` group and `just chromium`; without them (Termux) the tool is missing and the route answers 503.
+
 ## Spec
 
 The item language lives in `spec/`: `language.md` defines its syntax, `keywords.yaml` defines the available keywords, and `examples/` contains conformance cases. The Python and TypeScript parsers both run those local examples in their test suites. The Python parser reads `keywords.yaml` at startup and names no keyword itself.
@@ -217,7 +221,7 @@ Clone the repo into Termux's home (not shared storage: it can't hold executables
 ./termux.sh
 ```
 
-The first run installs Python, numpy (Termux's package) and a venv in `~/.venvs/dsl-crud`; the other dependencies follow `pyproject.toml` (without the `cards` and `typst` groups: no card collages, and Typst files read-only, on the phone). The phone doesn't build the frontend: `frontend/dist` is committed and automatically refreshed after frontend changes reach `main`. Every run starts the server and opens the browser. Set the data folder to the notes under `/storage/emulated/0/...`. One-tap start with Termux:Widget: `mkdir -p ~/.shortcuts && ln -s ~/dsl-crud/termux.sh ~/.shortcuts/dsl`.
+The first run installs Python, numpy (Termux's package) and a venv in `~/.venvs/dsl-crud`; the other dependencies follow `pyproject.toml` (without the `cards` and `typst` groups: no card collages, no PDF export, and Typst files read-only, on the phone). The phone doesn't build the frontend: `frontend/dist` is committed and automatically refreshed after frontend changes reach `main`. Every run starts the server and opens the browser. Set the data folder to the notes under `/storage/emulated/0/...`. One-tap start with Termux:Widget: `mkdir -p ~/.shortcuts && ln -s ~/dsl-crud/termux.sh ~/.shortcuts/dsl`.
 
 ## Test
 

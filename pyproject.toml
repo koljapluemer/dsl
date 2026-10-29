@@ -60,6 +60,7 @@ modules = [
     "dsl_crud.features.graph",
     "dsl_crud.features.items",
     "dsl_crud.features.maintenance",
+    "dsl_crud.features.pdf",
     "dsl_crud.features.portfolio",
     "dsl_crud.features.questions",
     "dsl_crud.features.search",

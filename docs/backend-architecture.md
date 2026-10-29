@@ -10,7 +10,7 @@ definitions, the export-after-write hook, and the frontend fallback.
 | Area | Responsibility | May import |
 |---|---|---|
 | `core` | DSL parsing, document interpretation, text edits, inline references, file kinds | standard library and third-party libraries |
-| `infrastructure` | configuration, indexed item files, attachments, exports, Ollama, headless Chromium (`chromium.py`, for the portfolio's cards and viz blocks) | `core` |
+| `infrastructure` | configuration, indexed item files, attachments, exports, Ollama, headless Chromium (`chromium.py`, for the portfolio's cards, viz blocks and PDF export) | `core` |
 | `features/<name>` | one user-facing capability, with its HTTP adapter in `routes.py` | `core`, `infrastructure`, and its own package |
 | `application.py`, `web.py`, `__main__.py` | composition, shared HTTP helpers, process startup | every layer as needed |
 
@@ -28,7 +28,7 @@ the blueprint list in `application.py`.
 Routes decode Flask input and encode responses. Behavior stays in the slice's
 service or purpose-named modules. The current slices are items and attachments,
 derived list views, search, graph, canvas, questions, bibliographic sources, portfolio,
-maintenance, and settings. Source matching and BibTeX conversion stay with
+viz blocks, Typst documents, PDF export, maintenance, and settings. Source matching and BibTeX conversion stay with
 sources; semantic ranking stays with search; collage rendering stays with the
 portfolio.
 

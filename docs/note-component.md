@@ -46,6 +46,7 @@ for a new note; every `edit` tool and the sidebar's ⤢ tool open it.
   - edit and split only: `media` (upload, any number at once, and the camera on touch devices; pasting works too), `typst` (a new Typst document attached to the saved note, opened in its modal; only where Typst is installed), `reference` (`[[`), `viz` (an empty ```` ```thea ```` block, its placeholder spec selected), `bibtex` (sources from the clipboard)
   - edit and split, sources only: `bibtexUpdate` (fills in the source from the clipboard's BibTeX, the conflicting fields chosen above the editor)
   - `copyKey`: a source's BibTeX key
+  - `pdf`: the saved note exported as a PDF, after a dialog choosing body, `extra` or both, images and paper (`PdfExportModal`, `features/note-pdf`); only where Chromium is installed, disabled while explicit edits are unsaved
   - tag toggles
   - `edit`: by default only in `simple` and `inline`
   - `delete`

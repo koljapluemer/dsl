@@ -7,12 +7,10 @@ Needs the `cards` dependency group and Chromium (`uv run playwright install
 chromium`); `available` says whether this install has them. Renders are cached
 on disk by what goes into them."""
 
-import base64
 import hashlib
 import html
 import io
 import json
-import mimetypes
 import os
 from pathlib import Path
 
@@ -232,18 +230,9 @@ _LAYOUT = """
 """ % {"w": CSS_WIDTH, "h": CSS_HEIGHT}
 
 
-def _data_uri(path: Path) -> str | None:
-    try:
-        data = path.read_bytes()
-    except OSError:
-        return None
-    mime = mimetypes.guess_type(path.name)[0] or "application/octet-stream"
-    return f"data:{mime};base64,{base64.b64encode(data).decode()}"
-
-
 def page_html(title: str, body_html: str, images: list[Path]) -> str:
     """The page before layout: `title` as the heading (plain text, lines kept), then `body_html`."""
-    imgs = "".join(f'<img src="{uri}">' for uri in (_data_uri(p) for p in images) if uri)
+    imgs = "".join(f'<img src="{uri}">' for uri in (chromium.data_uri(p) for p in images) if uri)
     heading = "<br>".join(html.escape(line) for line in title.strip().splitlines())
     return (f'<!doctype html><html><head><meta charset="utf-8"><style>{_STYLE}</style></head>'
             f'<body><div id="images">{imgs}</div><h1 id="title">{heading}</h1><div id="body">{body_html}</div></body></html>')

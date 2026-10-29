@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState, type FocusEvent, type KeyboardEve
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { Extension } from '@codemirror/state';
 import type { EditorView } from '@codemirror/view';
-import { BookDown, ChartSpline, Check, Copy, FilePlus2, Pencil, Trash2, Undo2, X } from 'lucide-react';
+import { BookDown, ChartSpline, Check, Copy, FileDown, FilePlus2, Pencil, Trash2, Undo2, X } from 'lucide-react';
 import type { Item } from '@/api/types';
 import { showError, showNotice, UNSAVED } from '@/dumb/notice';
 import { analyze } from '@/entities/item/dsl/analyze';
@@ -24,6 +24,8 @@ import { useDeleteItem } from '@/features/item-delete/useDeleteItem';
 import { TextFileModal } from '@/features/file-edit/TextFileModal';
 import { TypstModal } from '@/features/file-edit/TypstModal';
 import { ItemTextEditor } from '@/features/item-edit/ItemTextEditor';
+import { pdfStatusQuery } from '@/features/note-pdf/pdf';
+import { PdfExportModal } from '@/features/note-pdf/PdfExportModal';
 import { MediaPicker, stagedMedia } from '@/features/item-media/MediaAttachmentField';
 import { persistMedia, type MediaDraft } from '@/features/item-media/useMediaAttachments';
 import type { PendingOp } from '@/features/item-relate/relationModel';
@@ -246,6 +248,13 @@ function LoadedNote({
       setTextFile(created.path);
     } catch (e) { showError(e); }
   }
+  const pdf = useQuery({ ...pdfStatusQuery, enabled: !!item && render !== 'inline' }).data?.available;
+  const [pdfOpen, setPdfOpen] = useState(false);
+  // the note as written is what's exported, as for a new Typst document
+  async function openPdf() {
+    if (draft.dirty && (!blur || !(await save()))) return;
+    setPdfOpen(true);
+  }
   const adoptFromFile = (changed: Item) => {
     adopt(changed);
     draft.reset(changed);
@@ -283,6 +292,10 @@ function LoadedNote({
                     onClick={() => void toggleTag(t.tag, !on)}><Icon size={14} /></ToolButton>
       );
     }) : []),
+    want('pdf', !!item && !!pdf) && (
+      <ToolButton key="pdf" title={!blur && draft.dirty ? 'export as PDF (save the note first)' : 'export as PDF'}
+                  disabled={!blur && draft.dirty} onClick={() => void openPdf()}><FileDown size={14} /></ToolButton>
+    ),
     want('edit', !!item) && <ToolButton key="edit" title="edit" onClick={onEdit ?? (() => setModal(true))}><Pencil size={14} /></ToolButton>,
     want('delete', !!item || !!onDelete) && (
       <ToolButton key="delete" title="delete" danger disabled={busy} onClick={() => void del()}><Trash2 size={14} /></ToolButton>
@@ -389,6 +402,7 @@ function LoadedNote({
       {problem && <p className="mb-2 text-sm text-error">{problem}</p>}
       <div className={fill ? 'min-h-0 flex-1 overflow-y-auto' : ''}>{body}</div>
       {modalNote}
+      {pdfOpen && item && <PdfExportModal item={item} onClose={() => setPdfOpen(false)} />}
       {textFile && (item && kindOf(textFile).name === 'typst'
         ? <TypstModal path={textFile} note={item} noteDirty={draft.dirty} onItem={adoptFromFile} onClose={() => setTextFile(null)} />
         : <TextFileModal path={textFile} onClose={() => setTextFile(null)} />)}

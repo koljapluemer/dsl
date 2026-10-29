@@ -44,6 +44,8 @@ export type Settings = { path: string | null; exports: Record<ExportKey, { path:
 export type TheaSettings = { cli: string; model: string; budget_usd: number | null; timeout_min: number };
 /** whether Typst files can be built here (not on Termux), and why not */
 export type TypstStatus = { available: boolean; reason: string | null };
+/** whether notes can be exported as PDFs (Chromium), and why not */
+export type PdfStatus = { available: boolean; reason: string | null };
 /** a Typst file's build: Typst's errors, null when it built; whether its PDF exists */
 export type TypstBuild = { errors: string | null; pdf: boolean };
 export type TheaStatus = { available: boolean; reason: string | null; settings: TheaSettings };
