@@ -12,6 +12,7 @@ import { NoteSidebar } from './meta/note/NoteSidebar';
 /** `key`: `g <key>` opens the tab */
 export const TABS = [
   { to: '/', label: 'Home', key: 'h' },
+  { to: '/daily', label: 'Daily', key: 'a' },
   { to: '/desk', label: 'Desk', key: 'd' },
   { to: '/document', label: 'Document', key: 'w' },
   { to: '/canvas', label: 'Canvas', key: 'v' },

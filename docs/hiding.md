@@ -16,9 +16,9 @@ instances sit right below the class; **edit them there**:
 
 | View  | Instance        | Tag        | Hidden types                          | Hidden tags   |
 |-------|-----------------|------------|---------------------------------------|---------------|
-| Queue | `QUEUE_HIDING`  | `no-q`     | `appointment`, `recurring`, `source`  | `exploration` |
-| Float | `FLOAT_HIDING`  | `no-float` | `appointment`, `recurring`, `source`  |               |
-| Graph | `GRAPH_HIDING`  | `no-graph` | `appointment`, `recurring`, `source`  | `exploration` |
+| Queue | `QUEUE_HIDING`  | `no-q`     | `appointment`, `recurring`, `source`, `daily` | `exploration` |
+| Float | `FLOAT_HIDING`  | `no-float` | `appointment`, `recurring`, `source`, `daily` |               |
+| Graph | `GRAPH_HIDING`  | `no-graph` | `appointment`, `recurring`, `source`, `daily` | `exploration` |
 
 `tests/test_views.py` checks that every listed type is a primary keyword and
 every tag is a valid tag.

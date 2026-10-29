@@ -85,6 +85,8 @@ class _Entry:
     primary: str | None
     tags: frozenset[str]
     when: dict | None
+    # the date of a daily note (see views.daily)
+    daily: str | None
     # what the graph reads (see graph.py)
     valid: bool
     explicit_rels: tuple[tuple[str, str], ...]
@@ -137,6 +139,7 @@ def _entry(mtime_ns: int, item: dict) -> "_Entry":
         views.primary(SCHEMA, doc),
         frozenset(views.tags(doc)),
         views.when(doc),
+        views.daily(doc),
         not item["errors"],
         explicit,
         tuple((label, target, False) for label, target in explicit)
