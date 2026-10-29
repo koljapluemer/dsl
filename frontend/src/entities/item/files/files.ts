@@ -1,7 +1,7 @@
 import type { Extension } from '@codemirror/state';
 import { IMAGE_EXTENSIONS } from './kinds/image';
 import { JINJA_EXTENSIONS, jinjaEditor } from './kinds/jinja';
-import { TYPST_EXTENSIONS } from './kinds/typst';
+import { TYPST_EXTENSIONS, typstEditor } from './kinds/typst';
 import { VIDEO_EXTENSIONS } from './kinds/video';
 
 /**
@@ -14,7 +14,7 @@ const KINDS: FileKind[] = [
   { name: 'image', extensions: IMAGE_EXTENSIONS, shown: true },
   { name: 'video', extensions: VIDEO_EXTENSIONS, shown: true },
   { name: 'jinja', extensions: JINJA_EXTENSIONS, editor: jinjaEditor },
-  { name: 'typst', extensions: TYPST_EXTENSIONS, editor: () => [] },
+  { name: 'typst', extensions: TYPST_EXTENSIONS, editor: typstEditor },
 ];
 const OTHER: FileKind = { name: 'other', extensions: [] };
 

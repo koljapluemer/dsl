@@ -16,6 +16,7 @@ export const TABS = [
   { to: '/document', label: 'Document', key: 'w' },
   { to: '/canvas', label: 'Canvas', key: 'v' },
   { to: '/canvas2doc', label: 'Canvas2Doc', key: 'k' },
+  { to: '/doc2typst', label: 'Doc2Typst', key: 'y' },
   { to: '/explorations', label: 'Explorations', key: 'e' },
   { to: '/graph', label: 'Graph', key: 'g' },
   { to: '/tasks', label: 'Tasks', key: 't' },
@@ -70,7 +71,7 @@ export function App() {
   useHotkeys(keys);
 
   // these workspaces take the whole pane; the other pages use a readable column
-  const full = ['/desk', '/document', '/canvas', '/canvas2doc', '/explorations', '/sources', '/published', '/graph', '/float'].includes(path);
+  const full = ['/desk', '/document', '/canvas', '/canvas2doc', '/doc2typst', '/explorations', '/sources', '/published', '/graph', '/float'].includes(path);
 
   return (
     // the note sidebar is beside every page on a wide screen, a drawer otherwise
