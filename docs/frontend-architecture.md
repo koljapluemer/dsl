@@ -36,9 +36,12 @@ Conventions:
   split into files rather than one big page file.
 - Document is a workspace for any note, not an item type. Its occurrence
   model, CodeMirror widgets, annotated preview and connector layout live in
-  `pages/document`; the shared note exposes only the editor/preview/draft
+  `pages/workspaces/document`; the shared note exposes only the editor/preview/draft
   seams it needs. Inline-reference text remains the sole stored annotation.
-- Canvas is likewise a workspace for any note (`pages/canvas`, [`canvas.md`](canvas.md)).
+- Canvas is likewise a workspace for any note (`pages/workspaces/canvas`, [`canvas.md`](canvas.md)).
+  Canvas2Doc (`pages/workspaces/canvas2doc`) shows both for one note; the
+  three are one page slice so it can use the Canvas loader and the Document
+  view, which register no sidebar action themselves (their page does).
   The tool rail floating over Graph and Canvas is `dumb/toolbar`.
 - No `index.ts` re-exports. Import from the defining file.
 - Messages go to the toast corner (`dumb/UndoToast.tsx`): `showNotice` for

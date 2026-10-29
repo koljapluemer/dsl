@@ -17,13 +17,39 @@ import './document.css';
 type Connector = { id: string; path: string; anchorY: number };
 
 export function DocumentPage() {
-  const schema = useSchema();
   const navigate = useNavigate();
   const { open } = useSearch({ strict: false }) as DocumentSearch;
-  const item = useQuery({ ...itemQuery(open ?? ''), enabled: !!open });
+
+  useSidebarAction({
+    icon: <FileText size={14} />,
+    title: 'open as document',
+    run: (file) => {
+      sidebarShown.set(false);
+      void navigate({ to: '/document', search: { open: file } });
+    },
+    marked: { has: (file) => file === open },
+  });
+
+  if (!open) {
+    return <p className="text-sm text-base-content/50">Open any note here from the notes sidebar.</p>;
+  }
+  return <DocumentView key={open} file={open} onDeleted={() => void navigate({ to: '/document', search: {} })} />;
+}
+
+type ViewProps = {
+  file: string;
+  /** where the note's mode is kept for the session */
+  persist?: string;
+  onDeleted: () => void;
+};
+
+/** A note as a document with its annotations. Its page offers it in the sidebar. */
+export function DocumentView({ file: open, persist = 'document', onDeleted }: ViewProps) {
+  const schema = useSchema();
+  const item = useQuery(itemQuery(open));
   const deleted = deletedItems.use();
   const [draft, setDraft] = useState<{ file: string; text: string } | null>(null);
-  const [annotationsShown, setAnnotationsShown] = useState(!open);
+  const [annotationsShown, setAnnotationsShown] = useState(false);
   const [active, setActive] = useState<string | null>(null);
   const [positions, setPositions] = useState<number[]>([]);
   const [height, setHeight] = useState(0);
@@ -34,23 +60,9 @@ export function DocumentPage() {
   const cards = useRef(new Map<string, HTMLDivElement>());
   const pointerFrame = useRef(0);
 
-  const show = useCallback((file: string) => {
-    sidebarShown.set(false);
-    setAnnotationsShown(false);
-    setActive(null);
-    void navigate({ to: '/document', search: { open: file } });
-  }, [navigate]);
-
   const setDocumentText = useCallback((next: string) => {
-    setDraft((current) => current && current.file === open && current.text === next ? current : { file: open!, text: next });
+    setDraft((current) => current && current.file === open && current.text === next ? current : { file: open, text: next });
   }, [open]);
-
-  useSidebarAction({
-    icon: <FileText size={14} />,
-    title: 'open as document',
-    run: show,
-    marked: { has: (file) => file === open },
-  });
 
   const text = draft && draft.file === open ? draft.text : (item.data?.text ?? '');
   const references = useMemo(() => documentReferences(schema, text), [schema, text]);
@@ -142,10 +154,6 @@ export function DocumentPage() {
   };
   const style = { '--document-height': `${height}px` } as CSSProperties;
 
-  if (!open) {
-    return <p className="text-sm text-base-content/50">Open any note here from the notes sidebar.</p>;
-  }
-
   return (
     <section className="document-page min-h-0 flex-1 pb-4">
       <button type="button" className="btn btn-sm mb-3 self-start @3xl:hidden" onClick={() => setAnnotationsShown((shown) => !shown)}>
@@ -170,10 +178,10 @@ export function DocumentPage() {
             {!references.length && <p className="text-sm text-base-content/50">No inline references.</p>}
           </aside>
           <main ref={main} className={`document-main min-w-0 ${annotationsShown ? '@max-3xl:hidden' : ''}`}>
-            <Note key={open} file={open} modes={['edit', 'view']} defaultMode="edit" commit="blur" persist="document"
+            <Note key={open} file={open} modes={['edit', 'view']} defaultMode="edit" commit="blur" persist={persist}
                   relationships={false} className="document-note rounded-box border border-base-300 bg-base-100 p-4"
                   editorExtensions={editorExtensions} renderPreview={renderPreview} onTextChange={setDocumentText}
-                  onDeleted={() => void navigate({ to: '/document', search: {} })} />
+                  onDeleted={onDeleted} />
           </main>
           <svg className="document-connectors @max-3xl:hidden" aria-hidden="true">
             {connectors.map((connector) => (

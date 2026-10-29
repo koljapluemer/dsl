@@ -29,7 +29,7 @@ export function CanvasPage() {
 }
 
 /** Loads the canvas once per opening; Reload opens it again, from what's stored. */
-function CanvasLoader({ file, openAction }: { file: string; openAction: SidebarAction }) {
+export function CanvasLoader({ file, openAction }: { file: string; openAction: SidebarAction }) {
   const [generation, setGeneration] = useState(0);
   const stored = useQuery(canvasQuery(file, generation));
   if (!stored.data) {

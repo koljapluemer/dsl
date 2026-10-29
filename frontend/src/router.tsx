@@ -5,13 +5,15 @@ import { schemaQuery } from './entities/item/schema';
 import { SIDEBAR_KEYS, validateSidebarSearch, type SidebarSearch } from './entities/item/sidebar';
 import { settingsQuery } from './entities/settings/queries';
 import { CalendarPage } from './pages/calendar/CalendarPage';
-import { CanvasPage } from './pages/canvas/CanvasPage';
-import { validateCanvasSearch } from './pages/canvas/search';
+import { CanvasPage } from './pages/workspaces/canvas/CanvasPage';
+import { validateCanvasSearch } from './pages/workspaces/canvas/search';
+import { Canvas2DocPage } from './pages/workspaces/canvas2doc/Canvas2DocPage';
+import { validateCanvas2DocSearch } from './pages/workspaces/canvas2doc/search';
 import { validateCalendarSearch } from './pages/calendar/search';
 import { DeskPage } from './pages/desk/DeskPage';
 import { validateDeskSearch } from './pages/desk/search';
-import { DocumentPage } from './pages/document/DocumentPage';
-import { validateDocumentSearch } from './pages/document/search';
+import { DocumentPage } from './pages/workspaces/document/DocumentPage';
+import { validateDocumentSearch } from './pages/workspaces/document/search';
 import { ExplorationsPage } from './pages/explorations/ExplorationsPage';
 import { validateExplorationsSearch } from './pages/explorations/explorations';
 import { FloatPage } from './pages/float/FloatPage';
@@ -53,6 +55,7 @@ const tree = root.addChildren([
   createRoute({ getParentRoute: () => root, path: '/desk', validateSearch: validateDeskSearch, component: DeskPage }),
   createRoute({ getParentRoute: () => root, path: '/document', validateSearch: validateDocumentSearch, component: DocumentPage }),
   createRoute({ getParentRoute: () => root, path: '/canvas', validateSearch: validateCanvasSearch, component: CanvasPage }),
+  createRoute({ getParentRoute: () => root, path: '/canvas2doc', validateSearch: validateCanvas2DocSearch, component: Canvas2DocPage }),
   createRoute({ getParentRoute: () => root, path: '/explorations', validateSearch: validateExplorationsSearch, component: ExplorationsPage }),
   createRoute({ getParentRoute: () => root, path: '/graph', component: GraphPage }),
   createRoute({ getParentRoute: () => root, path: '/tasks', component: TasksPage }),
