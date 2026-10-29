@@ -1,5 +1,6 @@
 from flask import Blueprint, jsonify
 
+from dsl_crud.core import edits
 from dsl_crud.features.sources import bibtex_import, fields, service
 from dsl_crud.infrastructure import items
 from dsl_crud.web import json_body
@@ -28,7 +29,7 @@ def resolve():
     resolved = service.resolve(body.get("entries"))
     out = {"sources": [source | {"item": items.get_payload(source["file"])} for source in resolved]}
     if isinstance(body.get("text"), str):
-        out["text"] = service.link(body["text"], [source["file"] for source in resolved], str(body.get("label") or ""))
+        out["text"] = edits.add_relations(items.SCHEMA, body["text"], str(body.get("label") or ""), [source["file"] for source in resolved])
     return jsonify(out), 201
 
 

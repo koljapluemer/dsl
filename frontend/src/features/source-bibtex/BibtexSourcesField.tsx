@@ -5,9 +5,11 @@ import { authors, year } from '@/entities/source/format';
 import type { StagedSource } from './useBibtexSources';
 
 /** An icon button staging sources from the BibTeX in the clipboard. */
-export function BibtexPicker({ onPick, className }: { onPick: () => void; className: string }) {
+export function BibtexPicker({ onPick, className, title = 'add sources from BibTeX in the clipboard' }: {
+  onPick: () => void; className: string; title?: string;
+}) {
   return (
-    <button type="button" className={className} onClick={onPick} title="add sources from BibTeX in the clipboard">
+    <button type="button" className={className} onClick={onPick} title={title}>
       <BookPlus size={14} />
     </button>
   );

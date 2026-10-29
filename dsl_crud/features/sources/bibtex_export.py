@@ -1,4 +1,5 @@
-"""Source dicts -> biblatex .bib text, written by the export runner."""
+"""Source dicts -> biblatex .bib text: LaTeX-escaped for the export runner,
+as UTF-8 for Typst documents (see infrastructure/typst.py)."""
 
 import re
 
@@ -20,53 +21,56 @@ _latex = UnicodeToLatexEncoder(
 )
 
 
-def _enc(s: str) -> str:
-    return _latex.unicode_to_latex(s)
-
-
 def _protect(s: str) -> str:
     """Brace a name/list item that bibtex would otherwise split."""
     return f"{{{s}}}" if re.search(r",|\band\b", s, re.I) else s
 
 
-def _name(name: str) -> str:
+def _name(name: str, enc) -> str:
     n = split_name(name)
     if "literal" in n:
         # corporate / single-part name: keep it one unit
-        return f"{{{_enc(name)}}}" if " " in name else _protect(_enc(name))
+        return f"{{{enc(name)}}}" if " " in name else _protect(enc(name))
     family = " ".join(p for p in (n.get("prefix"), n.get("family")) if p)
     given, suffix = n["given"], n.get("suffix", "")
-    parts = [_protect(_enc(family))]
+    parts = [_protect(enc(family))]
     if suffix:
-        parts.append(_protect(_enc(suffix)))
-    parts.append(_protect(_enc(given)))
+        parts.append(_protect(enc(suffix)))
+    parts.append(_protect(enc(given)))
     return ", ".join(parts)
 
 
-def _value(name: str, value) -> str:
+def _value(name: str, value, enc) -> str:
     t = FIELDS[name]["type"]
     if t == "name":
-        return " and ".join(_name(n) for n in value)
+        return " and ".join(_name(n, enc) for n in value)
     if t == "list":
-        return " and ".join(_protect(_enc(v)) for v in value)
+        return " and ".join(_protect(enc(v)) for v in value)
     if t in _RAW_TYPES:
         return str(value)
-    return _enc(str(value))
+    return enc(str(value))
 
 
-def _entry(s: dict) -> Entry:
+def _entry(s: dict, enc) -> Entry:
     fields = []
     if s.get("title"):
-        fields.append(Field("title", _enc(s["title"])))
+        fields.append(Field("title", enc(s["title"])))
     for name, value in s.items():
         if name in FIELDS:
-            fields.append(Field(name, _value(name, value)))
+            fields.append(Field(name, _value(name, value, enc)))
     return Entry(s["entrytype"], s["key"], fields)
 
 
-def render(sources: list[dict]) -> str:
-    lib = Library([_entry(s) for s in sorted(sources, key=lambda s: s["key"])])
+def render(sources: list[dict], latex: bool = True) -> str:
+    """`latex`: non-ASCII characters as LaTeX macros, else as they are (Typst reads UTF-8)."""
+    enc = _latex.unicode_to_latex if latex else str
+    lib = Library([_entry(s, enc) for s in sorted(sources, key=lambda s: s["key"])])
     return HEADER + bibtexparser.write_string(lib).strip() + "\n"
+
+
+def typst_bibliography() -> str:
+    """Every source, for Typst documents' `#bibliography`."""
+    return render(sources.list_sources(), latex=False)
 
 
 def definition() -> exports.Export:

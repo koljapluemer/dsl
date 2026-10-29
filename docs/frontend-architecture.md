@@ -37,7 +37,10 @@ Conventions:
 - Canvas is a workspace for any note, not an item type (`pages/workspaces/canvas`, [`canvas.md`](canvas.md)).
   Canvas2Typ (`pages/workspaces/canvas2typ`) shows the Canvas loader (given
   its page's sidebar action) beside the note's Typst file, in `features/file-edit/TypstEditor` (which
-  `TypstModal` puts in a modal).
+  `TypstModal` puts in a modal). It cites sources itself (`@` completion, the
+  cite picker, both from `entities/source`); the BibTeX cite tool is
+  `source-bibtex`'s `BibtexCite`, which the page and the note component pass in
+  as `bibtexTool`, since one feature doesn't import another.
   The tool rail floating over Graph and Canvas is `dumb/toolbar`.
 - No `index.ts` re-exports. Import from the defining file.
 - Messages go to the toast corner (`dumb/UndoToast.tsx`): `showNotice` for

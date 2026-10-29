@@ -11,6 +11,7 @@ import { NoteLine } from '@/entities/item/NoteLine';
 import { itemQuery, typstStatusQuery } from '@/entities/item/queries';
 import { sidebarShown, type SidebarAction } from '@/entities/item/sidebar';
 import { TypstEditor } from '@/features/file-edit/TypstEditor';
+import { BibtexCite } from '@/features/source-bibtex/BibtexCite';
 import { CanvasLoader, Offering } from '../canvas/CanvasPage';
 import type { Canvas2TypSearch } from './search';
 import { typstFiles, typstNotesQuery } from './typstNotes';
@@ -137,7 +138,8 @@ function TypstPane({ file, onAttach }: { file: string; onAttach: () => void }) {
           {paths.map((p) => <option key={p} value={p}>{fileName(p)}</option>)}
         </select>
       )}
-      <TypstEditor key={path} path={path} note={item} noteDirty={false} onItem={adopt} split={false} persist="canvas2typ-typst-pane" />
+      <TypstEditor key={path} path={path} note={item} noteDirty={false} onItem={adopt} split={false} persist="canvas2typ-typst-pane"
+                   bibtexTool={BibtexCite} />
     </>
   );
 }

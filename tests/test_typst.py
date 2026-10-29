@@ -85,3 +85,49 @@ def test_without_typst_nothing_is_written(client, monkeypatch):
     assert client.put(f"/api/typst/{rel}", json={"text": "x"}).status_code == 503
     assert client.post("/api/items/a.txt/typst").status_code == 503
     assert files.read_text(rel) != "x"
+
+
+SOURCE = ('Attention Is All You Need\n\nsource\ndata\nkey: vaswani2017\nentrytype: article\n'
+          'author:\n- Vaswani, Ashish\n- Müller, Jörg\njournaltitle: NeurIPS\ndate: "2017"\n')
+CITING = '= Doc\nAs shown @vaswani2017.\n\n#bibliography("/sources.bib", style: "association-for-computing-machinery")\n'
+
+
+def test_cites_build_from_the_generated_bibliography(client, data_dir):
+    store.create({"file": "s.txt", "text": SOURCE})
+    store.create({"file": "a.txt", "text": "A"})
+    rel = client.post("/api/items/a.txt/typst").get_json()["path"]
+    assert client.put(f"/api/typst/{rel}", json={"text": CITING}).get_json() == {"errors": None, "pdf": True}
+    bib = (data_dir / "sources.bib").read_text()
+    assert "@article{vaswani2017," in bib and "Müller, Jörg" in bib
+    res = client.put(f"/api/typst/{rel}", json={"text": CITING.replace("vaswani2017", "nobody")}).get_json()
+    assert "nobody" in res["errors"]
+
+
+def test_saving_with_the_note_relates_it_to_the_sources_cited_once(client):
+    store.create({"file": "s.txt", "text": SOURCE})
+    store.create({"file": "a.txt", "text": "A"})
+    rel = client.post("/api/items/a.txt/typst").get_json()["path"]
+    client.put(f"/api/typst/{rel}", json={"text": CITING})
+    assert "-> source" not in store.get("a.txt")["text"]
+    res = client.put(f"/api/typst/{rel}", json={"text": CITING, "note": "a.txt"}).get_json()
+    assert res["item"]["text"].endswith("-> source @s\n")
+    again = client.put(f"/api/typst/{rel}", json={"text": CITING, "note": "a.txt"}).get_json()
+    assert "item" not in again
+    assert store.get("a.txt")["text"].count("-> source @s") == 1
+
+
+def test_saving_with_a_note_not_naming_the_file_is_refused(client):
+    store.create({"file": "a.txt", "text": "A"})
+    store.create({"file": "b.txt", "text": "B"})
+    rel = client.post("/api/items/a.txt/typst").get_json()["path"]
+    assert client.put(f"/api/typst/{rel}", json={"text": "x", "note": "b.txt"}).status_code == 400
+
+
+def test_cite_sources_related_then_on_the_canvas(client):
+    for f in ("s1", "s2", "s3"):
+        store.create({"file": f"{f}.txt", "text": SOURCE.replace("vaswani2017", f)})
+    store.create({"file": "other.txt", "text": "Other"})
+    store.create({"file": "a.txt", "text": (
+        "A [[s3]]\n-> source @s2\n-> @other\ndata\ncanvas:\n  nodes:\n"
+        "  - {id: n1, x: 0, y: 0, note: s1}\n  - {id: n2, x: 0, y: 0, note: s2}\n  - {id: n3, x: 0, y: 0, note: other}\n")})
+    assert client.get("/api/typst/cite-sources?note=a.txt").get_json() == ["s2.txt", "s3.txt", "s1.txt"]

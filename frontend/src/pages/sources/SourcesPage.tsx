@@ -8,10 +8,11 @@ import { itemsChanged, saveItem } from '@/entities/item/mutations';
 import { NoteLine } from '@/entities/item/NoteLine';
 import { itemQuery } from '@/entities/item/queries';
 import { useSidebarAction } from '@/entities/item/sidebar';
+import { matches, sourcesQuery } from '@/entities/source/queries';
 import { StagedSources } from '@/features/source-bibtex/BibtexSourcesField';
 import { useBibtexSources, type StagedSource } from '@/features/source-bibtex/useBibtexSources';
 import { Note } from '@/meta/note/Note';
-import { matches, sourceText, sourcesQuery, type SourcesSearch } from './sources';
+import { sourceText, type SourcesSearch } from './sources';
 
 /**
  * The sources, inline, filtered by the URL's `q`, beside the one open: in the

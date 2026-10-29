@@ -46,8 +46,8 @@ export type TheaSettings = { cli: string; model: string; budget_usd: number | nu
 export type TypstStatus = { available: boolean; reason: string | null };
 /** whether notes can be exported as PDFs (Chromium), and why not */
 export type PdfStatus = { available: boolean; reason: string | null };
-/** a Typst file's build: Typst's errors, null when it built; whether its PDF exists */
-export type TypstBuild = { errors: string | null; pdf: boolean };
+/** a Typst file's build: Typst's errors, null when it built; whether its PDF exists; the note, when citing related it to more sources */
+export type TypstBuild = { errors: string | null; pdf: boolean; item?: Item };
 export type TheaStatus = { available: boolean; reason: string | null; settings: TheaSettings };
 /** a viz block's generation, by its block's name; `id` is the version made, once done */
 export type TheaJob = {

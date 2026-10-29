@@ -66,11 +66,23 @@ names it any more. The compile runs in the server's process
 for a timeout. Where the bindings are missing (Termux), Typst files can't be
 written or created there (503).
 
+Before each compile, every source is written to `sources.bib` in the data
+folder's root (`BIBLIOGRAPHY` in `infrastructure/typst.py`), only when it
+changed: biblatex in UTF-8, rendered by `bibtex_export.typst_bibliography`,
+which the application factory registers (`register_bibliography`), since the
+Typst feature doesn't import the sources feature. It's outside `images/` and
+`files/`, so the app never deletes it. A document cites from it with
+`@key` or `#cite(label("…"))` after `#bibliography("/sources.bib")`. Saved
+with its note, the note gets `-> source @…` to each source cited that it
+doesn't relate to that way yet (`features/typst/citations.py` finds the keys,
+skipping strings and comments).
+
 ## API
 
 - `GET /api/files/<path>`: the file, revalidated on every use (`no-cache`, by ETag), so a rebuilt PDF never shows stale.
 - `PUT /api/files/<path>` with `{text}`: writes a file of a kind edited as text, creating it.
-- `PUT /api/typst/<path>` with `{text}`: writes a Typst file and builds its PDF: `{errors, pdf}` (`errors` null when it built; whether the PDF exists).
+- `PUT /api/typst/<path>` with `{text, note?}`: writes a Typst file and builds its PDF: `{errors, pdf, item?}` (`errors` null when it built; whether the PDF exists). With `note` (which must name the file; else 400), the note is related to the sources cited; `item` is the note when that changed it.
+- `GET /api/typst/cite-sources?note=<name>`: the sources to offer first when citing: those the note relates to (explicitly, then inline), then those on its canvas, each once.
 - `POST /api/items/<name>/typst`: a new Typst file from the template, as the item's last `media`, built: `{item, path, errors}`.
 - `GET /api/typst/status`: `{available, reason}`.
 - `GET /api/typst/notes`: the items naming a Typst file, the last edited first (the Canvas2Typ tab).

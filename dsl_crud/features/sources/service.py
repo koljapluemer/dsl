@@ -9,7 +9,7 @@ import re
 
 import yaml
 
-from dsl_crud.core import dsl, edits as questions
+from dsl_crud.core import dsl
 from dsl_crud.features.sources import matching as source_match
 from dsl_crud.features.sources.fields import ENTRY_TYPES, FIELDS, ValidationError, join_name, normalise
 from dsl_crud.infrastructure import items as store
@@ -204,15 +204,6 @@ def resolve(entries) -> list[dict]:
         taken.add(source["key"])
         out.append(create(source))
     return out
-
-
-def link(text: str, files: list[str], label: str) -> str:
-    """`text` with a relationship `label` to each of `files` it doesn't have yet."""
-    for f in files:
-        target = f.removesuffix(".txt")
-        if not any((r.label or "") == label and r.target == target for r in dsl.parse(store.SCHEMA, text).relations):
-            text = questions.add_relation(text, label, target)
-    return text
 
 
 def merge(file: str | None, text, entry: dict, take=()) -> dict:

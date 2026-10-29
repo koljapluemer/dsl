@@ -2,6 +2,7 @@ import os
 
 import pytest
 
+from dsl_crud.core import edits
 from dsl_crud.features.sources import service as sources
 from dsl_crud.features.sources.fields import ValidationError, join_name, split_name
 from dsl_crud.infrastructure import config, items as store
@@ -88,9 +89,9 @@ def test_match(data_dir):
 
 
 def test_link(data_dir):
-    text = sources.link("N\n-> source @a\n", ["a.txt", "b.txt", "b.txt"], "source")
+    text = edits.add_relations(store.SCHEMA, "N\n-> source @a\n", "source", ["a.txt", "b.txt", "b.txt"])
     assert text == "N\n-> source @a\n-> source @b\n"
-    assert sources.link("N", ["a.txt"], "") == "N\n-> @a\n"
+    assert edits.add_relations(store.SCHEMA, "N", "", ["a.txt"]) == "N\n-> @a\n"
 
 
 def test_endpoints(data_dir):

@@ -1,11 +1,16 @@
 """Typst documents attached to notes: a `.typ` file a note names in a `media`
-clause, compiled to the PDF beside it whenever it's written. See docs/files.md."""
+clause, compiled to the PDF beside it whenever it's written, citing sources
+from the bibliography written before each compile. See docs/files.md."""
 
 import secrets
 
-from dsl_crud.core import file_kinds
+from dsl_crud.core import canvas, dsl, edits, file_kinds
+from dsl_crud.features.typst.citations import cited_keys
 from dsl_crud.infrastructure import items as store
 from dsl_crud.infrastructure import media, typst
+
+# the relationship a note gets to each source its Typst files cite
+SOURCE_LABEL = "source"
 
 
 def status() -> dict:
@@ -30,11 +35,33 @@ def create(name: str) -> dict:
     return {"item": store.payload(item), "path": rel, "errors": typst.compile(rel)}
 
 
-def save(rel: str, text: str) -> dict:
-    """Writes the Typst file and compiles it; a failed build keeps the previous PDF."""
+def save(rel: str, text: str, note: str | None = None) -> dict:
+    """Writes the Typst file and compiles it; a failed build keeps the previous PDF.
+    With `note` (which must name the file), the note gets a relationship to each
+    source cited that it doesn't have yet; `item` is the note then, if it changed."""
     if file_kinds.kind(rel) is not file_kinds.TYPST:
         raise store.ValidationError(f"'{rel}' isn't a Typst file")
     _require()
+    item = store.get(note) if note is not None else None
+    if item is not None and rel not in item["files"]:
+        raise store.ValidationError(f"'{note}' doesn't name '{rel}'")
     media.write_text(rel, text)
     errors = typst.compile(rel)
-    return {"errors": errors, "pdf": media.exists(file_kinds.pdf_of(rel))}
+    out = {"errors": errors, "pdf": media.exists(file_kinds.pdf_of(rel))}
+    if item is not None:
+        by_key = store.source_files_by_key()
+        cited = [by_key[k] for k in cited_keys(text) if k in by_key and by_key[k] != note]
+        related = edits.add_relations(store.SCHEMA, item["text"], SOURCE_LABEL, cited)
+        if related != item["text"]:
+            out["item"] = store.payload(store.update(note, {"text": related}))
+    return out
+
+
+def cite_sources(note: str) -> list[str]:
+    """The sources to offer first when citing in the note's Typst files: those it
+    relates to (explicitly, then inline), then those on its canvas, each once."""
+    doc = dsl.parse(store.SCHEMA, store.get(note)["text"])
+    entries = store._INDEX.refresh()
+    related = [f"{r.target}.txt" for r in doc.relations] + [t for _, t, inline in entries[note].graph_rels if inline]
+    on_canvas = [f"{n['note']}.txt" for n in canvas.read(doc)["nodes"] if "note" in n]
+    return [f for f in dict.fromkeys(related + on_canvas) if f in entries and entries[f].source_key is not None]

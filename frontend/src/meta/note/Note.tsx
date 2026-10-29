@@ -30,6 +30,7 @@ import { persistMedia, type MediaDraft } from '@/features/item-media/useMediaAtt
 import type { PendingOp } from '@/features/item-relate/relationModel';
 import { Relationships } from '@/features/item-relate/Relationships';
 import { runPending, useRelationOps } from '@/features/item-relate/useRelationOps';
+import { BibtexCite } from '@/features/source-bibtex/BibtexCite';
 import { BibtexConflicts, BibtexPicker, StagedSources } from '@/features/source-bibtex/BibtexSourcesField';
 import { useBibtexUpdate } from '@/features/source-bibtex/useBibtexUpdate';
 import { useSessionState } from '@/dumb/useSessionState';
@@ -400,7 +401,8 @@ function LoadedNote({
       {modalNote}
       {pdfOpen && item && <PdfExportModal item={item} onClose={() => setPdfOpen(false)} />}
       {textFile && (item && kindOf(textFile).name === 'typst'
-        ? <TypstModal path={textFile} note={item} noteDirty={draft.dirty} onItem={adoptFromFile} onClose={() => setTextFile(null)} />
+        ? <TypstModal path={textFile} note={item} noteDirty={draft.dirty} onItem={adoptFromFile} onClose={() => setTextFile(null)}
+                      bibtexTool={BibtexCite} />
         : <TextFileModal path={textFile} onClose={() => setTextFile(null)} />)}
     </div>
   );

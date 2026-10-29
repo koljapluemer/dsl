@@ -33,7 +33,9 @@ sources; semantic ranking stays with search; collage rendering stays with the
 portfolio.
 
 Exports are registered explicitly by the application factory. Merely importing
-a renderer must not mutate the export registry. Configuration and user data
+a renderer must not mutate the export registry. The factory also registers the
+bibliography Typst documents cite (`typst.register_bibliography`), rendered by
+the sources feature, so Typst needs no import of it. Configuration and user data
 retain their existing locations and formats.
 
 ## Repository resources and tests

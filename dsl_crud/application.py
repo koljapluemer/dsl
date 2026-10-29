@@ -30,6 +30,7 @@ ROOT = Path(__file__).parent.parent
 def create_app() -> Flask:
     exports.register(bibtex_export.definition())
     exports.register(portfolio_service.export_definition())
+    typst_compiler.register_bibliography(bibtex_export.typst_bibliography)
     app = Flask(__name__, static_folder=None)
     for blueprint in (settings, search, questions, views, sources, graph, canvas, maintenance, items_routes, portfolio, daily, thea, typst, pdf):
         app.register_blueprint(blueprint)
