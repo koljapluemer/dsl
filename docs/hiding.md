@@ -18,7 +18,7 @@ instances sit right below the class; **edit them there**:
 |-------|-----------------|------------|---------------------------------------|---------------|
 | Queue | `QUEUE_HIDING`  | `no-q`     | `appointment`, `recurring`, `source`  | `exploration` |
 | Float | `FLOAT_HIDING`  | `no-float` | `appointment`, `recurring`, `source`  |               |
-| Graph | `GRAPH_HIDING`  | `no-graph` | `appointment`, `recurring`            | `exploration` |
+| Graph | `GRAPH_HIDING`  | `no-graph` | `appointment`, `recurring`, `source`  | `exploration` |
 
 `tests/test_views.py` checks that every listed type is a primary keyword and
 every tag is a valid tag.

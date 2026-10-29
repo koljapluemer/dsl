@@ -215,3 +215,10 @@ def test_explorations_leave_the_graph():
     note("a", "A\n-> knows @b")
     note("b", "B\ntags exploration")
     assert names(graph.build([{"filename": "a.txt", "depth": 1}])) == ["a.txt"]
+
+
+def test_sources_leave_the_graph():
+    note("a", "A\n-> cites @b")
+    note("b", "B\nsource\ndata\nentrytype: misc\n")
+    g = graph.build([{"filename": "a.txt", "depth": 1}])
+    assert (names(g), g["edges"]) == (["a.txt"], [])

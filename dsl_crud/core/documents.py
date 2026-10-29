@@ -46,7 +46,7 @@ class Hiding:
 # What each view hides - edit here.
 QUEUE_HIDING = Hiding("no-q", frozenset({APPOINTMENT_KEYWORD, RECURRING_KEYWORD, SOURCE_KEYWORD}), frozenset({EXPLORATION_TAG}))
 FLOAT_HIDING = Hiding("no-float", frozenset({APPOINTMENT_KEYWORD, RECURRING_KEYWORD, SOURCE_KEYWORD}))
-GRAPH_HIDING = Hiding("no-graph", frozenset({APPOINTMENT_KEYWORD, RECURRING_KEYWORD}), frozenset({EXPLORATION_TAG}))
+GRAPH_HIDING = Hiding("no-graph", frozenset({APPOINTMENT_KEYWORD, RECURRING_KEYWORD, SOURCE_KEYWORD}),frozenset({EXPLORATION_TAG}))
 
 def _clause(doc: dsl.Document, keyword: str) -> dsl.Clause | None:
     return next((c for c in doc.clauses if c.keyword == keyword), None)
