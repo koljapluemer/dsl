@@ -17,10 +17,14 @@ type Props = {
   inputRef?: React.Ref<HTMLInputElement>;
 };
 
-/** A field whose text either picks an existing note (from search suggestions) or becomes a new one. */
+/**
+ * A field whose text either picks an existing note (from search suggestions) or becomes a new one;
+ * focused but empty, it suggests the most recently edited notes.
+ */
 export function NotePicker({ exclude, busy, onPick, inputRef }: Props) {
   const [search, setSearch] = useState(EMPTY_SEARCH);
-  const found = useNoteSearch(search, { exclude, regex: false, limit: SUGGESTIONS, browse: false, enabled: !busy });
+  const [focused, setFocused] = useState(false);
+  const found = useNoteSearch(search, { exclude, regex: false, limit: SUGGESTIONS, browse: focused, enabled: !busy });
 
   async function submit(how: Pick) {
     if (busy) return;
@@ -28,8 +32,11 @@ export function NotePicker({ exclude, busy, onPick, inputRef }: Props) {
   }
 
   return (
-    <NoteSearch state={search} onState={setSearch} found={found} variant="suggest" syntax="words" disabled={busy} inputRef={inputRef}
-                placeholder="Search a note, or write a new one" onSelect={(target) => void submit({ target })}
-                action={{ label: <Plus size={20} />, title: 'create as new note', run: (text) => void submit({ text }) }} />
+    <div className="w-full" onFocus={() => setFocused(true)}
+         onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setFocused(false); }}>
+      <NoteSearch state={search} onState={setSearch} found={found} variant="suggest" syntax="words" disabled={busy} inputRef={inputRef}
+                  placeholder="Search a note, or write a new one" onSelect={(target) => void submit({ target })}
+                  action={{ label: <Plus size={20} />, title: 'create as new note', run: (text) => void submit({ text }) }} />
+    </div>
   );
 }

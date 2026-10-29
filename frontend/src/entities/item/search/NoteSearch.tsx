@@ -13,7 +13,7 @@ type Props = {
   onState: (state: SearchState) => void;
   /** what useNoteSearch found for `state` */
   found: Found;
-  /** `list`: the results below the field, paged; `suggest`: a dropdown under it while there's a query */
+  /** `list`: the results below the field, paged; `suggest`: a dropdown under it while there's a query, or whatever `found` browses without one */
   variant?: 'list' | 'suggest';
   /** `full`: the query language with regexes, explained behind `?`; `words`: no regexes and no help */
   syntax?: 'full' | 'words';
@@ -68,7 +68,7 @@ export function NoteSearch({
   const [dismissed, setDismissed] = useState<string | null>(null);
   const at = active.query === query ? active.index : -1;
   const suggest = variant === 'suggest';
-  const shown = suggest && (!query || dismissed === query) ? [] : results;
+  const shown = suggest && dismissed === query ? [] : results;
 
   const pick = (file: string) => {
     history.record(state.query);
@@ -107,6 +107,7 @@ export function NoteSearch({
         autoFocus={autoFocus}
         placeholder={placeholder}
         onChange={(event) => { onState(withQuery(state, event.target.value)); setDismissed(null); }}
+        onFocus={() => setDismissed(null)}
         onKeyDown={keydown}
       />
       {loading ? <LoaderCircle className="size-4 shrink-0 animate-spin text-base-content/60" /> : null}
