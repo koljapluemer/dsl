@@ -73,7 +73,7 @@ written or created there (503).
 - `PUT /api/typst/<path>` with `{text}`: writes a Typst file and builds its PDF: `{errors, pdf}` (`errors` null when it built; whether the PDF exists).
 - `POST /api/items/<name>/typst`: a new Typst file from the template, as the item's last `media`, built: `{item, path, errors}`.
 - `GET /api/typst/status`: `{available, reason}`.
-- `GET /api/typst/notes`: the items naming a Typst file, the last edited first (the Doc2Typst tab).
+- `GET /api/typst/notes`: the items naming a Typst file, the last edited first (the Canvas2Typ tab).
 - `GET /api/file-path?p=<path>`: its absolute path (the media modal's Copy Path).
 - `POST /api/items/<name>/media` (the upload's bytes and type): adds it as the item's last `media`.
 - `DELETE /api/items/<name>/media?p=<path>`: drops the item's `media` clause naming the path.

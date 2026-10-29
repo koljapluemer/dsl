@@ -85,7 +85,7 @@ export function CanvasLoader({ file, openAction }: { file: string; openAction: S
 }
 
 /** While no canvas is shown: the sidebar only opens one. */
-function Offering({ action, children }: { action: SidebarAction; children: ReactNode }) {
+export function Offering({ action, children }: { action: SidebarAction; children: ReactNode }) {
   useSidebarAction(action);
   return <>{children}</>;
 }

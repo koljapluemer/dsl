@@ -20,19 +20,11 @@ Vite + React + TypeScript in `frontend/`, with TanStack Router (the note sidebar
 
 Home (`/`) links to the other views. Beside every view, on the right, is the note sidebar (`meta/note/NoteSidebar.tsx`): a New note button, then a search over all notes (with the semantic toggle and orphan filter; its results are notes inline, the match marked) and, once notes are open, below it the notes opened from it, the last opened first. The search then takes half the column's height and the column scrolls. Each note shows rendered (view) or in the editor (edit, written as focus leaves it), with its relationships, keeps its mode for the session, opens in a modal from its ⤢ tool, and its ✕ closes it. A click on a related or linked note anywhere opens that note here. The sidebar's state is in the URL (`sq`, `ss`, `sorphan`, `spage`, `sopen`, kept across tabs), so `/?sopen=["<file>"]` is a note on its own (the old `/edit/<file>` leads there). On a phone the sidebar is a drawer, opened from the button beside the tabs or by opening a note; while it's closed, the + button at the bottom right adds a note.
 
-A view may have its own ways to open a found note (`useSidebarAction` in `entities/item/sidebar.ts`): the Graph pins it, the Desk opens it among its notes, Document tags it `document` (unless it is) and opens it, Canvas opens it as a canvas or adds it to the one open, Canvas2Doc opens it as both (or adds it to the canvas open), Doc2Typst opens it as both document and Typst file (attaching a new Typst file to one without), Explorations tags it `exploration` (unless it is) and opens it in its pane, Sources opens it in its pane (sources only), Published any note (and adds a `publish` block to one without). There the results aren't clickable; each has ⌄ to open it in the sidebar and the view's icon.
+A view may have its own ways to open a found note (`useSidebarAction` in `entities/item/sidebar.ts`): the Graph pins it, the Desk opens it among its notes, Canvas opens it as a canvas or adds it to the one open, Canvas2Typ opens it as both canvas and Typst file (attaching a new Typst file to one without; adds it to the canvas open), Explorations tags it `exploration` (unless it is) and opens it in its pane, Sources opens it in its pane (sources only), Published any note (and adds a `publish` block to one without). There the results aren't clickable; each has ⌄ to open it in the sidebar and the view's icon.
 
 ## Desk
 
 The Desk tab is a workspace for several notes at once: a search result's icon in the sidebar opens it here, beside those already open (in the URL's `open`). One fills the pane, two sit side by side, more take further columns and rows as the width allows; on a narrow pane they stack. Each note offers edit, view and both, keeps its mode for the session, and is saved explicitly (Save/Discard); a click on a related or linked note opens that one on the desk too, and ✕ closes a note.
-
-## Document
-
-The Document tab is a long-form workspace for the notes tagged `document` (`GET /api/documents`), listed at its left, the last edited first; the tag doesn't hide them anywhere else. The field above the list starts a new one: what's typed becomes the start of its body, followed by `tags document`. From the note sidebar's search, the document button tags any result `document` (unless it is) and opens it in the central pane (`/document?open=<file>`). The note offers edit and preview modes, remembers the mode for the session, and writes edits when focus leaves it.
-
-Every inline reference in the body or `extra` is an annotation occurrence. On a wide pane the referenced notes appear as full view/edit cards in a left margin, in document order, and lines connect them to numbered anchors in the document. Repeated references get separate cards. Lines remain visible and become stronger near the pointer; selecting either end emphasizes it and moves to the other. `[[target]]` is a number in the editor until the caret or pointer is near it; `[[target|display text]]` keeps its display text and number. The stored syntax never changes, and a `source` is an ordinary referenced source note.
-
-On a narrow pane one button switches between the list and the document, another between Document and Annotations, keeping their positions. There are no connector lines while only one end can be shown.
 
 ## Canvas
 
@@ -43,13 +35,9 @@ The Canvas tab shows any note as an infinite canvas (`/canvas?open=<file>`, `fro
 - A linked note shows its relationships, read-only. Its `extra`, `data` and other keyword blocks start folded; the chevron among its tools shows them.
 - Changes are written shortly after they're made, one write at a time; a badge shows unsaved or saving ones, a failed write shows in the toast corner and as a retry button beside the toolbar. Ctrl+Enter or Esc finishes editing a text node. If the canvas was changed elsewhere since (by hand in the note's text), nothing more is written and Reload loads it again. A canvas that can't be read (invalid `data`, a malformed node) is read-only until it's fixed in the note.
 
-## Canvas2Doc
+## Canvas2Typ
 
-The Canvas2Doc tab (`/canvas2doc?open=<file>`) shows one note's canvas and its document side by side: the canvas on the left, the document (with its annotations, as in the Document tab) on the right. The sidebar's "open as canvas + document" opens a result in both; while one is open, "add to this canvas" adds to its canvas. On a narrow screen a toggle shows one pane at a time, remembered for the session. Both write to the same note: the canvas only its `canvas` key, the document when focus leaves it (see the caveat in [`docs/canvas.md`](docs/canvas.md)).
-
-## Doc2Typst
-
-The Doc2Typst tab (`/doc2typst?open=<file>`) lists the notes naming a Typst file (`GET /api/typst/notes`), the last edited first, beside the one open: its document on the left (as in the Document tab), its Typst file on the right (see [Typst documents](#typst-documents)), a toggle showing its source or its PDF. A note naming several has a picker for which. The sidebar's "open as document + Typst" opens any result here, attaching a new Typst file first to a note without one (not where Typst can't be built). On a narrow screen a toggle shows the document or the Typst file, remembered for the session, and the list takes turns with them.
+The Canvas2Typ tab (`/canvas2typ?open=<file>`) lists the notes naming a Typst file (`GET /api/typst/notes`), the last edited first, beside the one open: its canvas on the left (as in the Canvas tab), its Typst file on the right (see [Typst documents](#typst-documents)), a toggle showing its source or its PDF. A note naming several has a picker for which. The sidebar's "open as canvas + Typst" opens any result here, attaching a new Typst file first to a note without one (not where Typst can't be built); while one is open, "add to this canvas" adds to its canvas. On a narrow screen a toggle shows the canvas or the Typst file, remembered for the session, and the list takes turns with them.
 
 ## Explorations
 
@@ -84,7 +72,7 @@ New files are named `<slug of the first line>-<6 hex>.txt`; the name doesn't cha
 - **Ctrl/⌘+Enter** saves what's being edited: a note's editor (wherever the note is, Graph cards and modals too) and the Graph's edge labels. In a relationship's target field it creates a new note even when a result is chosen.
 - **Esc** never discards edits. It leaves a note's editor (saving it where edits are written as focus leaves) or a label editor, or closes a modal, only when nothing unsaved was edited; otherwise it shows a notice and does nothing (a click outside a modal does the same). In a search or filter field it just leaves the field.
 - Single keys, ignored while typing in a field, holding Ctrl/Alt/Meta, or with a modal open:
-  - `g` then a tab's key (in its tooltip) switches tab (`g w` opens Document, `g v` Canvas, `g k` Canvas2Doc, `g y` Doc2Typst), `c` opens a new note (as the New note button), `/` focuses the page's filter, else the sidebar's search, `u` undoes the change the toast offers.
+  - `g` then a tab's key (in its tooltip) switches tab (`g v` opens Canvas, `g y` Canvas2Typ), `c` opens a new note (as the New note button), `/` focuses the page's filter, else the sidebar's search, `u` undoes the change the toast offers.
   - Calendar: ←/→ a day (or the range's length), `t` today/this week, `a` add, `d`/`r` day/range view. Queue: `n` next. Questions: `s` skip, `e` edit, `d` disable. Suggest: Shift+N next.
 
 ## Semantic search

@@ -24,8 +24,6 @@ THINK_TAG = "suggest-think-and-sketch"
 SUGGEST_PREFIX = "suggest-"
 # a note worked on in the explorations tab, left out of the queue and the graph
 EXPLORATION_TAG = "exploration"
-# a note worked on in the document tab
-DOCUMENT_TAG = "document"
 # a note shown in the goals tab until it has an attached image, which marks it done
 GOAL_TAG = "goal"
 

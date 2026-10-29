@@ -101,5 +101,3 @@ Rules:
   `data`, …) are folded at first; a tool shows them (kept per node while the
   canvas is open, not stored). A note also open elsewhere with older canvas data in an unsaved edit
   can still write over the canvas; the next canvas write is then a conflict.
-  Canvas2Doc shows the same note as a document beside its canvas, which
-  makes this more likely there.

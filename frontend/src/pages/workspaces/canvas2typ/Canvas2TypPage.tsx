@@ -9,32 +9,32 @@ import { fileName } from '@/entities/item/files/files';
 import { createTypst, itemsChanged } from '@/entities/item/mutations';
 import { NoteLine } from '@/entities/item/NoteLine';
 import { itemQuery, typstStatusQuery } from '@/entities/item/queries';
-import { sidebarShown, useSidebarAction } from '@/entities/item/sidebar';
+import { sidebarShown, type SidebarAction } from '@/entities/item/sidebar';
 import { TypstEditor } from '@/features/file-edit/TypstEditor';
-import { DocumentView } from '../document/DocumentPage';
-import type { Doc2TypstSearch } from './search';
+import { CanvasLoader, Offering } from '../canvas/CanvasPage';
+import type { Canvas2TypSearch } from './search';
 import { typstFiles, typstNotesQuery } from './typstNotes';
 
-type Pane = 'document' | 'typst';
+type Pane = 'canvas' | 'typst';
 
 /**
- * The notes naming a Typst file, listed beside the one open: its document on
+ * The notes naming a Typst file, listed beside the one open: its canvas on
  * the left, its Typst file on the right; on a narrow screen one of them at a
  * time. From the sidebar any note opens here, given a new Typst file first unless it has one.
  */
-export function Doc2TypstPage() {
+export function Canvas2TypPage() {
   const qc = useQueryClient();
   const navigate = useNavigate();
-  const { open } = useSearch({ strict: false }) as Doc2TypstSearch;
+  const { open } = useSearch({ strict: false }) as Canvas2TypSearch;
   const list = useQuery(typstNotesQuery);
   /** on a narrow screen the list takes the place of the note */
   const [listing, setListing] = useState(!open);
-  const [pane, setPane] = useSessionState<Pane>('doc2typst-pane', 'document', (v) => v === 'document' || v === 'typst');
+  const [pane, setPane] = useSessionState<Pane>('canvas2typ-pane', 'canvas', (v) => v === 'canvas' || v === 'typst');
 
   const show = (file: string | undefined) => {
     sidebarShown.set(false);
     setListing(!file);
-    void navigate({ to: '/doc2typst', search: { open: file } });
+    void navigate({ to: '/canvas2typ', search: { open: file } });
   };
 
   /** Gives the note a new Typst file unless it names one; false when it can't. */
@@ -57,12 +57,13 @@ export function Doc2TypstPage() {
     } catch (e) { showError(e); }
   }
 
-  useSidebarAction({
+  // the canvas registers it (with its "add to this canvas") while a note is open
+  const openAction: SidebarAction = {
     icon: <FileType size={14} />,
-    title: 'open as document + Typst (a new Typst file unless it has one)',
+    title: 'open as canvas + Typst (a new Typst file unless it has one)',
     run: (file) => void openHere(file),
     marked: { has: (file) => file === open },
-  });
+  };
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3 @3xl:grid @3xl:grid-cols-[16rem_minmax(0,1fr)] @3xl:gap-4">
@@ -83,23 +84,27 @@ export function Doc2TypstPage() {
       {open ? (
         <section className={`flex min-h-0 flex-1 flex-col gap-3 ${listing ? '@max-3xl:hidden' : ''}`}>
           <div role="tablist" className="join self-start lg:hidden">
-            {(['document', 'typst'] as const).map((p) => (
+            {(['canvas', 'typst'] as const).map((p) => (
               <button key={p} type="button" role="tab" className={`btn btn-sm join-item ${pane === p ? 'btn-active' : ''}`} onClick={() => setPane(p)}>
-                {p === 'document' ? 'Document' : 'Typst'}
+                {p === 'canvas' ? 'Canvas' : 'Typst'}
               </button>
             ))}
           </div>
-          {/* both stay mounted, so switching panes keeps unsaved Typst edits */}
+          {/* both stay mounted, so switching panes keeps the canvas and unsaved Typst edits */}
           <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 lg:grid-cols-2">
-            <div className={`min-h-0 flex-col ${pane === 'document' ? 'flex' : 'hidden lg:flex'}`}>
-              <DocumentView key={open} file={open} persist="doc2typst" onDeleted={() => show(undefined)} />
+            <div className={`min-h-0 flex-col ${pane === 'canvas' ? 'flex' : 'hidden lg:flex'}`}>
+              <CanvasLoader key={open} file={open} openAction={openAction} />
             </div>
             <div className={`min-h-0 flex-col pb-4 ${pane === 'typst' ? 'flex' : 'hidden lg:flex'}`}>
               <TypstPane key={open} file={open} onAttach={() => void openHere(open)} />
             </div>
           </div>
         </section>
-      ) : <p className={`text-sm text-base-content/50 ${listing ? '@max-3xl:hidden' : ''}`}>Pick a note, or open any from the notes sidebar.</p>}
+      ) : (
+        <Offering action={openAction}>
+          <p className={`text-sm text-base-content/50 ${listing ? '@max-3xl:hidden' : ''}`}>Pick a note, or open any from the notes sidebar.</p>
+        </Offering>
+      )}
     </div>
   );
 }
@@ -132,8 +137,7 @@ function TypstPane({ file, onAttach }: { file: string; onAttach: () => void }) {
           {paths.map((p) => <option key={p} value={p}>{fileName(p)}</option>)}
         </select>
       )}
-      {/* the document writes its edits when focus leaves it, so before an upload here */}
-      <TypstEditor key={path} path={path} note={item} noteDirty={false} onItem={adopt} split={false} persist="doc2typst-typst-pane" />
+      <TypstEditor key={path} path={path} note={item} noteDirty={false} onItem={adopt} split={false} persist="canvas2typ-typst-pane" />
     </>
   );
 }
