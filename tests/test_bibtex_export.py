@@ -61,3 +61,10 @@ def test_sync(tmp_path):
     store.delete(created["file"])
     exports.sync("bibtex")
     assert "doe2020" not in target.read_text()
+
+
+def test_render_for_typst_keeps_unicode():
+    text = bibtex_export.render([SOURCE], latex=False)
+    assert "Müller" in text and "—" in text
+    assert "Müller" not in bibtex_export.render([SOURCE])
+    assert "author = {Doe, Jr., Jane and van Beethoven, Ludwig and {World Health Organization}}" in text

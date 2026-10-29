@@ -36,9 +36,9 @@ export const writeTextFile = (path: string, text: string) => api<null>('PUT', fi
 /** A new Typst file from the template, named in another `media` clause of the item and built. */
 export const createTypst = (file: string) => api<{ item: Item; path: string } & Pick<TypstBuild, 'errors'>>('POST', `/api/items/${enc(file)}/typst`);
 
-/** Writes a Typst file and builds its PDF (kept as it was when the build fails). */
-export const writeTypst = (path: string, text: string) =>
-  api<TypstBuild>('PUT', `/api/typst/${path.split('/').map(encodeURIComponent).join('/')}`, { text });
+/** Writes a Typst file and builds its PDF (kept as it was when the build fails); with `note`, relates it to the sources cited. */
+export const writeTypst = (path: string, text: string, note?: string) =>
+  api<TypstBuild>('PUT', `/api/typst/${path.split('/').map(encodeURIComponent).join('/')}`, { text, note });
 
 /** Links the item to `target` (a file) or to a new item with `text`, under any `label` ('' for none). */
 export const relateItem = (file: string, body: { label: string } & ({ target: string } | { text: string })) =>

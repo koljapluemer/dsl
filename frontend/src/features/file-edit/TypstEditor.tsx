@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type ChangeEvent, type ComponentType } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { EditorState, Prec } from '@codemirror/state';
 import { EditorView, keymap } from '@codemirror/view';
@@ -12,11 +12,17 @@ import { compressImage } from '@/entities/item/files/kinds/image';
 import { pdfOf } from '@/entities/item/files/kinds/typst';
 import { attachMedia, writeTypst } from '@/entities/item/mutations';
 import { textFileQuery, typstStatusQuery } from '@/entities/item/queries';
+import { citeTransaction } from '@/entities/source/cite';
+import { citeCompletion } from './citeCompletion';
+import { CitePicker } from './CitePicker';
 
 /** What the note must not have while an upload writes it. */
 const NOTE_UNSAVED = 'Save the note first: an upload adds it to the note';
 
 type Pane = 'source' | 'pdf';
+
+/** A toolbar tool citing more sources (the BibTeX one, from `source-bibtex`), given the function citing their keys. */
+export type BibtexTool = ComponentType<{ onCite: (keys: string[]) => void; className: string }>;
 
 /**
  * A Typst file the note names, its source and its PDF: side by side from `md`
@@ -26,9 +32,12 @@ type Pane = 'source' | 'pdf';
  * insert as `#image("/<path>")`; an uploaded or pasted one is attached to the
  * note at once, so not while the note has unsaved edits (`noteDirty`). Read-only
  * where Typst isn't installed. `onClose`: a ✕ that won't close with unsaved edits.
+ * Sources are cited by `@` completion or the cite tool, and `bibtexTool`; the
+ * first citation appends the bibliography. Saving relates the note to the sources cited, unless it has unsaved edits.
  */
-export function TypstEditor({ path, note, noteDirty, onItem, split, persist, onClose }: {
+export function TypstEditor({ path, note, noteDirty, onItem, split, persist, onClose, bibtexTool: Bibtex }: {
   path: string; note: Item; noteDirty: boolean; onItem: (item: Item) => void; split: boolean; persist?: string; onClose?: () => void;
+  bibtexTool?: BibtexTool;
 }) {
   const qc = useQueryClient();
   const { data: saved, error } = useQuery(textFileQuery(path));
@@ -48,10 +57,10 @@ export function TypstEditor({ path, note, noteDirty, onItem, split, persist, onC
   const images = shownFiles(note).filter((f) => mediaKind(f) === 'image');
   const extensions = useMemo(() => [
     ...(kindOf(path).editor?.() ?? []),
-    ...(readOnly ? [EditorState.readOnly.of(true), EditorView.editable.of(false)] : []),
+    ...(readOnly ? [EditorState.readOnly.of(true), EditorView.editable.of(false)] : [citeCompletion(qc, note.file)]),
     // Mod-Enter saves (see onKeyDown) instead of the default keymap's blank line
     Prec.high(keymap.of([{ key: 'Mod-Enter', run: () => true }])),
-  ], [path, readOnly]);
+  ], [path, readOnly, qc, note.file]);
   const dirty = text !== null && text !== saved;
 
   useEffect(() => {
@@ -65,9 +74,11 @@ export function TypstEditor({ path, note, noteDirty, onItem, split, persist, onC
     setBusy(true);
     setProblem(null);
     try {
-      const build = await writeTypst(path, text);
+      // with unsaved edits the note isn't written; a later save relates it
+      const build = await writeTypst(path, text, noteDirty ? undefined : note.file);
       qc.setQueryData(textFileQuery(path).queryKey, text);
       setText(null);
+      if (build.item) onItem(build.item);
       setErrors(build.errors);
       setPdf(build.pdf);
       setVersion((v) => v + 1);
@@ -82,6 +93,13 @@ export function TypstEditor({ path, note, noteDirty, onItem, split, persist, onC
     const view = editorRef.current;
     if (!view || readOnly) return;
     view.dispatch(view.state.replaceSelection(`#image("/${image}")`));
+    view.focus();
+  };
+
+  const cite = (keys: string[]) => {
+    const view = editorRef.current;
+    if (!view || readOnly || !keys.length) return;
+    view.dispatch(citeTransaction(view.state, keys));
     view.focus();
   };
 
@@ -117,6 +135,8 @@ export function TypstEditor({ path, note, noteDirty, onItem, split, persist, onC
       <div className="mb-2 flex shrink-0 flex-wrap items-center gap-1" data-unsaved={dirty || undefined}>
         <span className="min-w-0 flex-1 truncate font-mono text-sm" title={path}>{path}</span>
         {!readOnly && <>
+          <CitePicker note={note.file} onCite={(key) => cite([key])} />
+          {Bibtex && <Bibtex onCite={cite} className="btn btn-ghost btn-xs btn-square" />}
           {images.length > 0 && (
             <details className="dropdown dropdown-end">
               <summary className="btn btn-ghost btn-xs btn-square" title="insert one of the note's images"><Images size={14} /></summary>

@@ -15,6 +15,15 @@ def add_relation(text: str, label: str, target: str) -> str:
     return _append_line(text, f"-> {label} @{target}" if label else f"-> @{target}")
 
 
+def add_relations(schema: dict, text: str, label: str, files: list[str]) -> str:
+    """`text` with a relationship `label` to each of `files` it doesn't have yet."""
+    for f in files:
+        target = f.removesuffix(".txt")
+        if not any((r.label or "") == label and r.target == target for r in dsl.parse(schema, text).relations):
+            text = add_relation(text, label, target)
+    return text
+
+
 def add_tag(schema: dict, text: str, tag: str) -> str:
     tags = next((c for c in dsl.parse(schema, text).clauses if c.keyword == TAGS_KEYWORD), None)
     if tags is None:

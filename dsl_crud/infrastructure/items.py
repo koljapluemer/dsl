@@ -108,6 +108,8 @@ class _Entry:
     thea_dirs: frozenset[str]
     # its data block has a canvas (see canvas.CANVAS_KEY)
     has_canvas: bool
+    # a source's BibTeX key (see views.source_key)
+    source_key: str | None
 
 
 UNLABELED_RELATION = "related"
@@ -156,6 +158,7 @@ def _entry(mtime_ns: int, item: dict) -> "_Entry":
         frozenset(b.name for b in vizzes if b.name),
         thea.kept([b.id for b in vizzes if b.id]),
         isinstance(doc.data, dict) and canvas.CANVAS_KEY in doc.data,
+        views.source_key(SCHEMA, doc, item["file"]),
     )
 
 
@@ -547,6 +550,16 @@ def canvases() -> list[dict]:
     entries = _INDEX.refresh()
     names = sorted((n for n, e in entries.items() if e.has_canvas), key=lambda n: (-entries[n].mtime_ns, n))
     return [_note(n, entries) for n in names]
+
+
+def source_files_by_key() -> dict[str, str]:
+    """Each source's file by its BibTeX key; with a key taken twice, the first file by name."""
+    entries = _INDEX.refresh()
+    out: dict[str, str] = {}
+    for n in sorted(entries):
+        if (key := entries[n].source_key) is not None:
+            out.setdefault(key, n)
+    return out
 
 
 def typst_notes() -> list[dict]:
