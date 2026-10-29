@@ -8,6 +8,7 @@ type Props = {
   /** the document; a value other than the editor's own (a change from outside) replaces it, undoably */
   value: string;
   extensions: Extension[];
+  /** focuses the editor when it turns true (and on mount, while true) */
   autofocus?: boolean;
   onChange: (doc: string) => void;
   /** Mod-s */
@@ -40,11 +41,16 @@ export function CodeMirrorHost({ value, extensions, autofocus = true, onChange, 
     });
     view.current = editor;
     if (editorRef) editorRef.current = editor;
-    // a frame late: mounted mid-drag (a graph card), React Flow is still settling focus
-    const frame = autofocus ? requestAnimationFrame(() => editor.focus()) : 0;
-    return () => { cancelAnimationFrame(frame); if (editorRef) editorRef.current = null; view.current = null; editor.destroy(); };
+    return () => { if (editorRef) editorRef.current = null; view.current = null; editor.destroy(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- mounted once; `value` is reconciled below
   }, []);
+
+  useEffect(() => {
+    if (!autofocus) return;
+    // a frame late: mounted mid-drag (a graph card), React Flow is still settling focus
+    const frame = requestAnimationFrame(() => view.current?.focus());
+    return () => cancelAnimationFrame(frame);
+  }, [autofocus]);
 
   useEffect(() => {
     const editor = view.current;
