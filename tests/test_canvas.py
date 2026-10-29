@@ -117,3 +117,12 @@ def test_api_creates_a_note_from_text(client, data_dir):
     item = made.get_json()
     assert (data_dir / item["file"]).read_text() == "Heading\n data\nmore\n"
     assert client.post("/api/canvas/note", json={"text": "  "}).status_code == 400
+
+
+def test_api_lists_the_notes_with_a_canvas(client):
+    client.post("/api/items", json={"text": "Plain\ndata\nkeep: me\n"})
+    host = client.post("/api/items", json={"text": "Host\n"}).get_json()["file"]
+    assert client.get("/api/canvases").get_json() == []
+    rev = client.get(f"/api/items/{host}/canvas").get_json()["rev"]
+    client.put(f"/api/items/{host}/canvas", json={"nodes": NODES, "rev": rev})
+    assert [i["file"] for i in client.get("/api/canvases").get_json()] == [host]

@@ -36,6 +36,7 @@ canvas:
 
 | Endpoint | Does |
 |---|---|
+| `GET /api/canvases` | the notes with a `canvas` key, the last edited first (the page's list) |
 | `GET /api/items/<name>/canvas` | `{nodes, problems, rev, dataError}` |
 | `PUT /api/items/<name>/canvas` | `{nodes, rev}` → `{rev}`; 409 when the stored canvas isn't `rev` any more, 400 when it can't be written over |
 | `POST /api/canvas/note` | `{text}` → a new note with the text as its body |

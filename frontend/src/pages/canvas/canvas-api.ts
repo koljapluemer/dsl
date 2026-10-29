@@ -26,6 +26,12 @@ export const canvasQuery = (file: string, generation: number) => queryOptions({
   gcTime: 0,
 });
 
+/** Every note with a canvas, the last edited first; under `items`, so writes refetch it. */
+export const canvasesQuery = queryOptions({
+  queryKey: ['items', 'canvases'],
+  queryFn: () => api<Item[]>('GET', '/api/canvases'),
+});
+
 /** Writes the nodes over the canvas last read or written as `rev`; a 409 when it changed since. */
 export const putCanvas = (file: string, nodes: WireNode[], rev: string) =>
   api<{ rev: string }>('PUT', `/api/items/${enc(file)}/canvas`, { nodes, rev });

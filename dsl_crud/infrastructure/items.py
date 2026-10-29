@@ -15,7 +15,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from dsl_crud.core import documents as views
-from dsl_crud.core import dsl, edits, file_kinds, inline_refs, thea
+from dsl_crud.core import canvas, dsl, edits, file_kinds, inline_refs, thea
 from dsl_crud.infrastructure import config
 from dsl_crud.infrastructure.errors import Conflict, NotFound, ValidationError
 
@@ -104,6 +104,8 @@ class _Entry:
     # its viz blocks' names, and the version folders they keep (see thea.kept)
     thea_names: frozenset[str]
     thea_dirs: frozenset[str]
+    # its data block has a canvas (see canvas.CANVAS_KEY)
+    has_canvas: bool
 
 
 UNLABELED_RELATION = "related"
@@ -150,6 +152,7 @@ def _entry(mtime_ns: int, item: dict) -> "_Entry":
         views.route(doc),
         frozenset(b.name for b in vizzes if b.name),
         thea.kept([b.id for b in vizzes if b.id]),
+        isinstance(doc.data, dict) and canvas.CANVAS_KEY in doc.data,
     )
 
 
@@ -528,6 +531,13 @@ def explorations() -> list[dict]:
     """Every item tagged views.EXPLORATION_TAG, the last edited first."""
     entries = _INDEX.refresh()
     names = sorted((n for n, e in entries.items() if views.EXPLORATION_TAG in e.tags), key=lambda n: (-entries[n].mtime_ns, n))
+    return [_note(n, entries) for n in names]
+
+
+def canvases() -> list[dict]:
+    """Every item whose data block has a canvas, the last edited first."""
+    entries = _INDEX.refresh()
+    names = sorted((n for n, e in entries.items() if e.has_canvas), key=lambda n: (-entries[n].mtime_ns, n))
     return [_note(n, entries) for n in names]
 
 

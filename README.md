@@ -36,7 +36,7 @@ On a narrow pane a button switches between Document and Annotations, keeping the
 
 ## Canvas
 
-The Canvas tab shows any note as an infinite canvas (`/canvas?open=<file>`, `frontend/src/pages/canvas`, `dsl_crud/features/canvas`): free Markdown text and linked notes, each at a position. The sidebar's results offer "open as canvas" and, while one is open, "add to this canvas". It's stored as `canvas` in the note's `data` block, written only once something changes ([`docs/canvas.md`](docs/canvas.md)).
+The Canvas tab shows any note as an infinite canvas (`/canvas?open=<file>`, `frontend/src/pages/canvas`, `dsl_crud/features/canvas`): free Markdown text and linked notes, each at a position. The sidebar's results offer "open as canvas" and, while one is open, "add to this canvas". The notes with a canvas are listed on the right (`GET /api/canvases`), the last edited first; on a narrow pane the list and the canvas take turns. It's stored as `canvas` in the note's `data` block, written only once something changes ([`docs/canvas.md`](docs/canvas.md)).
 
 - Double-click the canvas to write text there; right-click it (or the toolbar's Add note) to search for notes to add there. The toolbar also adds text, opens the note in the sidebar, zooms and fits the view.
 - Each node: a grip to drag it, edit/view, delete (text) or detach (a note, which stays) and, as the note's own tool, delete the note; and a conversion. Text → note makes a new note with the text as its body; note → text copies the note's body into a text node, the note unchanged. Removals offer undo.
