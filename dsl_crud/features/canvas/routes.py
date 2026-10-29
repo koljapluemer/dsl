@@ -1,8 +1,13 @@
 from flask import Blueprint, jsonify, request
 
 from dsl_crud.features.canvas import service
+from dsl_crud.infrastructure import items
 
 blueprint = Blueprint("canvas", __name__)
+
+
+@blueprint.get("/api/canvases")
+def canvases(): return jsonify(items.canvases())
 
 
 @blueprint.get("/api/items/<name>/canvas")

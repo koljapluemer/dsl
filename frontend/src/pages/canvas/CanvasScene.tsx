@@ -12,7 +12,7 @@ import { deleteItem, itemsChanged, restoreItem } from '@/entities/item/mutations
 import { itemQuery } from '@/entities/item/queries';
 import { useSchema } from '@/entities/item/schema';
 import { useOpenNote, useSidebarAction, type SidebarAction } from '@/entities/item/sidebar';
-import { createNoteFromText, putCanvas, type StoredCanvas } from './canvas-api';
+import { canvasesQuery, createNoteFromText, putCanvas, type StoredCanvas } from './canvas-api';
 import { CanvasContext, type CanvasActions } from './canvas-context';
 import { IDLE, SEARCH_STEP, currentInteraction, type Interaction, type XY } from './canvas-interaction';
 import { canvasReducer, fromWire, linkedFiles, newId, noteBody, toWire, type CanvasNode } from './canvas-model';
@@ -60,6 +60,8 @@ function Scene({ file, stored, openAction, onReload }: Props) {
     const written = await putCanvas(file, nodes, rev);
     // the note shown elsewhere (the sidebar) shows the canvas as written
     void qc.invalidateQueries({ queryKey: itemQuery(file).queryKey });
+    // the list beside it: a first write adds the note, any write moves it to the top
+    void qc.invalidateQueries({ queryKey: canvasesQuery.queryKey });
     return written;
   }));
   const save = useSyncExternalStore(saver.subscribe, saver.getState);
