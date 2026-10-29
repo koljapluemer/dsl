@@ -41,7 +41,7 @@ The Canvas tab shows any note as an infinite canvas (`/canvas?open=<file>`, `fro
 
 ## Canvas2Typ
 
-The Canvas2Typ tab (`/canvas2typ?open=<file>`) lists the notes naming a Typst file (`GET /api/typst/notes`), the last edited first, beside the one open: its canvas on the left (as in the Canvas tab), its Typst file on the right (see [Typst documents](#typst-documents)), a toggle showing its source or its PDF. A note naming several has a picker for which. The sidebar's "open as canvas + Typst" opens any result here, attaching a new Typst file first to a note without one (not where Typst can't be built); while one is open, "add to this canvas" adds to its canvas. On a narrow screen a toggle shows the canvas or the Typst file, remembered for the session, and the list takes turns with them.
+The Canvas2Typ tab (`/canvas2typ?open=<file>`) lists the notes naming a Typst file (`GET /api/typst/notes`), the last edited first, beside the one open: its canvas on the left (as in the Canvas tab), its Typst file on the right (see [Typst documents](#typst-documents)), a toggle showing its source or its PDF. A note naming several has a picker for which. The sidebar's "open as canvas + Typst" opens any result here, attaching a new Typst file first to a note without one (not where Typst can't be built); while one is open, "add to this canvas" adds to its canvas. On a narrow screen a toggle shows the canvas or the Typst file, remembered for the session, and the list takes turns with them; on a wide one the list can be collapsed to its toggle, also remembered for the session.
 
 ## Explorations
 

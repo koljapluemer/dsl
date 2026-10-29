@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useSearch } from '@tanstack/react-router';
-import { FilePlus2, FileType, PanelLeft } from 'lucide-react';
+import { FilePlus2, FileType, PanelLeft, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import type { Item } from '@/api/types';
 import { showError, showNotice } from '@/dumb/notice';
 import { useSessionState } from '@/dumb/useSessionState';
@@ -30,6 +30,8 @@ export function Canvas2TypPage() {
   /** on a narrow screen the list takes the place of the note */
   const [listing, setListing] = useState(!open);
   const [pane, setPane] = useSessionState<Pane>('canvas2typ-pane', 'canvas', (v) => v === 'canvas' || v === 'typst');
+  /** on a wide screen the list can shrink to its toggle */
+  const [collapsed, setCollapsed] = useSessionState('canvas2typ-list-collapsed', false, (v) => typeof v === 'boolean');
 
   const show = (file: string | undefined) => {
     sidebarShown.set(false);
@@ -66,12 +68,18 @@ export function Canvas2TypPage() {
   };
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-3 @3xl:grid @3xl:grid-cols-[16rem_minmax(0,1fr)] @3xl:gap-4">
+    <div className={`flex min-h-0 flex-1 flex-col gap-3 @3xl:grid @3xl:gap-4 ${collapsed ? '@3xl:grid-cols-[auto_minmax(0,1fr)]' : '@3xl:grid-cols-[16rem_minmax(0,1fr)]'}`}>
       <button type="button" className="btn btn-sm self-start @3xl:hidden" onClick={() => setListing(!listing)}>
         <PanelLeft size={16} />{listing ? 'Note' : 'Notes'}
       </button>
       <aside className={`mb-4 flex min-h-0 flex-1 flex-col border border-base-300 @3xl:flex-none ${listing ? '' : '@max-3xl:hidden'}`}>
-        <ul className="min-h-0 flex-1 space-y-1 overflow-y-auto p-2 text-sm">
+        <div className="hidden shrink-0 justify-end p-1 @3xl:flex">
+          <button type="button" className="btn btn-ghost btn-xs btn-square" title={collapsed ? 'show the notes' : 'hide the notes'}
+                  onClick={() => setCollapsed(!collapsed)}>
+            {collapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
+          </button>
+        </div>
+        <ul className={`min-h-0 flex-1 space-y-1 overflow-y-auto p-2 text-sm @3xl:pt-0 ${collapsed ? '@3xl:hidden' : ''}`}>
           {list.data?.map((d) => (
             <li key={d.file}>
               <NoteLine item={d} onClick={() => show(d.file)}
