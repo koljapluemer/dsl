@@ -20,7 +20,7 @@ Vite + React + TypeScript in `frontend/`, with TanStack Router (the note sidebar
 
 Home (`/`) links to the other views. Beside every view, on the right, is the note sidebar (`meta/note/NoteSidebar.tsx`): a New note button, then a search over all notes (with the semantic toggle and orphan filter; its results are notes inline, the match marked) and, once notes are open, below it the notes opened from it, the last opened first. The search then takes half the column's height and the column scrolls. Each note shows rendered (view) or in the editor (edit, written as focus leaves it), with its relationships, keeps its mode for the session, opens in a modal from its ⤢ tool, and its ✕ closes it. A click on a related or linked note anywhere opens that note here. The sidebar's state is in the URL (`sq`, `ss`, `sorphan`, `spage`, `sopen`, kept across tabs), so `/?sopen=["<file>"]` is a note on its own (the old `/edit/<file>` leads there). On a phone the sidebar is a drawer, opened from the button beside the tabs or by opening a note; while it's closed, the + button at the bottom right adds a note.
 
-A view may have its own ways to open a found note (`useSidebarAction` in `entities/item/sidebar.ts`): the Graph pins it, the Desk opens it among its notes, Document tags it `document` (unless it is) and opens it, Canvas opens it as a canvas or adds it to the one open, Canvas2Doc opens it as both (or adds it to the canvas open), Explorations tags it `exploration` (unless it is) and opens it in its pane, Sources opens it in its pane (sources only), Published any note (and adds a `publish` block to one without). There the results aren't clickable; each has ⌄ to open it in the sidebar and the view's icon.
+A view may have its own ways to open a found note (`useSidebarAction` in `entities/item/sidebar.ts`): the Graph pins it, the Desk opens it among its notes, Document tags it `document` (unless it is) and opens it, Canvas opens it as a canvas or adds it to the one open, Canvas2Doc opens it as both (or adds it to the canvas open), Doc2Typst opens it as both document and Typst file (attaching a new Typst file to one without), Explorations tags it `exploration` (unless it is) and opens it in its pane, Sources opens it in its pane (sources only), Published any note (and adds a `publish` block to one without). There the results aren't clickable; each has ⌄ to open it in the sidebar and the view's icon.
 
 ## Desk
 
@@ -46,6 +46,10 @@ The Canvas tab shows any note as an infinite canvas (`/canvas?open=<file>`, `fro
 ## Canvas2Doc
 
 The Canvas2Doc tab (`/canvas2doc?open=<file>`) shows one note's canvas and its document side by side: the canvas on the left, the document (with its annotations, as in the Document tab) on the right. The sidebar's "open as canvas + document" opens a result in both; while one is open, "add to this canvas" adds to its canvas. On a narrow screen a toggle shows one pane at a time, remembered for the session. Both write to the same note: the canvas only its `canvas` key, the document when focus leaves it (see the caveat in [`docs/canvas.md`](docs/canvas.md)).
+
+## Doc2Typst
+
+The Doc2Typst tab (`/doc2typst?open=<file>`) lists the notes naming a Typst file (`GET /api/typst/notes`), the last edited first, beside the one open: its document on the left (as in the Document tab), its Typst file on the right (see [Typst documents](#typst-documents)), a toggle showing its source or its PDF. A note naming several has a picker for which. The sidebar's "open as document + Typst" opens any result here, attaching a new Typst file first to a note without one (not where Typst can't be built). On a narrow screen a toggle shows the document or the Typst file, remembered for the session, and the list takes turns with them.
 
 ## Explorations
 
@@ -80,7 +84,7 @@ New files are named `<slug of the first line>-<6 hex>.txt`; the name doesn't cha
 - **Ctrl/⌘+Enter** saves what's being edited: a note's editor (wherever the note is, Graph cards and modals too) and the Graph's edge labels. In a relationship's target field it creates a new note even when a result is chosen.
 - **Esc** never discards edits. It leaves a note's editor (saving it where edits are written as focus leaves) or a label editor, or closes a modal, only when nothing unsaved was edited; otherwise it shows a notice and does nothing (a click outside a modal does the same). In a search or filter field it just leaves the field.
 - Single keys, ignored while typing in a field, holding Ctrl/Alt/Meta, or with a modal open:
-  - `g` then a tab's key (in its tooltip) switches tab (`g w` opens Document, `g v` Canvas, `g k` Canvas2Doc), `c` opens a new note (as the New note button), `/` focuses the page's filter, else the sidebar's search, `u` undoes the change the toast offers.
+  - `g` then a tab's key (in its tooltip) switches tab (`g w` opens Document, `g v` Canvas, `g k` Canvas2Doc, `g y` Doc2Typst), `c` opens a new note (as the New note button), `/` focuses the page's filter, else the sidebar's search, `u` undoes the change the toast offers.
   - Calendar: ←/→ a day (or the range's length), `t` today/this week, `a` add, `d`/`r` day/range view. Queue: `n` next. Questions: `s` skip, `e` edit, `d` disable. Suggest: Shift+N next.
 
 ## Semantic search
@@ -195,7 +199,7 @@ The note editor accepts any number of images (downscaled to WebP, losslessly fro
 
 ### Typst documents
 
-The editor's Typst tool attaches a new Typst document to the note (`files/<note>-<6 hex>.typ`, in a `media` clause) and opens it: the source beside its PDF (one at a time on a narrow screen). Saving writes it and builds the PDF next to it (`files/<note>-<6 hex>.pdf`); Typst's errors show above the source, and the PDF stays as it was. Paths in it are from the data folder: the image tools insert one of the note's images as `#image("/images/…")`, or upload (or paste) one, attaching it to the note first, so only while the note has no unsaved edits. Building needs the `typst` dependency group (the Python bindings; a uv default group). Termux doesn't install it, so there Typst files are read-only and the tool is missing.
+The editor's Typst tool attaches a new Typst document to the note (`files/<note>-<6 hex>.typ`, in a `media` clause) and opens it: the source, highlighted as Typst, beside its PDF (one at a time on a narrow screen). Saving writes it and builds the PDF next to it (`files/<note>-<6 hex>.pdf`); Typst's errors show above the source, and the PDF stays as it was. Paths in it are from the data folder: the image tools insert one of the note's images as `#image("/images/…")`, or upload (or paste) one, attaching it to the note first, so only while the note has no unsaved edits. Building needs the `typst` dependency group (the Python bindings; a uv default group). Termux doesn't install it, so there Typst files are read-only and the tool is missing.
 
 Settings → "maintenance" lists, then on Delete removes (without undo):
 

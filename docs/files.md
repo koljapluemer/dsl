@@ -36,7 +36,7 @@ A file's extension decides its kind: `file_kinds.py` on the server,
 | `image` | jpg jpeg png gif webp bmp        | shown; an upload is downscaled to WebP first (`kinds/image.ts`), losslessly from PNG, GIF and BMP |
 | `video` | mp4 webm mov                     | shown; an upload is written as is, up to 250 MB      |
 | `jinja` | j2 jinja jinja2                  | edited as text in a modal, highlighted as Jinja in HTML (`kinds/jinja.ts`) |
-| `typst` | typ                              | edited as text in its own modal beside its PDF, which is built when it's written (`kinds/typst.ts`, see below) |
+| `typst` | typ                              | edited as text, highlighted as Typst (`codemirror-lang-typst`), beside its PDF, which is built when it's written (`kinds/typst.ts`, see below) |
 | other   | anything else                    | listed, opens in a new tab                           |
 
 An item's images and videos, in the order its `media` clauses name them, are
@@ -73,6 +73,7 @@ written or created there (503).
 - `PUT /api/typst/<path>` with `{text}`: writes a Typst file and builds its PDF: `{errors, pdf}` (`errors` null when it built; whether the PDF exists).
 - `POST /api/items/<name>/typst`: a new Typst file from the template, as the item's last `media`, built: `{item, path, errors}`.
 - `GET /api/typst/status`: `{available, reason}`.
+- `GET /api/typst/notes`: the items naming a Typst file, the last edited first (the Doc2Typst tab).
 - `GET /api/file-path?p=<path>`: its absolute path (the media modal's Copy Path).
 - `POST /api/items/<name>/media` (the upload's bytes and type): adds it as the item's last `media`.
 - `DELETE /api/items/<name>/media?p=<path>`: drops the item's `media` clause naming the path.

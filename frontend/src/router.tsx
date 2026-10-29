@@ -9,6 +9,8 @@ import { CanvasPage } from './pages/workspaces/canvas/CanvasPage';
 import { validateCanvasSearch } from './pages/workspaces/canvas/search';
 import { Canvas2DocPage } from './pages/workspaces/canvas2doc/Canvas2DocPage';
 import { validateCanvas2DocSearch } from './pages/workspaces/canvas2doc/search';
+import { Doc2TypstPage } from './pages/workspaces/doc2typst/Doc2TypstPage';
+import { validateDoc2TypstSearch } from './pages/workspaces/doc2typst/search';
 import { validateCalendarSearch } from './pages/calendar/search';
 import { DeskPage } from './pages/desk/DeskPage';
 import { validateDeskSearch } from './pages/desk/search';
@@ -56,6 +58,7 @@ const tree = root.addChildren([
   createRoute({ getParentRoute: () => root, path: '/document', validateSearch: validateDocumentSearch, component: DocumentPage }),
   createRoute({ getParentRoute: () => root, path: '/canvas', validateSearch: validateCanvasSearch, component: CanvasPage }),
   createRoute({ getParentRoute: () => root, path: '/canvas2doc', validateSearch: validateCanvas2DocSearch, component: Canvas2DocPage }),
+  createRoute({ getParentRoute: () => root, path: '/doc2typst', validateSearch: validateDoc2TypstSearch, component: Doc2TypstPage }),
   createRoute({ getParentRoute: () => root, path: '/explorations', validateSearch: validateExplorationsSearch, component: ExplorationsPage }),
   createRoute({ getParentRoute: () => root, path: '/graph', component: GraphPage }),
   createRoute({ getParentRoute: () => root, path: '/tasks', component: TasksPage }),

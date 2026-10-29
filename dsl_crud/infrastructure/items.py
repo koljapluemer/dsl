@@ -551,6 +551,14 @@ def canvases() -> list[dict]:
     return [_note(n, entries) for n in names]
 
 
+def typst_notes() -> list[dict]:
+    """Every item naming a Typst file, the last edited first."""
+    entries = _INDEX.refresh()
+    names = sorted((n for n, e in entries.items() if any(file_kinds.kind(f) is file_kinds.TYPST for f in e.files)),
+                   key=lambda n: (-entries[n].mtime_ns, n))
+    return [_note(n, entries) for n in names]
+
+
 def published() -> list[dict]:
     """Every item with a valid `publish` route, by route."""
     entries = _INDEX.refresh()

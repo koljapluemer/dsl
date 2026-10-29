@@ -42,6 +42,9 @@ Conventions:
   Canvas2Doc (`pages/workspaces/canvas2doc`) shows both for one note; the
   three are one page slice so it can use the Canvas loader and the Document
   view, which register no sidebar action themselves (their page does).
+  Doc2Typst (`pages/workspaces/doc2typst`) likewise shows the Document view
+  beside the note's Typst file, in `features/file-edit/TypstEditor` (which
+  `TypstModal` puts in a modal).
   The tool rail floating over Graph and Canvas is `dumb/toolbar`.
 - No `index.ts` re-exports. Import from the defining file.
 - Messages go to the toast corner (`dumb/UndoToast.tsx`): `showNotice` for

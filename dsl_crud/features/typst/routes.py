@@ -10,6 +10,10 @@ blueprint = Blueprint("typst", __name__)
 def status(): return jsonify(service.status())
 
 
+@blueprint.get("/api/typst/notes")
+def notes(): return jsonify(items.typst_notes())
+
+
 @blueprint.post("/api/items/<name>/typst")
 def create(name): return jsonify(service.create(name)), 201
 

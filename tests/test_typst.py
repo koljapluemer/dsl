@@ -36,6 +36,13 @@ def test_create_names_the_file_and_builds_it(client, data_dir):
     assert (data_dir / rel.removesuffix(".typ")).with_suffix(".pdf").read_bytes().startswith(b"%PDF")
 
 
+def test_notes_lists_those_naming_a_typst_file(client):
+    store.create({"file": "a.txt", "text": "A"})
+    store.create({"file": "b.txt", "text": "B"})
+    client.post("/api/items/a.txt/typst")
+    assert [i["file"] for i in client.get("/api/typst/notes").get_json()] == ["a.txt"]
+
+
 def test_create_needs_the_note(client):
     assert client.post("/api/items/missing.txt/typst").status_code == 404
 
