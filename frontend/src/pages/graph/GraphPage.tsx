@@ -11,7 +11,7 @@ import './graph.css';
 
 /** Pinned notes and their relationships on a canvas; the sidebar's results pin notes, and its query drives the toolbar's search actions. */
 export function GraphPage() {
-  const { graph, pins, loading: graphLoading, pinNote, pinNotes, unpinNote, setPinDepth, pinAtLeast, clearPins } = useNoteGraph();
+  const { graph, pins, loading: graphLoading, pinNote, pinNotes, unpinNote, unpinOthers, setPinDepth, pinAtLeast, clearPins } = useNoteGraph();
   const { state: search } = useSidebarSearch();
   const searching = search.query.trim() !== '';
   const [orphanBusy, setOrphanBusy] = useState(false);
@@ -60,6 +60,7 @@ export function GraphPage() {
         pins={pins}
         onPinNote={pinNote}
         onUnpinNote={unpinNote}
+        onUnpinOthers={unpinOthers}
         onSetPinDepth={setPinDepth}
         onPinAtLeast={pinAtLeast}
         onClearPins={clearPins}

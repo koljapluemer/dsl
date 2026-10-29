@@ -1,4 +1,4 @@
-import { EyeOff, GripVertical } from 'lucide-react';
+import { EyeOff, Focus, GripVertical } from 'lucide-react';
 import { memo } from 'react';
 import type { GraphNodePayload } from '@/api/types';
 import type { MediaDraft } from '@/features/item-media/useMediaAttachments';
@@ -10,6 +10,7 @@ const MODES = ['view', 'edit'] as const;
 function NoteCardInner({
   note,
   pinDepth,
+  othersPinned,
   isAnchor,
   editing,
   onDelete,
@@ -19,10 +20,12 @@ function NoteCardInner({
   onCancelEdit,
   onPin,
   onUnpin,
+  onUnpinOthers,
   onChangeDepth,
 }: {
   note: GraphNodePayload;
   pinDepth: number | null;
+  othersPinned: boolean;
   isAnchor: boolean;
   editing: boolean;
   onDelete: (filename: string, pinDepth: number | null) => Promise<void>;
@@ -33,6 +36,7 @@ function NoteCardInner({
   onCancelEdit: () => void;
   onPin: (filename: string) => void;
   onUnpin: (filename: string) => void;
+  onUnpinOthers: (filename: string) => void;
   onChangeDepth: (filename: string, nextDepth: number) => void;
 }) {
   return (
@@ -78,6 +82,9 @@ function NoteCardInner({
                           onChangeDepth={(next) => onChangeDepth(note.filename, next)} />
             ),
           },
+          ...(pinDepth !== null && othersPinned
+            ? [{ key: 'unpinOthers', title: 'Unpin everything else', icon: <Focus size={14} />, onClick: () => onUnpinOthers(note.filename) }]
+            : []),
           { key: 'hide', title: 'hide from the graph', icon: <EyeOff size={14} />, onClick: () => void onHide(note.filename, pinDepth) },
         ]}
         onDelete={async () => {

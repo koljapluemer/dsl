@@ -117,7 +117,7 @@ Choose `persist` to match the page:
 | Document | full, edit/view, blur commit, edit first, persisted per view, no relationships widget; inline references in its editor and preview anchor full view/edit note cards in the left margin; the `document` notes listed beside it |
 | Canvas | linked notes: full, view/edit, the mode from the canvas's interaction, blur commit, no relationships, delete through the canvas (with the node, undone together); its own tools as extra tools |
 | Explorations | full, blur commit, edit first, persisted per view; the list inline |
-| Graph | view/edit, the mode from the graph's interaction, no relationships (the edges are), its own save, delete and hide; grip and pin as extra tools; links open in the sidebar. A new note (double-click, Add note, a drag onto empty canvas) is the new-note modal; from a drag it starts with the relationship from the dragged note staged |
+| Graph | view/edit, the mode from the graph's interaction, no relationships (the edges are), its own save, delete and hide; grip, pin and (on a pinned note, with others pinned) unpin everything else as extra tools; links open in the sidebar. A new note (double-click, Add note, a drag onto empty canvas) is the new-note modal; from a drag it starts with the relationship from the dragged note staged |
 | Tasks | full, blur commit, edit first, persisted per note |
 | Goals | inline and whole (`inlineWhole`) |
 | Projects | inline, in their expandable wrapper with the issue count and an add-issue tool; issues inline and whole (`inlineWhole`) with the think/build tag toggle |

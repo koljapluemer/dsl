@@ -8,6 +8,8 @@ export type NoteNodeData = {
   note: GraphNodePayload;
   /** How many hops of relations to render from this note, or null if it isn't pinned. */
   pinDepth: number | null;
+  /** Whether any note besides this one is pinned. */
+  othersPinned: boolean;
   /** Whether this note is the current session's soft anchor for placing new notes. */
   isAnchor: boolean;
   onDelete: (filename: string, pinDepth: number | null) => Promise<void>;
@@ -19,6 +21,7 @@ export type NoteNodeData = {
   onCancelEdit: () => void;
   onPin: (filename: string) => void;
   onUnpin: (filename: string) => void;
+  onUnpinOthers: (filename: string) => void;
   onChangeDepth: (filename: string, nextDepth: number) => void;
 };
 
@@ -71,6 +74,7 @@ function NoteNodeInner({ data }: NodeProps<NoteFlowNode>) {
       <NoteCard
         note={data.note}
         pinDepth={data.pinDepth}
+        othersPinned={data.othersPinned}
         isAnchor={data.isAnchor}
         onDelete={data.onDelete}
         onHide={data.onHide}
@@ -80,6 +84,7 @@ function NoteNodeInner({ data }: NodeProps<NoteFlowNode>) {
         onCancelEdit={data.onCancelEdit}
         onPin={data.onPin}
         onUnpin={data.onUnpin}
+        onUnpinOthers={data.onUnpinOthers}
         onChangeDepth={data.onChangeDepth}
       />
     </>
