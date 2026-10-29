@@ -7,15 +7,11 @@ import { settingsQuery } from './entities/settings/queries';
 import { CalendarPage } from './pages/calendar/CalendarPage';
 import { CanvasPage } from './pages/workspaces/canvas/CanvasPage';
 import { validateCanvasSearch } from './pages/workspaces/canvas/search';
-import { Canvas2DocPage } from './pages/workspaces/canvas2doc/Canvas2DocPage';
-import { validateCanvas2DocSearch } from './pages/workspaces/canvas2doc/search';
-import { Doc2TypstPage } from './pages/workspaces/doc2typst/Doc2TypstPage';
-import { validateDoc2TypstSearch } from './pages/workspaces/doc2typst/search';
+import { Canvas2TypPage } from './pages/workspaces/canvas2typ/Canvas2TypPage';
+import { validateCanvas2TypSearch } from './pages/workspaces/canvas2typ/search';
 import { validateCalendarSearch } from './pages/calendar/search';
 import { DeskPage } from './pages/desk/DeskPage';
 import { validateDeskSearch } from './pages/desk/search';
-import { DocumentPage } from './pages/workspaces/document/DocumentPage';
-import { validateDocumentSearch } from './pages/workspaces/document/search';
 import { ExplorationsPage } from './pages/explorations/ExplorationsPage';
 import { validateExplorationsSearch } from './pages/explorations/explorations';
 import { FloatPage } from './pages/float/FloatPage';
@@ -57,10 +53,8 @@ const tree = root.addChildren([
   createRoute({ getParentRoute: () => root, path: '/edit/$file', beforeLoad: ({ params }) => { throw redirect({ to: '/', search: { sopen: [params.file] } }); } }),
   createRoute({ getParentRoute: () => root, path: '/daily', component: DailyPage }),
   createRoute({ getParentRoute: () => root, path: '/desk', validateSearch: validateDeskSearch, component: DeskPage }),
-  createRoute({ getParentRoute: () => root, path: '/document', validateSearch: validateDocumentSearch, component: DocumentPage }),
   createRoute({ getParentRoute: () => root, path: '/canvas', validateSearch: validateCanvasSearch, component: CanvasPage }),
-  createRoute({ getParentRoute: () => root, path: '/canvas2doc', validateSearch: validateCanvas2DocSearch, component: Canvas2DocPage }),
-  createRoute({ getParentRoute: () => root, path: '/doc2typst', validateSearch: validateDoc2TypstSearch, component: Doc2TypstPage }),
+  createRoute({ getParentRoute: () => root, path: '/canvas2typ', validateSearch: validateCanvas2TypSearch, component: Canvas2TypPage }),
   createRoute({ getParentRoute: () => root, path: '/explorations', validateSearch: validateExplorationsSearch, component: ExplorationsPage }),
   createRoute({ getParentRoute: () => root, path: '/graph', component: GraphPage }),
   createRoute({ getParentRoute: () => root, path: '/tasks', component: TasksPage }),

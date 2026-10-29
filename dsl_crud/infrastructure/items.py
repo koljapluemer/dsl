@@ -542,11 +542,6 @@ def explorations() -> list[dict]:
     return _tagged_recent(views.EXPLORATION_TAG)
 
 
-def documents() -> list[dict]:
-    """Every item tagged views.DOCUMENT_TAG, the last edited first."""
-    return _tagged_recent(views.DOCUMENT_TAG)
-
-
 def canvases() -> list[dict]:
     """Every item whose data block has a canvas, the last edited first."""
     entries = _INDEX.refresh()

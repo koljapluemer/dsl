@@ -34,16 +34,9 @@ Conventions:
   links in `entities` reach it without importing `meta`.
 - Don't make a feature that only one page uses. Put it in the page's folder,
   split into files rather than one big page file.
-- Document is a workspace for any note, not an item type. Its occurrence
-  model, CodeMirror widgets, annotated preview and connector layout live in
-  `pages/workspaces/document`; the shared note exposes only the editor/preview/draft
-  seams it needs. Inline-reference text remains the sole stored annotation.
-- Canvas is likewise a workspace for any note (`pages/workspaces/canvas`, [`canvas.md`](canvas.md)).
-  Canvas2Doc (`pages/workspaces/canvas2doc`) shows both for one note; the
-  three are one page slice so it can use the Canvas loader and the Document
-  view, which register no sidebar action themselves (their page does).
-  Doc2Typst (`pages/workspaces/doc2typst`) likewise shows the Document view
-  beside the note's Typst file, in `features/file-edit/TypstEditor` (which
+- Canvas is a workspace for any note, not an item type (`pages/workspaces/canvas`, [`canvas.md`](canvas.md)).
+  Canvas2Typ (`pages/workspaces/canvas2typ`) shows the Canvas loader (given
+  its page's sidebar action) beside the note's Typst file, in `features/file-edit/TypstEditor` (which
   `TypstModal` puts in a modal).
   The tool rail floating over Graph and Canvas is `dumb/toolbar`.
 - No `index.ts` re-exports. Import from the defining file.

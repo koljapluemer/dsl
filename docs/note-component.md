@@ -32,7 +32,6 @@ Defaults are full capabilities: anything not switched off is there.
 | `onSaved`, `onCreated`, `onDeleted`, `onClose`, `onEscape`, `onRef` | | `onRef`: a click on a related or linked note, by default the note opened in the sidebar (`useOpenNote`) |
 | `blocks` | on | the keyword blocks (`extra`, `data`, …) in the rendered note; the editor always has them |
 | `compactViz` | | viz blocks as their thumbnails, not live ([`thea.md`](thea.md)); Graph and Canvas cards |
-| `editorExtensions`, `renderPreview`, `onTextChange` | | seams for a specialized workspace to extend CodeMirror, replace the normal preview, and observe the current draft; Document uses all three |
 
 `NoteModal` is the note in a modal: in the editor first, explicit commit, and
 Save closes it with a notice, as delete does. The New note button (above
