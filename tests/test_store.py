@@ -320,6 +320,15 @@ def test_explorations_last_edited_first_and_not_in_queue(data_dir):
     assert [i["file"] for i in store.queue_draw()["items"]] == ["c.txt"]
 
 
+def test_documents_last_edited_first(data_dir):
+    store.create({"file": "a.txt", "text": "A\ntags document"})
+    store.create({"file": "b.txt", "text": "B\ntags x document"})
+    store.create({"file": "c.txt", "text": "C\ntags documents"})
+    os.utime(data_dir / "a.txt", ns=(1_000_000_000, 1_000_000_000))
+    os.utime(data_dir / "b.txt", ns=(2_000_000_000, 2_000_000_000))
+    assert [i["file"] for i in store.documents()] == ["b.txt", "a.txt"]
+
+
 def test_published_by_route_with_inline_refs(data_dir):
     store.create({"file": "a.txt", "text": "a\npublish essays/z\nsee [[c]]"})
     store.create({"file": "b.txt", "text": "b\npublish index\ntext"})

@@ -20,7 +20,7 @@ Vite + React + TypeScript in `frontend/`, with TanStack Router (the note sidebar
 
 Home (`/`) links to the other views. Beside every view, on the right, is the note sidebar (`meta/note/NoteSidebar.tsx`): a New note button, then a search over all notes (with the semantic toggle and orphan filter; its results are notes inline, the match marked) and, once notes are open, below it the notes opened from it, the last opened first. The search then takes half the column's height and the column scrolls. Each note shows rendered (view) or in the editor (edit, written as focus leaves it), with its relationships, keeps its mode for the session, opens in a modal from its ⤢ tool, and its ✕ closes it. A click on a related or linked note anywhere opens that note here. The sidebar's state is in the URL (`sq`, `ss`, `sorphan`, `spage`, `sopen`, kept across tabs), so `/?sopen=["<file>"]` is a note on its own (the old `/edit/<file>` leads there). On a phone the sidebar is a drawer, opened from the button beside the tabs or by opening a note; while it's closed, the + button at the bottom right adds a note.
 
-A view may have its own ways to open a found note (`useSidebarAction` in `entities/item/sidebar.ts`): the Graph pins it, the Desk opens it among its notes, Document opens it, Canvas opens it as a canvas or adds it to the one open, Explorations and Sources open it in their pane (explorations and sources only), Published any note (and adds a `publish` block to one without). There the results aren't clickable; each has ⌄ to open it in the sidebar and the view's icon.
+A view may have its own ways to open a found note (`useSidebarAction` in `entities/item/sidebar.ts`): the Graph pins it, the Desk opens it among its notes, Document tags it `document` (unless it is) and opens it, Canvas opens it as a canvas or adds it to the one open, Explorations and Sources open it in their pane (explorations and sources only), Published any note (and adds a `publish` block to one without). There the results aren't clickable; each has ⌄ to open it in the sidebar and the view's icon.
 
 ## Desk
 
@@ -28,11 +28,11 @@ The Desk tab is a workspace for several notes at once: a search result's icon in
 
 ## Document
 
-The Document tab is a long-form workspace for any note; it does not introduce a note type or change the item language. From the note sidebar's search, the document button opens a result in the central pane (`/document?open=<file>`). The note offers edit and preview modes, remembers the mode for the session, and writes edits when focus leaves it.
+The Document tab is a long-form workspace for the notes tagged `document` (`GET /api/documents`), listed at its left, the last edited first; the tag doesn't hide them anywhere else. The field above the list starts a new one: what's typed becomes the start of its body, followed by `tags document`. From the note sidebar's search, the document button tags any result `document` (unless it is) and opens it in the central pane (`/document?open=<file>`). The note offers edit and preview modes, remembers the mode for the session, and writes edits when focus leaves it.
 
 Every inline reference in the body or `extra` is an annotation occurrence. On a wide pane the referenced notes appear as full view/edit cards in a left margin, in document order, and lines connect them to numbered anchors in the document. Repeated references get separate cards. Lines remain visible and become stronger near the pointer; selecting either end emphasizes it and moves to the other. `[[target]]` is a number in the editor until the caret or pointer is near it; `[[target|display text]]` keeps its display text and number. The stored syntax never changes, and a `source` is an ordinary referenced source note.
 
-On a narrow pane a button switches between Document and Annotations, keeping their positions. There are no connector lines while only one end can be shown.
+On a narrow pane one button switches between the list and the document, another between Document and Annotations, keeping their positions. There are no connector lines while only one end can be shown.
 
 ## Canvas
 

@@ -113,7 +113,7 @@ Choose `persist` to match the page:
 | New (button, `c`) | `NoteModal` for a new note: edit only |
 | Sidebar (every page) | full, view/edit, blur commit, persisted per note (`sidebar:<file>`), a tool opening it in `NoteModal`; the search results inline |
 | Desk | full, all modes, explicit commit, persisted per note (`desk:<file>`), `fill` in its grid cell; links open on the desk |
-| Document | full, edit/view, blur commit, edit first, persisted per view, no relationships widget; inline references in its editor and preview anchor full view/edit note cards in the left margin |
+| Document | full, edit/view, blur commit, edit first, persisted per view, no relationships widget; inline references in its editor and preview anchor full view/edit note cards in the left margin; the `document` notes listed beside it |
 | Canvas | linked notes: full, view/edit, the mode from the canvas's interaction, blur commit, no relationships, delete through the canvas (with the node, undone together); its own tools as extra tools |
 | Explorations | full, blur commit, edit first, persisted per view; the list inline |
 | Graph | view/edit, the mode from the graph's interaction, no relationships (the edges are), its own save, delete and hide; grip and pin as extra tools; links open in the sidebar. A new note (double-click, Add note, a drag onto empty canvas) is the new-note modal; from a drag it starts with the relationship from the dragged note staged |
