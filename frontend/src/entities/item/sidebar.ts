@@ -1,4 +1,4 @@
-import { useEffect, type ReactNode } from 'react';
+import { useCallback, useEffect, type ReactNode } from 'react';
 import { useNavigate, useSearch } from '@tanstack/react-router';
 import type { OrphanFilter, SearchResult } from '@/api/types';
 import { store } from '@/dumb/store';
@@ -35,13 +35,13 @@ const asSearch = (update: Update) => update as never;
 /** Whether the sidebar shows where it's a drawer (a narrow screen); opening a note shows it. */
 export const sidebarShown = store(false);
 
-/** Opens a note in the sidebar, on top of the others there, on whatever page this is. */
+/** Opens a note in the sidebar, on top of the others there, on whatever page this is (the same function across renders). */
 export function useOpenNote() {
   const navigate = useNavigate();
-  return (file: string) => {
+  return useCallback((file: string) => {
     sidebarShown.set(true);
     void navigate({ to: '.', search: asSearch((prev) => ({ ...prev, sopen: withOpened(prev.sopen, file) })) });
-  };
+  }, [navigate]);
 }
 
 /** The sidebar's search and open notes, and their setters. */
