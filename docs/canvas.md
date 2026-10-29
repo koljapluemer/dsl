@@ -56,7 +56,7 @@ canvas:
 - A new note from text indents its lines that would start the keyword
   section (`edits.body_text`), as the spec asks of writers.
 
-## Page (`frontend/src/pages/canvas`)
+## Page (`frontend/src/pages/workspaces/canvas`)
 
 Three pieces of state, each with one owner:
 
@@ -99,3 +99,5 @@ Rules:
 - Linked notes are the note component (view/edit, written as focus leaves
   them). A note also open elsewhere with older canvas data in an unsaved edit
   can still write over the canvas; the next canvas write is then a conflict.
+  Canvas2Doc shows the same note as a document beside its canvas, which
+  makes this more likely there.

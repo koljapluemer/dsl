@@ -20,7 +20,7 @@ Vite + React + TypeScript in `frontend/`, with TanStack Router (the note sidebar
 
 Home (`/`) links to the other views. Beside every view, on the right, is the note sidebar (`meta/note/NoteSidebar.tsx`): a New note button, then a search over all notes (with the semantic toggle and orphan filter; its results are notes inline, the match marked) and, once notes are open, below it the notes opened from it, the last opened first. The search then takes half the column's height and the column scrolls. Each note shows rendered (view) or in the editor (edit, written as focus leaves it), with its relationships, keeps its mode for the session, opens in a modal from its ⤢ tool, and its ✕ closes it. A click on a related or linked note anywhere opens that note here. The sidebar's state is in the URL (`sq`, `ss`, `sorphan`, `spage`, `sopen`, kept across tabs), so `/?sopen=["<file>"]` is a note on its own (the old `/edit/<file>` leads there). On a phone the sidebar is a drawer, opened from the button beside the tabs or by opening a note; while it's closed, the + button at the bottom right adds a note.
 
-A view may have its own ways to open a found note (`useSidebarAction` in `entities/item/sidebar.ts`): the Graph pins it, the Desk opens it among its notes, Document tags it `document` (unless it is) and opens it, Canvas opens it as a canvas or adds it to the one open, Explorations and Sources open it in their pane (explorations and sources only), Published any note (and adds a `publish` block to one without). There the results aren't clickable; each has ⌄ to open it in the sidebar and the view's icon.
+A view may have its own ways to open a found note (`useSidebarAction` in `entities/item/sidebar.ts`): the Graph pins it, the Desk opens it among its notes, Document tags it `document` (unless it is) and opens it, Canvas opens it as a canvas or adds it to the one open, Canvas2Doc opens it as both (or adds it to the canvas open), Explorations and Sources open it in their pane (explorations and sources only), Published any note (and adds a `publish` block to one without). There the results aren't clickable; each has ⌄ to open it in the sidebar and the view's icon.
 
 ## Desk
 
@@ -36,11 +36,15 @@ On a narrow pane one button switches between the list and the document, another 
 
 ## Canvas
 
-The Canvas tab shows any note as an infinite canvas (`/canvas?open=<file>`, `frontend/src/pages/canvas`, `dsl_crud/features/canvas`): free Markdown text and linked notes, each at a position. The sidebar's results offer "open as canvas" and, while one is open, "add to this canvas". The notes with a canvas are listed on the right (`GET /api/canvases`), the last edited first; on a narrow pane the list and the canvas take turns. It's stored as `canvas` in the note's `data` block, written only once something changes ([`docs/canvas.md`](docs/canvas.md)).
+The Canvas tab shows any note as an infinite canvas (`/canvas?open=<file>`, `frontend/src/pages/workspaces/canvas`, `dsl_crud/features/canvas`): free Markdown text and linked notes, each at a position. The sidebar's results offer "open as canvas" and, while one is open, "add to this canvas". The notes with a canvas are listed on the right (`GET /api/canvases`), the last edited first; on a narrow pane the list and the canvas take turns. It's stored as `canvas` in the note's `data` block, written only once something changes ([`docs/canvas.md`](docs/canvas.md)).
 
 - Double-click the canvas to write text there; right-click it (or the toolbar's Add note) to search for notes to add there. The toolbar also adds text, opens the note in the sidebar, zooms and fits the view.
 - Each node: a grip to drag it, edit/view, delete (text) or detach (a note, which stays) and, as the note's own tool, delete the note; and a conversion. Text → note makes a new note with the text as its body; note → text copies the note's body into a text node, the note unchanged. Removals offer undo.
 - Changes are written shortly after they're made, one write at a time; a badge shows unsaved or saving ones, a failed write shows in the toast corner and as a retry button beside the toolbar. Ctrl+Enter or Esc finishes editing a text node. If the canvas was changed elsewhere since (by hand in the note's text), nothing more is written and Reload loads it again. A canvas that can't be read (invalid `data`, a malformed node) is read-only until it's fixed in the note.
+
+## Canvas2Doc
+
+The Canvas2Doc tab (`/canvas2doc?open=<file>`) shows one note's canvas and its document side by side: the canvas on the left, the document (with its annotations, as in the Document tab) on the right. The sidebar's "open as canvas + document" opens a result in both; while one is open, "add to this canvas" adds to its canvas. On a narrow screen a toggle shows one pane at a time, remembered for the session. Both write to the same note: the canvas only its `canvas` key, the document when focus leaves it (see the caveat in [`docs/canvas.md`](docs/canvas.md)).
 
 ## Explorations
 
@@ -75,7 +79,7 @@ New files are named `<slug of the first line>-<6 hex>.txt`; the name doesn't cha
 - **Ctrl/⌘+Enter** saves what's being edited: a note's editor (wherever the note is, Graph cards and modals too) and the Graph's edge labels. In a relationship's target field it creates a new note even when a result is chosen.
 - **Esc** never discards edits. It leaves a note's editor (saving it where edits are written as focus leaves) or a label editor, or closes a modal, only when nothing unsaved was edited; otherwise it shows a notice and does nothing (a click outside a modal does the same). In a search or filter field it just leaves the field.
 - Single keys, ignored while typing in a field, holding Ctrl/Alt/Meta, or with a modal open:
-  - `g` then a tab's key (in its tooltip) switches tab (`g w` opens Document, `g v` Canvas), `c` opens a new note (as the New note button), `/` focuses the page's filter, else the sidebar's search, `u` undoes the change the toast offers.
+  - `g` then a tab's key (in its tooltip) switches tab (`g w` opens Document, `g v` Canvas, `g k` Canvas2Doc), `c` opens a new note (as the New note button), `/` focuses the page's filter, else the sidebar's search, `u` undoes the change the toast offers.
   - Calendar: ←/→ a day (or the range's length), `t` today/this week, `a` add, `d`/`r` day/range view. Queue: `n` next. Questions: `s` skip, `e` edit, `d` disable. Suggest: Shift+N next.
 
 ## Semantic search

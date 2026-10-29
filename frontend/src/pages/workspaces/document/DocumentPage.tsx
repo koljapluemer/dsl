@@ -32,7 +32,6 @@ export function DocumentPage() {
   const schema = useSchema();
   const navigate = useNavigate();
   const { open } = useSearch({ strict: false }) as DocumentSearch;
-  const item = useQuery({ ...itemQuery(open ?? ''), enabled: !!open });
   const list = useQuery(documentsQuery);
   /** on a narrow screen the list takes the place of the document */
   const [listing, setListing] = useState(!open);
@@ -40,24 +39,10 @@ export function DocumentPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const input = useSlashFocus();
-  const deleted = deletedItems.use();
-  const [draft, setDraft] = useState<{ file: string; text: string } | null>(null);
-  const [annotationsShown, setAnnotationsShown] = useState(!open);
-  const [active, setActive] = useState<string | null>(null);
-  const [positions, setPositions] = useState<number[]>([]);
-  const [height, setHeight] = useState(0);
-  const [connectors, setConnectors] = useState<Connector[]>([]);
-  const [pointerY, setPointerY] = useState<number | null>(null);
-  const workspace = useRef<HTMLDivElement>(null);
-  const main = useRef<HTMLElement>(null);
-  const cards = useRef(new Map<string, HTMLDivElement>());
-  const pointerFrame = useRef(0);
 
   const show = useCallback((file: string | undefined) => {
     sidebarShown.set(false);
     setListing(!file);
-    setAnnotationsShown(false);
-    setActive(null);
     void navigate({ to: '/document', search: { open: file } });
   }, [navigate]);
 
@@ -91,16 +76,73 @@ export function DocumentPage() {
     }
   }
 
-  const setDocumentText = useCallback((next: string) => {
-    setDraft((current) => current && current.file === open && current.text === next ? current : { file: open!, text: next });
-  }, [open]);
-
   useSidebarAction({
     icon: <FileText size={14} />,
     title: 'open as document',
     run: (file) => void openAsDocument(file),
     marked: { has: (file) => file === open },
   });
+
+  return (
+    <div className="flex min-h-0 flex-1 flex-col gap-3 @3xl:grid @3xl:grid-cols-[16rem_minmax(0,1fr)] @3xl:gap-4">
+      <button type="button" className="btn btn-sm self-start @3xl:hidden" onClick={() => setListing(!listing)}>
+        <PanelLeft size={16} />{listing ? 'Document' : 'Documents'}
+      </button>
+      <aside className={`mb-4 flex min-h-0 flex-1 flex-col border border-base-300 @3xl:flex-none ${listing ? '' : '@max-3xl:hidden'}`}>
+        <form className="flex gap-2 border-b border-base-300 p-2" onSubmit={(e) => void create(e)}>
+          <input ref={input} className="input input-sm min-w-0 flex-1" placeholder="new document" value={start}
+                 onChange={(e) => setStart(e.target.value)} />
+          <button type="submit" className="btn btn-sm btn-square btn-primary" title="add" disabled={busy || !start.trim()}>
+            {busy ? <span className="loading loading-spinner loading-xs" /> : <Plus size={16} />}
+          </button>
+        </form>
+        {error && <p className="p-2 text-sm text-error">{error}</p>}
+        <ul className="min-h-0 flex-1 space-y-1 overflow-y-auto p-2 text-sm">
+          {list.data?.map((d) => (
+            <li key={d.file}>
+              <NoteLine item={d} onClick={() => show(d.file)}
+                        className={`rounded-field px-2 py-1.5 hover:bg-base-200 ${d.file === open ? 'bg-base-300' : ''}`} />
+            </li>
+          ))}
+          {list.data?.length === 0 && <li className="px-2 text-base-content/50">No documents yet.</li>}
+        </ul>
+      </aside>
+      {open ? (
+        <div className={`flex min-h-0 flex-1 flex-col ${listing ? '@max-3xl:hidden' : ''}`}>
+          <DocumentView key={open} file={open} onDeleted={() => show(undefined)} />
+        </div>
+      ) : <p className={`text-sm text-base-content/50 ${listing ? '@max-3xl:hidden' : ''}`}>Pick or start a document.</p>}
+    </div>
+  );
+}
+
+type ViewProps = {
+  file: string;
+  /** where the note's mode is kept for the session */
+  persist?: string;
+  onDeleted: () => void;
+};
+
+/** A note as a document with its annotations. Its page offers it in the sidebar. */
+export function DocumentView({ file: open, persist = 'document', onDeleted }: ViewProps) {
+  const schema = useSchema();
+  const item = useQuery(itemQuery(open));
+  const deleted = deletedItems.use();
+  const [draft, setDraft] = useState<{ file: string; text: string } | null>(null);
+  const [annotationsShown, setAnnotationsShown] = useState(false);
+  const [active, setActive] = useState<string | null>(null);
+  const [positions, setPositions] = useState<number[]>([]);
+  const [height, setHeight] = useState(0);
+  const [connectors, setConnectors] = useState<Connector[]>([]);
+  const [pointerY, setPointerY] = useState<number | null>(null);
+  const workspace = useRef<HTMLDivElement>(null);
+  const main = useRef<HTMLElement>(null);
+  const cards = useRef(new Map<string, HTMLDivElement>());
+  const pointerFrame = useRef(0);
+
+  const setDocumentText = useCallback((next: string) => {
+    setDraft((current) => current && current.file === open && current.text === next ? current : { file: open, text: next });
+  }, [open]);
 
   const text = draft && draft.file === open ? draft.text : (item.data?.text ?? '');
   const references = useMemo(() => documentReferences(schema, text), [schema, text]);
@@ -193,69 +235,43 @@ export function DocumentPage() {
   const style = { '--document-height': `${height}px` } as CSSProperties;
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-3 pb-4 @3xl:grid @3xl:grid-cols-[16rem_minmax(0,1fr)] @3xl:gap-4">
-      <button type="button" className="btn btn-sm self-start @3xl:hidden" onClick={() => setListing(!listing)}>
-        <PanelLeft size={16} />{listing ? 'Document' : 'Documents'}
+    <section className="document-page min-h-0 flex-1 pb-4">
+      <button type="button" className="btn btn-sm mb-3 self-start @3xl:hidden" onClick={() => setAnnotationsShown((shown) => !shown)}>
+        <PanelLeft size={16} />{annotationsShown ? 'Document' : `Annotations (${references.length})`}
       </button>
-      <aside className={`flex min-h-0 flex-1 flex-col border border-base-300 @3xl:flex-none ${listing ? '' : '@max-3xl:hidden'}`}>
-        <form className="flex gap-2 border-b border-base-300 p-2" onSubmit={(e) => void create(e)}>
-          <input ref={input} className="input input-sm min-w-0 flex-1" placeholder="new document" value={start}
-                 onChange={(e) => setStart(e.target.value)} />
-          <button type="submit" className="btn btn-sm btn-square btn-primary" title="add" disabled={busy || !start.trim()}>
-            {busy ? <span className="loading loading-spinner loading-xs" /> : <Plus size={16} />}
-          </button>
-        </form>
-        {error && <p className="p-2 text-sm text-error">{error}</p>}
-        <ul className="min-h-0 flex-1 space-y-1 overflow-y-auto p-2 text-sm">
-          {list.data?.map((d) => (
-            <li key={d.file}>
-              <NoteLine item={d} onClick={() => show(d.file)}
-                        className={`rounded-field px-2 py-1.5 hover:bg-base-200 ${d.file === open ? 'bg-base-300' : ''}`} />
-            </li>
-          ))}
-          {list.data?.length === 0 && <li className="px-2 text-base-content/50">No documents yet.</li>}
-        </ul>
-      </aside>
-      {open ? (
-        <section className={`document-page min-h-0 flex-1 ${listing ? '@max-3xl:hidden' : ''}`}>
-          <button type="button" className="btn btn-sm mb-3 self-start @3xl:hidden" onClick={() => setAnnotationsShown((shown) => !shown)}>
-            <PanelLeft size={16} />{annotationsShown ? 'Document' : `Annotations (${references.length})`}
-          </button>
-          <div className="document-scroll" onPointerMove={pointerMove} onPointerLeave={() => setPointerY(null)}>
-            <div ref={workspace} className="document-workspace" style={style}>
-              <aside className={`document-annotations ${annotationsShown ? '' : '@max-3xl:hidden'}`} aria-label="annotations">
-                {references.map((ref, index) => (
-                  <div key={ref.id} ref={(node) => { if (node) cards.current.set(ref.id, node); else cards.current.delete(ref.id); }}
-                       data-annotation-card={ref.id} style={{ '--annotation-top': `${positions[index] ?? 0}px` } as CSSProperties}
-                       className={`document-annotation-card rounded-box border bg-base-100 p-3 ${active === ref.id ? 'border-primary' : 'border-base-300'}`}
-                       onFocusCapture={() => setActive(ref.id)} onPointerDown={() => setActive(ref.id)}>
-                    <button type="button" className="document-annotation-number" title="show anchor in document" onClick={() => focusAnchor(ref.id)}>
-                      {ref.number}
-                    </button>
-                    {deleted.has(`${ref.target}.txt`)
-                      ? <p className="text-sm text-error">Missing note: {ref.target}</p>
-                      : <Note file={`${ref.target}.txt`} modes={['view', 'edit']} commit="blur" persist={`document-annotation:${ref.target}`} />}
-                  </div>
-                ))}
-                {!references.length && <p className="text-sm text-base-content/50">No inline references.</p>}
-              </aside>
-              <main ref={main} className={`document-main min-w-0 ${annotationsShown ? '@max-3xl:hidden' : ''}`}>
-                <Note key={open} file={open} modes={['edit', 'view']} defaultMode="edit" commit="blur" persist="document"
-                      relationships={false} className="document-note rounded-box border border-base-300 bg-base-100 p-4"
-                      editorExtensions={editorExtensions} renderPreview={renderPreview} onTextChange={setDocumentText}
-                      onDeleted={() => show(undefined)} />
-              </main>
-              <svg className="document-connectors @max-3xl:hidden" aria-hidden="true">
-                {connectors.map((connector) => (
-                  <path key={connector.id} d={connector.path} style={{ opacity: active === connector.id ? 1
-                    : pointerY === null ? 0.18 : connectorOpacity(Math.abs(pointerY - connector.anchorY)) }} />
-                ))}
-              </svg>
-            </div>
-          </div>
-        </section>
-      ) : <p className={`text-sm text-base-content/50 ${listing ? '@max-3xl:hidden' : ''}`}>Pick or start a document.</p>}
-    </div>
+      <div className="document-scroll" onPointerMove={pointerMove} onPointerLeave={() => setPointerY(null)}>
+        <div ref={workspace} className="document-workspace" style={style}>
+          <aside className={`document-annotations ${annotationsShown ? '' : '@max-3xl:hidden'}`} aria-label="annotations">
+            {references.map((ref, index) => (
+              <div key={ref.id} ref={(node) => { if (node) cards.current.set(ref.id, node); else cards.current.delete(ref.id); }}
+                   data-annotation-card={ref.id} style={{ '--annotation-top': `${positions[index] ?? 0}px` } as CSSProperties}
+                   className={`document-annotation-card rounded-box border bg-base-100 p-3 ${active === ref.id ? 'border-primary' : 'border-base-300'}`}
+                   onFocusCapture={() => setActive(ref.id)} onPointerDown={() => setActive(ref.id)}>
+                <button type="button" className="document-annotation-number" title="show anchor in document" onClick={() => focusAnchor(ref.id)}>
+                  {ref.number}
+                </button>
+                {deleted.has(`${ref.target}.txt`)
+                  ? <p className="text-sm text-error">Missing note: {ref.target}</p>
+                  : <Note file={`${ref.target}.txt`} modes={['view', 'edit']} commit="blur" persist={`document-annotation:${ref.target}`} />}
+              </div>
+            ))}
+            {!references.length && <p className="text-sm text-base-content/50">No inline references.</p>}
+          </aside>
+          <main ref={main} className={`document-main min-w-0 ${annotationsShown ? '@max-3xl:hidden' : ''}`}>
+            <Note key={open} file={open} modes={['edit', 'view']} defaultMode="edit" commit="blur" persist={persist}
+                  relationships={false} className="document-note rounded-box border border-base-300 bg-base-100 p-4"
+                  editorExtensions={editorExtensions} renderPreview={renderPreview} onTextChange={setDocumentText}
+                  onDeleted={onDeleted} />
+          </main>
+          <svg className="document-connectors @max-3xl:hidden" aria-hidden="true">
+            {connectors.map((connector) => (
+              <path key={connector.id} d={connector.path} style={{ opacity: active === connector.id ? 1
+                : pointerY === null ? 0.18 : connectorOpacity(Math.abs(pointerY - connector.anchorY)) }} />
+            ))}
+          </svg>
+        </div>
+      </div>
+    </section>
   );
 }
 
