@@ -527,11 +527,21 @@ def tagged_items(tag: str) -> list[dict]:
     return [_note(n, entries) for n, e in sorted(entries.items()) if tag in e.tags]
 
 
+def _tagged_recent(tag: str) -> list[dict]:
+    """Every item tagged `tag`, the last edited first."""
+    entries = _INDEX.refresh()
+    names = sorted((n for n, e in entries.items() if tag in e.tags), key=lambda n: (-entries[n].mtime_ns, n))
+    return [_note(n, entries) for n in names]
+
+
 def explorations() -> list[dict]:
     """Every item tagged views.EXPLORATION_TAG, the last edited first."""
-    entries = _INDEX.refresh()
-    names = sorted((n for n, e in entries.items() if views.EXPLORATION_TAG in e.tags), key=lambda n: (-entries[n].mtime_ns, n))
-    return [_note(n, entries) for n in names]
+    return _tagged_recent(views.EXPLORATION_TAG)
+
+
+def documents() -> list[dict]:
+    """Every item tagged views.DOCUMENT_TAG, the last edited first."""
+    return _tagged_recent(views.DOCUMENT_TAG)
 
 
 def canvases() -> list[dict]:
