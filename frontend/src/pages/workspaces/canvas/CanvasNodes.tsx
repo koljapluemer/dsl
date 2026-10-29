@@ -1,15 +1,17 @@
-import { memo, type KeyboardEvent, type ReactNode } from 'react';
+import { memo, useState, type KeyboardEvent, type ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import type { Node, NodeProps } from '@xyflow/react';
 import { Prec } from '@codemirror/state';
 import { keymap } from '@codemirror/view';
-import { Eye, FileText, GripVertical, Pencil, Trash2, Type, Unlink } from 'lucide-react';
+import { ChevronDown, ChevronRight, Eye, FileText, GripVertical, Pencil, Trash2, Type, Unlink } from 'lucide-react';
 import { ApiError } from '@/api/client';
 import { CodeMirrorHost } from '@/dumb/CodeMirrorHost';
 import { isSubmit } from '@/dumb/keys';
 import { Markdown } from '@/dumb/Markdown';
 import { deletedItems } from '@/entities/item/deleted';
+import { hasBlocks } from '@/entities/item/dsl/outline';
 import { itemQuery } from '@/entities/item/queries';
+import { useSchema } from '@/entities/item/schema';
 import { useOpenNote } from '@/entities/item/sidebar';
 import { Note } from '@/meta/note/Note';
 import { ToolButton } from '@/meta/note/tools';
@@ -98,8 +100,11 @@ export function NoteNode({ data }: NodeProps<CanvasFlowNode>) {
 const NoteView = memo(function NoteView({ id, file, editing, busy, readOnly, actions }: {
   id: string; file: string; editing: boolean; busy: boolean; readOnly: boolean; actions: CanvasActions;
 }) {
+  const schema = useSchema();
   const deleted = deletedItems.use().has(file);
-  // the note component's own query: this only learns whether the note is there
+  // the keyword blocks start folded: a card is about the body
+  const [folded, setFolded] = useState(true);
+  // the note component's own query: this learns whether the note is there, and whether it has blocks to fold
   const item = useQuery({ ...itemQuery(file), enabled: !deleted });
   const missing = deleted || (item.error instanceof ApiError && item.error.status === 404);
   const detach = <ToolButton key="detach" title="detach from the canvas (the note stays)" disabled={busy} onClick={() => actions.remove(id)}><Unlink size={14} /></ToolButton>;
@@ -111,8 +116,13 @@ const NoteView = memo(function NoteView({ id, file, editing, busy, readOnly, act
       </Frame>
     );
   }
-  const tools = readOnly ? [] : [
+  const fold = !editing && !!item.data && hasBlocks(schema, item.data.text) ? [{
+    key: 'fold', title: folded ? 'show extra and data' : 'hide extra and data',
+    icon: folded ? <ChevronRight size={14} /> : <ChevronDown size={14} />, onClick: () => setFolded(!folded),
+  }] : [];
+  const tools = readOnly ? fold : [
     { key: 'grip', node: grip },
+    ...fold,
     {
       key: 'convert', title: editing ? 'finish editing first' : 'make it text (a copy of the note\'s body; the note stays)',
       icon: <Type size={14} />, disabled: busy || editing, onClick: () => actions.toText(id),
@@ -122,7 +132,7 @@ const NoteView = memo(function NoteView({ id, file, editing, busy, readOnly, act
   ];
   return (
     <article className="canvas-node canvas-note cursor-auto select-text rounded-box border border-base-300 bg-base-100 p-3 text-left shadow-lg">
-      <Note file={file} modes={readOnly ? VIEW_ONLY : NOTE_MODES} mode={editing ? 'edit' : 'view'} commit="blur" relationships={false} compactViz
+      <Note file={file} modes={readOnly ? VIEW_ONLY : NOTE_MODES} mode={editing ? 'edit' : 'view'} commit="blur" relationships="readonly" blocks={!folded} compactViz
             onModeChange={(next) => (next === 'edit' ? actions.startEdit(id) : actions.toIdle())} onEscape={actions.toIdle}
             extraTools={tools} tools={{ delete: !readOnly && !busy }} onDelete={() => actions.deleteNote(id)} />
     </article>
