@@ -88,3 +88,6 @@ export function textSpans(schema: Schema, text: string) {
     ...parts.filter((p) => p.keyword && schema.keywords[p.keyword].block === 'text').map((p) => ({ keyword: p.keyword, start: p.line + 1, end: p.end })),
   ];
 }
+
+/** Whether item text has any keyword block (`extra`, `data`, …). */
+export const hasBlocks = (schema: Schema, text: string) => outline(schema, text).parts.some((p) => p.keyword);

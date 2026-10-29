@@ -17,6 +17,8 @@ type Props = {
   onRef?: (file: string) => void;
   /** viz blocks as their thumbnails (graph nodes, canvas cards); always so in `simple` */
   compactViz?: boolean;
+  /** the keyword blocks (`extra`, `data`, …); default on */
+  blocks?: boolean;
   /** the note's text as written, when `item` is a draft of it: its viz blocks can't be generated while they differ */
   savedText?: string;
 };
@@ -28,7 +30,7 @@ type Props = {
  * shows those) nor its attachment (the note's media slot does).
  * A click on a note link goes to `onRef`, by default the note in the sidebar.
  */
-export function NoteContent({ item, variant = 'full', onRef, compactViz = false, savedText }: Props) {
+export function NoteContent({ item, variant = 'full', onRef, compactViz = false, blocks: withBlocks = true, savedText }: Props) {
   const schema = useSchema();
   const openNote = useOpenNote();
   const open = onRef ?? openNote;
@@ -52,6 +54,7 @@ export function NoteContent({ item, variant = 'full', onRef, compactViz = false,
   const blocks: ReactNode[] = [];
   for (const { line, end, keyword } of parts) {
     if (keyword) {
+      if (!withBlocks) continue;
       const content = lines.slice(line + 1, end).join('\n');
       if (!content.trim()) blocks.push(code(line));
       else if (schema.keywords[keyword].block === 'yaml') blocks.push(code(line, end));

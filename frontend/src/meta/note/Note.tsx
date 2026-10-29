@@ -60,8 +60,8 @@ export type NoteProps = {
   persist?: string;
   /** `explicit` (default): Save/Discard replace the toggle while edited; `blur`: edits are written as focus leaves the note */
   commit?: 'explicit' | 'blur';
-  /** the relationships widget (default on; never in `simple` and `inline`) */
-  relationships?: boolean;
+  /** the relationships widget (default on; never in `simple` and `inline`); `readonly`: shown, never editable */
+  relationships?: boolean | 'readonly';
   /** whether it's editable in view mode too (default); in edit and split it always is */
   relationshipsEditableInView?: boolean;
   /** relationship changes staged from the start (a new note related to another) */
@@ -104,6 +104,8 @@ export type NoteProps = {
   fill?: boolean;
   /** viz blocks as their thumbnails, not live (graph nodes, canvas cards) */
   compactViz?: boolean;
+  /** the keyword blocks (`extra`, `data`, …) in the rendered note (default on; the editor always has them) */
+  blocks?: boolean;
   id?: string;
   className?: string;
 };
@@ -132,7 +134,7 @@ function LoadedNote({
   initial = '', item: shown, adopt, render = 'full', modes: modesAsked = ALL_MODES, defaultMode = 'view', mode: modeAsked, onModeChange,
   persist, commit = 'explicit', relationships = true, relationshipsEditableInView = true, initialPending, tools = {}, tagToggles = [],
   extraTools = [], mediaPosition = 'top', inlineChars, inlineWhole, highlight, onClick, onEdit, save: write, onDelete, onSaved, onCreated, onDeleted, onClose,
-  onRef, editorExtensions, renderPreview, onTextChange, onEscape, autofocus = false, fill = false, compactViz = false, id, className = '',
+  onRef, editorExtensions, renderPreview, onTextChange, onEscape, autofocus = false, fill = false, compactViz = false, blocks = true, id, className = '',
 }: NoteProps & { adopt: (item: Item) => void }) {
   const qc = useQueryClient();
   const schema = useSchema();
@@ -368,7 +370,8 @@ function LoadedNote({
   const preview = (text: string) => {
     const previewItem = draftItem(text, item ?? undefined);
     return renderPreview?.(previewItem)
-      ?? <NoteContent item={previewItem} variant={render === 'simple' ? 'simple' : 'full'} onRef={ref} compactViz={compactViz} savedText={item?.text} />;
+      ?? <NoteContent item={previewItem} variant={render === 'simple' ? 'simple' : 'full'} onRef={ref} compactViz={compactViz} blocks={blocks}
+                    savedText={item?.text} />;
   };
   const content = mode === 'edit' ? editor
     : mode === 'split' ? <div className="grid gap-3 @3xl:grid-cols-2">{editor}<div className="min-w-0">{preview(draft.text)}</div></div>
@@ -383,7 +386,7 @@ function LoadedNote({
         {item && <FileList item={item} onOpen={setTextFile} />}
         {render === 'full' && relationships && (
           <Relationships file={item?.file ?? null} text={draft.text} refs={item?.refs ?? {}} pending={draft.pending}
-                         editable={editing || relationshipsEditableInView} ops={ops} onRef={ref} />
+                         editable={relationships !== 'readonly' && (editing || relationshipsEditableInView)} ops={ops} onRef={ref} />
         )}
       </div>
     </div>

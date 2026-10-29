@@ -18,7 +18,7 @@ Defaults are full capabilities: anything not switched off is there.
 | `mode`, `onModeChange` | | the mode, when the caller keeps it (Graph, Questions' `e`) |
 | `persist` | | a key keeping the chosen mode in `sessionStorage`; the caller picks the scope (below) |
 | `commit` | `explicit` | `explicit`: Save/Discard replace the toggle as soon as something is edited; `blur`: edits are written as focus leaves the note (and on Ctrl+Enter/Ctrl+S), no Save/Discard |
-| `relationships` | on | the relationships widget (`full` only) |
+| `relationships` | on | the relationships widget (`full` only); `readonly`: its rows only, in every mode |
 | `relationshipsEditableInView` | on | in edit and split it's always editable |
 | `initialPending` | | relationship changes staged from the start (the Graph's new related note) |
 | `tools` | each where it applies | switch tools off, or `edit` on in `full` |
@@ -30,6 +30,7 @@ Defaults are full capabilities: anything not switched off is there.
 | `onEdit` | | the `edit` tool does this instead of opening its own modal (Float keeps the modal to pause its stage) |
 | `save`, `onDelete` | | write or delete instead of the items API (the Graph's own update and undo) |
 | `onSaved`, `onCreated`, `onDeleted`, `onClose`, `onEscape`, `onRef` | | `onRef`: a click on a related or linked note, by default the note opened in the sidebar (`useOpenNote`) |
+| `blocks` | on | the keyword blocks (`extra`, `data`, …) in the rendered note; the editor always has them |
 | `compactViz` | | viz blocks as their thumbnails, not live ([`thea.md`](thea.md)); Graph and Canvas cards |
 | `editorExtensions`, `renderPreview`, `onTextChange` | | seams for a specialized workspace to extend CodeMirror, replace the normal preview, and observe the current draft; Document uses all three |
 
@@ -115,7 +116,7 @@ Choose `persist` to match the page:
 | Sidebar (every page) | full, view/edit, blur commit, persisted per note (`sidebar:<file>`), a tool opening it in `NoteModal`; the search results inline |
 | Desk | full, all modes, explicit commit, persisted per note (`desk:<file>`), `fill` in its grid cell; links open on the desk |
 | Document | full, edit/view, blur commit, edit first, persisted per view, no relationships widget; inline references in its editor and preview anchor full view/edit note cards in the left margin |
-| Canvas | linked notes: full, view/edit, the mode from the canvas's interaction, blur commit, no relationships, delete through the canvas (with the node, undone together); its own tools as extra tools |
+| Canvas | linked notes: full, view/edit, the mode from the canvas's interaction, blur commit, relationships read-only, delete through the canvas (with the node, undone together); its own tools as extra tools, among them one folding the keyword blocks (folded at first) |
 | Explorations | full, blur commit, edit first, persisted per view; the list inline |
 | Graph | view/edit, the mode from the graph's interaction, no relationships (the edges are), its own save, delete and hide; grip and pin as extra tools; links open in the sidebar. A new note (double-click, Add note, a drag onto empty canvas) is the new-note modal; from a drag it starts with the relationship from the dragged note staged |
 | Tasks | full, blur commit, edit first, persisted per note |
