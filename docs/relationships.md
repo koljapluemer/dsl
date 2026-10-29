@@ -56,7 +56,8 @@ looks and when changes are staged or written at once):
   under the note's commit policy; `runPending` writes the staged ops once the
   note is saved.
 - `Relationships`, `RelationRow`, `RelationAdder` (direction, label and a
-  `NotePicker`, which picks an existing note from search or makes a new one).
+  `NotePicker`, which picks an existing note from search or makes a new one;
+  focused but empty, it suggests the most recently edited notes).
 
 In the item editor, `referenceLinks` (`entities/item/dsl/referenceLinks.ts`)
 marks inline references as targets and opens a Ctrl/Cmd-clicked inline
