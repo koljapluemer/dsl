@@ -3,6 +3,7 @@ import type { EditorView } from '@codemirror/view';
 import { api } from '@/api/client';
 import type { NoteSearchPage, Schema } from '@/api/types';
 import { firstLine } from './firstLine';
+import { itemMathSpans } from './inlineRefs';
 import { outline } from './outline';
 
 const LIMIT = 8;
@@ -46,6 +47,8 @@ export function insertReference(view: EditorView) {
 }
 
 function referencePosition(schema: Schema, text: string, pos: number) {
+  // no references in math
+  if (itemMathSpans(schema, text).some((m) => pos > m.from && pos < m.to)) return false;
   const { lines, starts, first, boundary, parts } = outline(schema, text);
   if (first >= 0 && pos >= starts[first] && (boundary >= starts.length || pos < starts[boundary])) return true;
   return parts.some(({ line, end, keyword }) => !!keyword && schema.keywords[keyword].block === 'text' && pos > starts[line] + lines[line].length

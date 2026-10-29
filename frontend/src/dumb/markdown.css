@@ -11,3 +11,7 @@
 .md-inline a { text-decoration: underline; }
 .md-inline code { background: var(--color-base-300); border-radius: 0.25rem; padding: 0 0.2em; }
 .md-inline mark { background: color-mix(in oklab, var(--color-primary) 30%, transparent); color: inherit; }
+/* math (Temml's MathML); the font is vendored in public/fonts, the PDF export embeds the same file */
+@font-face { font-family: 'Latin Modern Math'; src: url('/fonts/latinmodern-math.woff2') format('woff2'); font-display: swap; }
+.md math, .md-inline math { font-family: 'Latin Modern Math', math; }
+.md math[display='block'] { margin: 0.4em 0; overflow-x: auto; overflow-y: hidden; }

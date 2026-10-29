@@ -18,6 +18,32 @@ describe('inline note Markdown', () => {
   });
 });
 
+describe('math', () => {
+  it('renders inline and display math as MathML', () => {
+    const html = markdown('a $x^2$ b\n$$\n\\frac{1}{2}\n$$');
+    expect(html).toContain('<math><msup>');
+    expect(html).toContain('<math display="block"');
+    expect(html).toContain('<mfrac>');
+  });
+
+  it('leaves money, escapes and code alone', () => {
+    expect(markdown('$20 and $30')).not.toContain('<math');
+    expect(markdown('\\$x$')).not.toContain('<math');
+    expect(markdown('`$x$`')).toContain('<code>$x$</code>');
+  });
+
+  it('keeps references in math as TeX and math out of labels', () => {
+    expect(markdown('$[[a]]$', { a: 'A' })).not.toContain('data-note');
+    const html = markdown('[[a|$x$]]', { a: 'A' });
+    expect(html).toContain('>$x$</a>');
+    expect(html).not.toContain('<math');
+  });
+
+  it('shows bad TeX as an error, not an exception', () => {
+    expect(markdown('$\\frac{a$')).toContain('temml-error');
+  });
+});
+
 describe('inlineMarkdown', () => {
   it('keeps short lines whole', () => {
     expect(inlineMarkdown('a **b**', {}, 10)).toEqual({ html: 'a <strong>b</strong>', cut: false });
@@ -48,10 +74,17 @@ describe('inlineMarkdown', () => {
     expect(inlineMarkdown('Needle and needle', {}, 50, 'needle').html).toBe('<mark>Needle</mark> and needle');
     expect(inlineMarkdown('a *needle*', {}, 50, 'needle').html).toBe('a <em><mark>needle</mark></em>');
   });
+
+  it('keeps math whole, counted by its TeX', () => {
+    expect(inlineMarkdown('ab $xyz$', {}, 4)).toMatchObject({ cut: false });
+    expect(inlineMarkdown('ab $xyz$ c', {}, 4)).toMatchObject({ cut: true });
+    expect(inlineMarkdown('abcd $x$', {}, 4)).toEqual({ html: 'abcd', cut: true });
+  });
 });
 
 describe('noteHref', () => {
   it('opens the note in the sidebar', () => {
     expect(decodeURIComponent(noteHref('a b.txt'))).toBe('/?sopen=["a b.txt"]');
   });
+
 });

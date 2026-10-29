@@ -15,6 +15,7 @@ import { textFileQuery, typstStatusQuery } from '@/entities/item/queries';
 import { citeTransaction } from '@/entities/source/cite';
 import { citeCompletion } from './citeCompletion';
 import { CitePicker } from './CitePicker';
+import { typstMathPaste } from './typstMath';
 
 /** What the note must not have while an upload writes it. */
 const NOTE_UNSAVED = 'Save the note first: an upload adds it to the note';
@@ -57,7 +58,7 @@ export function TypstEditor({ path, note, noteDirty, onItem, split, persist, onC
   const images = shownFiles(note).filter((f) => mediaKind(f) === 'image');
   const extensions = useMemo(() => [
     ...(kindOf(path).editor?.() ?? []),
-    ...(readOnly ? [EditorState.readOnly.of(true), EditorView.editable.of(false)] : [citeCompletion(qc, note.file)]),
+    ...(readOnly ? [EditorState.readOnly.of(true), EditorView.editable.of(false)] : [citeCompletion(qc, note.file), typstMathPaste]),
     // Mod-Enter saves (see onKeyDown) instead of the default keymap's blank line
     Prec.high(keymap.of([{ key: 'Mod-Enter', run: () => true }])),
   ], [path, readOnly, qc, note.file]);

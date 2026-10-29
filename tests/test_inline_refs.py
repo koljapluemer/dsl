@@ -21,3 +21,15 @@ def test_code_fences_spans_escapes_and_malformed_are_ignored():
 
 def test_tilde_fence_and_longer_closer():
     assert refs("~~~py\n[[no]]\n~~~~\n[[yes]]") == [("yes", None)]
+
+
+def test_references_in_math_are_tex():
+    assert refs("$[[a]]$ $$\n[[b]]\n$$ [[c]]") == [("c", None)]
+
+
+def test_math_in_a_label_is_text():
+    assert refs("[[a|$x$]]") == [("a", "$x$")]
+
+
+def test_substitute():
+    assert inline_refs.substitute("x [[a]] `[[b]]` [[c|C]]", lambda r: r.label or r.target.upper()) == "x A `[[b]]` C"

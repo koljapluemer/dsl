@@ -59,7 +59,11 @@ current heading. Inline relationships are directional and unlabeled: display
 text is not a semantic relationship label.
 
 Inline relationships are recognized only in the body and `text` blocks, and not
-inside Markdown code spans or fenced code blocks. Escape the first `[` (`\[[`)
+inside Markdown code spans, fenced code blocks or TeX math (`$…$`, `$$…$$`, as
+Pandoc's `tex_math_dollars`: the opening `$` not followed by whitespace, the
+closing one not preceded by whitespace nor followed by a digit; `$$…$$` may
+span lines but not a blank one). Whichever opens first holds what follows: a
+`[[` inside math is math, a `$` inside a reference is part of it. Escape the first `[` (`\[[`)
 to keep the syntax as text. Malformed references remain ordinary text, and a
 valid reference to a missing item does not make the item invalid.
 

@@ -1,0 +1,4 @@
+latinmodern-math.woff2: Latin Modern Math (GUST e-foundry), converted from latinmodern-math.otf to WOFF2.
+Source: https://www.gust.org.pl/projects/e-foundry/lm-math
+License: GUST Font License (https://www.gust.org.pl/projects/e-foundry/licenses)
+Used for MathML rendered by Temml in the app and in PDF exports (dsl_crud/infrastructure/markdown.py).

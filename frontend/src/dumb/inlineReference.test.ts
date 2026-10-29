@@ -14,3 +14,13 @@ describe('inlineReferences', () => {
     expect(inlineReferences(source).map(({ target }) => target)).toEqual(['ok']);
   });
 });
+
+describe('inlineReferences and math', () => {
+  it('ignores references in math', () => {
+    expect(inlineReferences('$[[a]]$ $$\n[[b]]\n$$ [[c]]').map(({ target }) => target)).toEqual(['c']);
+  });
+
+  it('keeps math in a label as text', () => {
+    expect(inlineReferences('[[a|$x$]]')).toEqual([{ from: 0, to: 9, target: 'a', label: '$x$' }]);
+  });
+});

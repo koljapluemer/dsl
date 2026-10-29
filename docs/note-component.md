@@ -70,7 +70,8 @@ for a new note; every `edit` tool and the sidebar's ⤢ tool open it.
 - **Relationships**: below the content (see below).
 - **Inline** (`NoteLine`, `entities/item`): the first line of the body,
   rendered as Markdown. It's cut after `inlineChars` characters of its text,
-  not of its Markdown (`inlineMarkdown` in `dumb/markdown.ts`), with `…` when
+  not of its Markdown (`inlineMarkdown` in `dumb/markdown.ts`; math counts by
+  its TeX and is kept whole or left out), with `…` when
   cut or when the body goes on. Next to it: the cover image as a thumbnail (`+N` for more), an
   icon for errors or warnings, and the tools. It never shows relationships.
   With `inlineWhole` it shows the whole body instead, uncut and without `…`,

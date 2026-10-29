@@ -28,6 +28,15 @@ def test_both_sections_references_as_their_text():
     assert "<title>Title</title>" in page
 
 
+def test_math_as_mathml_and_never_in_references():
+    store.create({"file": "a.txt", "text": "# T\n$x^2$ and [[b|$y$]], $[[b]]$"})
+    store.create({"file": "b.txt", "text": "Bee"})
+    page = service.page_html("a.txt")
+    # the reference in math stays TeX, not the note's heading
+    assert "<msup>" in page and "$y$" in page and "<mi>b</mi>" in page
+    assert "Latin Modern Math" in page
+
+
 def test_body_or_extra_only():
     store.create({"file": "a.txt", "text": TEXT})
     body = service.page_html("a.txt", "body")

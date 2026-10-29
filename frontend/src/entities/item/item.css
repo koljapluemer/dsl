@@ -6,6 +6,7 @@
 .tok-date, .tok-month, .tok-path, .tok-text, .tok-target { color: var(--color-info); }
 .tok-weekday, .tok-tags, .tok-route { color: var(--color-success); }
 .tok-extra { color: color-mix(in oklab, var(--color-base-content) 70%, transparent); }
+.tok-math { color: var(--color-secondary); }
 .tok-unknown { color: color-mix(in oklab, var(--color-base-content) 50%, transparent); font-style: italic; }
 .tok-error { text-decoration: underline wavy var(--color-error); }
 /* the list: one base size per row, every part sized relative to it */

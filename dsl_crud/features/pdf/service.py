@@ -5,17 +5,12 @@ cards need (`chromium.available`), so not on Termux."""
 import html
 import re
 
-from markdown_it import MarkdownIt
-
 from dsl_crud.core import documents as views
-from dsl_crud.core import dsl, file_kinds, thea
-from dsl_crud.infrastructure import chromium, items as store
+from dsl_crud.core import dsl, file_kinds, inline_refs, thea
+from dsl_crud.infrastructure import chromium, items as store, markdown
 
 CONTENTS = ("both", "body", "extra")
 PAPERS = ("A4", "Letter")
-
-_markdown = MarkdownIt("commonmark", {"breaks": True}).enable(["table", "strikethrough"])
-_REFERENCE = re.compile(r"\[\[([^\]|]+)(?:\|([^\]]+))?\]\]")
 
 _STYLE = """
 @page { margin: 18mm 16mm; }
@@ -68,7 +63,8 @@ def _sections(text: str, refs: dict[str, str | None], content: str) -> list[str]
             i += 1
         section = "\n".join(kept).strip()
         if section:
-            out.append(_REFERENCE.sub(lambda m: m[2] or refs.get(m[1]) or m[1], section))
+            # a reference as its text, never math
+            out.append(inline_refs.substitute(section, lambda r: (r.label or refs.get(r.target) or r.target).replace("$", "\\$")))
     return out
 
 
@@ -85,9 +81,9 @@ def page_html(name: str, content: str = "both", images: bool = True) -> str:
     if images:
         uris = [chromium.data_uri(store._dir() / f) for f in views.files(doc) if file_kinds.kind(f) is file_kinds.IMAGE]
         imgs = "".join(f'<img src="{u}">' for u in uris if u)
-    body = (f'<div class="images">{imgs}</div>' if imgs else "") + "<hr>".join(f"<section>{_markdown.render(s)}</section>" for s in sections)
+    body = (f'<div class="images">{imgs}</div>' if imgs else "") + "<hr>".join(f"<section>{markdown.render(s)}</section>" for s in sections)
     return (f'<!doctype html><html><head><meta charset="utf-8"><title>{html.escape(re.sub(r"^#+\s*", "", doc.heading))}</title>'
-            f"<style>{_STYLE}</style></head><body>{body}</body></html>")
+            f"<style>{_STYLE}{markdown.math_font_css()}</style></head><body>{body}</body></html>")
 
 
 def render(name: str, content: str = "both", images: bool = True, paper: str = "A4") -> bytes:
