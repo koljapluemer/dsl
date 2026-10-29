@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { RefreshCw, TriangleAlert, WandSparkles } from 'lucide-react';
 import { showError } from '@/dumb/notice';
 import { theaId, type TheaBlock as Block } from '../dsl/thea';
-import { generateViz, theaBuiltQuery, theaMetaQuery, theaStatusQuery, useTheaJobs, vizThumbUrl, vizViewUrl } from './queries';
+import { generateViz, theaBuiltQuery, theaMetaQuery, theaStatusQuery, useTheaJobs, setVizVersion, vizThumbUrl, vizViewUrl } from './queries';
 
 type Props = {
   /** the block as parsed from the note's text; undefined when the renderer found a fence the parser doesn't count (in a list, say) */
@@ -41,6 +41,8 @@ function LiveBlock({ block, id, file, dirty }: { block: Block; id: string | null
   const busy = job?.state === 'queued' || job?.state === 'running';
   const [errors, setErrors] = useState<string[]>([]);
   const stale = !!meta && meta.spec !== block.spec;
+  // the version the last run made isn't the one the note names: a save from before it overwrote the header
+  const lost = job?.state === 'done' && job.id && job.id !== id ? job.id : null;
 
   const why = !file ? 'write the note first'
     : dirty ? 'save the note first'
@@ -53,6 +55,10 @@ function LiveBlock({ block, id, file, dirty }: { block: Block; id: string | null
       await generateViz(qc, file, block.index, errors);
       setErrors([]);
     } catch (e) { showError(e); }
+  }
+
+  async function use(made: string) {
+    try { await setVizVersion(qc, file, block.index, made); } catch (e) { showError(e); }
   }
 
   const Icon = id ? RefreshCw : WandSparkles;
@@ -71,7 +77,18 @@ function LiveBlock({ block, id, file, dirty }: { block: Block; id: string | null
           <span className="flex items-center gap-1 text-error" title={errors.join('\n')}><TriangleAlert size={12} />{errors.length} runtime error{errors.length > 1 ? 's' : ''}</span>
         )}
       </div>
-      {job?.state === 'failed' && !busy && <pre className="mb-1 max-h-40 overflow-auto whitespace-pre-wrap text-xs text-error">{job.error}</pre>}
+      {job?.state === 'failed' && !busy && (
+        <div role="alert" className="alert alert-error alert-soft mb-1 block p-2 text-xs">
+          <p className="font-semibold">The last generation failed{job.finished ? ` (${new Date(job.finished * 1000).toLocaleString()})` : ''}</p>
+          <pre className="max-h-40 overflow-auto whitespace-pre-wrap">{job.error}</pre>
+        </div>
+      )}
+      {lost && !busy && (
+        <div role="alert" className="alert alert-warning alert-soft mb-1 flex flex-wrap p-2 text-xs">
+          <span className="flex-1">The last run made <span className="font-mono">{lost}</span>, but a save since set the note back to {id ? <span className="font-mono">{id}</span> : 'no version'}.</span>
+          <button type="button" className="btn btn-xs" disabled={!!why} title={why ?? undefined} onClick={() => void use(lost)}>Use {lost}</button>
+        </div>
+      )}
       {id && built === false && <img className="block max-w-full rounded" src={vizThumbUrl(id)} alt="" />}
       {id && built !== false && <VizFrame id={id} setErrors={setErrors} />}
       {!id && !busy && <p className="text-xs opacity-60">not generated yet</p>}

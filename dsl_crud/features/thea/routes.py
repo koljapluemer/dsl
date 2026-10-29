@@ -23,6 +23,12 @@ def generate():
     return jsonify(service.start(str(body.get("file", "")), body.get("index"), body.get("errors"))), 202
 
 
+@blueprint.post("/api/thea/use")
+def use():
+    body = request.get_json(silent=True) or {}
+    return jsonify(service.use(str(body.get("file", "")), body.get("index"), str(body.get("id", ""))))
+
+
 @blueprint.get("/api/thea/<ident>/view")
 def view(ident):
     response = send_file(service.view(ident), mimetype="text/html", conditional=True)

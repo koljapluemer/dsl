@@ -39,6 +39,8 @@ SHOT_WIDTH, THUMB_WIDTH = 800, 420
 # the thumbnail is cut to at most this height per width
 THUMB_RATIO = 0.6
 JOBS_KEPT_S = 30 * 60
+# a failure stays until the block's next run, or this long
+FAILED_KEPT_S = 7 * 24 * 60 * 60
 OUTPUT_CHARS = 6000
 NPM_INSTALL = ["npm", "install", "--ignore-scripts", "--no-audit", "--no-fund"]
 TOOLS = "Read,Write,Edit,Glob,Grep,Bash"
@@ -69,6 +71,8 @@ _queue: queue.Queue = queue.Queue()
 _worker: threading.Thread | None = None
 # the last failure per block name, handed to its next run
 _failures: dict[str, str] = {}
+# whether _jobs was read back from JOBS_FILE
+_loaded = False
 
 
 def status() -> dict:
@@ -89,12 +93,54 @@ def status() -> dict:
 
 
 def jobs() -> list[dict]:
-    """The queued and running jobs, and those finished in the last JOBS_KEPT_S."""
+    """The queued and running jobs, those done in the last JOBS_KEPT_S, and
+    the last failure of each block (until its next run, FAILED_KEPT_S at most)."""
     with _lock:
+        _load()
         now = time.time()
-        for name in [n for n, j in _jobs.items() if j.finished and now - j.finished > JOBS_KEPT_S]:
+        for name in [n for n, j in _jobs.items()
+                     if j.finished and now - j.finished > (FAILED_KEPT_S if j.state == "failed" else JOBS_KEPT_S)]:
             del _jobs[name]
         return [asdict(j) for j in _jobs.values()]
+
+
+def _jobs_file() -> Path:
+    return CACHE_DIR / "jobs.json"
+
+
+def _load() -> None:
+    """Reads back the jobs written before the app last stopped (under _lock); one
+    queued or running then failed, since it never finished."""
+    global _loaded
+    if _loaded:
+        return
+    _loaded = True
+    try:
+        saved = json.loads(_jobs_file().read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return
+    for d in saved if isinstance(saved, list) else []:
+        try:
+            job = Job(**d)
+        except TypeError:
+            continue
+        if job.state in ("queued", "running"):
+            job.error = f"the app stopped while this ran (at: {job.step})"
+            job.state, job.step, job.finished = "failed", "Failed", time.time()
+        if job.state == "failed":
+            _failures.setdefault(job.name, job.error or "failed")
+        _jobs.setdefault(job.name, job)
+
+
+def _persist() -> None:
+    """Writes the jobs to JOBS_FILE (under _lock), so a failure outlasts the app."""
+    try:
+        CACHE_DIR.mkdir(parents=True, exist_ok=True)
+        tmp = _jobs_file().with_suffix(".tmp")
+        tmp.write_text(json.dumps([asdict(j) for j in _jobs.values()]), encoding="utf-8")
+        tmp.replace(_jobs_file())
+    except OSError:
+        pass
 
 
 def start(file: str, index, errors=None) -> dict:
@@ -107,6 +153,7 @@ def start(file: str, index, errors=None) -> dict:
     if reason := status()["reason"]:
         raise chromium.Unavailable(f"viz blocks can't be generated here: {reason}")
     with _lock:
+        _load()
         text = store.get(file)["text"]
         blocks = thea.blocks(store.SCHEMA, text)
         if not 0 <= index < len(blocks):
@@ -121,6 +168,7 @@ def start(file: str, index, errors=None) -> dict:
             name = _new_name()
             store.update(file, {"text": thea.with_header(text, block, name, None)})
         job = _jobs[name] = Job(name, file)
+        _persist()
         _queue.put((job, errors))
         _ensure_worker()
         return asdict(job)
@@ -158,7 +206,9 @@ def _ensure_worker() -> None:
 def _work() -> None:
     while True:
         job, errors = _queue.get()
-        job.state = "running"
+        with _lock:
+            job.state = "running"
+            _persist()
         try:
             _run(job, errors)
             job.state, job.step = "done", "Done"
@@ -167,7 +217,9 @@ def _work() -> None:
             job.state, job.step, job.error = "failed", "Failed", str(e) or type(e).__name__
             _failures[job.name] = job.error
         finally:
-            job.finished = time.time()
+            with _lock:
+                job.finished = time.time()
+                _persist()
 
 
 # --- one run ---------------------------------------------------------------------
@@ -190,7 +242,12 @@ def _run(job: Job, errors: list[str]) -> None:
     _, block = _block(job.file, job.name)
     data = store._dir()
     previous = data / thea.DIR / block.id if block.id else None
-    version = (block.version or 0) + 1
+    # past every folder of the name, so a version id never names two builds (a
+    # header set back by hand or by a save from before the last run, say)
+    folder = data / thea.DIR
+    made = [parsed[1] for p in folder.iterdir() if (parsed := thea.parse_id(p.name)) and parsed[0] == job.name] \
+        if folder.is_dir() else []
+    version = max([block.version or 0, *made]) + 1
 
     job.step = "Preparing the workspace"
     ws = _workspace(job.name, previous if previous and previous.is_dir() else TEMPLATE)
@@ -222,10 +279,28 @@ def _run(job: Job, errors: list[str]) -> None:
         "spec": block.spec, "model": settings["model"] or None, "created": time.strftime("%Y-%m-%dT%H:%M:%S%z"),
         "cost_usd": job.cost_usd, "turns": result.get("num_turns"), "session": session, "generator": GENERATOR,
     })
-    text, block = _block(job.file, job.name)
-    store.update(job.file, {"text": thea.with_header(text, block, job.name, version)})
+    with _lock:
+        text, block = _block(job.file, job.name)
+        store.update(job.file, {"text": thea.with_header(text, block, job.name, version)})
     _drop_old(job.name)
     job.id = ident
+
+
+def use(file: str, index, ident: str) -> dict:
+    """Points the note's `index`th viz block (as saved) at its version `ident`,
+    one generated whose header a later save overwrote, say; the note as written."""
+    if not isinstance(index, int) or isinstance(index, bool):
+        raise store.ValidationError("index must be a number")
+    view(ident)
+    name, version = thea.parse_id(ident)
+    with _lock:
+        text = store.get(file)["text"]
+        blocks = thea.blocks(store.SCHEMA, text)
+        if not 0 <= index < len(blocks):
+            raise store.NotFound(f"viz block {index}")
+        if blocks[index].name != name:
+            raise store.ValidationError(f"the viz block isn't {name}")
+        return store.update(file, {"text": thea.with_header(text, blocks[index], name, version)})
 
 
 def _workspace(name: str, seed: Path) -> Path:
@@ -326,9 +401,25 @@ def _claude(job: Job, settings: dict, session: list[str], prompt: str, ws: Path,
     if result.get("total_cost_usd") is not None:
         job.cost_usd = round((job.cost_usd or 0) + result["total_cost_usd"], 4)
     if not result or result.get("is_error") or proc.returncode:
-        detail = result.get("result") or "".join(stderr).strip() or f"exit status {proc.returncode}"
-        raise Failed(f"the claude CLI failed: {_tail(str(detail))}")
+        raise Failed(f"the claude CLI failed: {_tail(_cli_failure(result, stderr, proc.returncode))}")
     return result
+
+
+def _cli_failure(result: dict, stderr: list[str], code: int | None) -> str:
+    """Everything the CLI said about failing: the result's subtype (a turn or
+    budget limit, say), its message and errors, stderr and the exit status."""
+    subtype = result.get("subtype")
+    parts = [{"error_max_budget_usd": "the cap per run was reached (Settings → viz blocks)",
+              "error_max_turns": "the turn limit was reached"}.get(subtype, subtype or "")]
+    if result.get("result"):
+        parts.append(str(result["result"]))
+    parts += [str(e) for e in result.get("errors") or []]
+    if err := "".join(stderr).strip():
+        parts.append(err)
+    if not result:
+        parts.append("no result event")
+    parts.append(f"exit status {code}")
+    return "\n".join(p for p in parts if p)
 
 
 def _kill(proc: subprocess.Popen) -> None:

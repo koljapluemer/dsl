@@ -68,3 +68,9 @@ export async function generateViz(qc: QueryClient, file: string, index: number, 
   await Promise.all([qc.invalidateQueries({ queryKey: theaJobsQuery.queryKey }), vizChanged(qc)]);
   return job;
 }
+
+/** Points the note's `index`th viz block at its version `id`: one generated whose header a later save overwrote. */
+export async function setVizVersion(qc: QueryClient, file: string, index: number, id: string) {
+  await api('POST', '/api/thea/use', { file, index, id });
+  await vizChanged(qc);
+}

@@ -69,12 +69,23 @@ thread runs the jobs, one at a time (`features/thea/service.py`):
    job fails with it.
 5. The sources and the built page are copied into the next version's folder,
    with a thumbnail (Chromium, 800 px wide, cut to 5:3 at most, WebP 420 px).
-   Then the header is rewritten.
+   The next version is past every folder of the name, not just the header's,
+   so an id never names two builds. Then the header is rewritten.
 
 `GET /api/thea/jobs` lists the jobs, with the step taken from the CLI's
-stream-json output, and keeps finished ones for 30 minutes. The block shows the
-step while it runs, and a failure's output after. A finished job refreshes
-every view, and a failed one also shows in the toast corner. Settings → viz blocks
+stream-json output. It keeps a done job for 30 minutes and a block's last
+failure until its next run (a week at most). They're also written to
+`~/.cache/dsl-crud/thea/jobs.json`, so a failure outlasts a restart, and a job
+that was queued or running when the app stopped comes back as failed. The
+block shows the step while it runs, and a failure's output after; a failure
+from the CLI says why (the cap per run or the turn limit reached, its
+message, stderr, exit status). A finished job refreshes every view, and a
+failed one also shows in the toast corner.
+
+Notes are written last-writer-wins, so a save of a text from before a run
+finished (an edit in flight, an undo) can set the header back to the old
+version. While the done job is listed, the block then says so and offers to
+use the version made (`POST /api/thea/use {file, index, id}`). Settings → viz blocks
 sets the CLI command, model, a cap per run (in the CLI's estimated USD at API
 prices: with a subscription nothing is billed, it limits usage) and a time limit (`thea` in the
 config file). `GET /api/thea/status` says whether the CLI, npm and Chromium

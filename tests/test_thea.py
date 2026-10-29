@@ -19,6 +19,7 @@ def data_dir(tmp_path, monkeypatch):
     monkeypatch.setattr(service, "CACHE_DIR", tmp_path / "cache")
     service._jobs.clear()
     service._failures.clear()
+    monkeypatch.setattr(service, "_loaded", False)
     return tmp_path / "data"
 
 
@@ -186,6 +187,45 @@ def test_failed_gate_resumes_the_session_once(data_dir, fake):
     with pytest.raises(service.Failed, match="still fails"):
         service._run(service.Job("brave-otter", file), [])
     assert "```thea brave-otter-1" in store.get(file)["text"]
+
+
+def test_run_numbers_past_every_folder_of_the_name(data_dir, fake):
+    for v in (1, 2, 3):
+        version_dir(data_dir, f"brave-otter-{v}")
+    # a save from before the last run set the header back to 2
+    file = note("n", "Head\n```thea brave-otter-2\nA chart\n```\n")
+    service._run(service.Job("brave-otter", file), [])
+    assert "```thea brave-otter-4" in store.get(file)["text"]
+
+
+def test_use_points_the_block_at_a_version(data_dir):
+    version_dir(data_dir, "brave-otter-3")
+    version_dir(data_dir, "calm-otter-1")
+    file = note("n", "Head\n```thea brave-otter-2\nA chart\n```\n")
+    assert "```thea brave-otter-3" in service.use(file, 0, "brave-otter-3")["text"]
+    with pytest.raises(store.NotFound):
+        service.use(file, 0, "brave-otter-4")
+    with pytest.raises(store.ValidationError):
+        service.use(file, 0, "calm-otter-1")
+
+
+def test_failures_outlast_the_app(data_dir, monkeypatch):
+    service._jobs["brave-otter"] = service.Job("brave-otter", "n.txt", "failed", "Failed", "boom", finished=1e12)
+    service._jobs["calm-otter"] = service.Job("calm-otter", "n.txt", "running", "Edit main.ts")
+    with service._lock:
+        service._persist()
+    service._jobs.clear()
+    monkeypatch.setattr(service, "_loaded", False)
+    states = {j["name"]: j for j in service.jobs()}
+    assert states["brave-otter"]["error"] == "boom"
+    assert states["calm-otter"]["state"] == "failed" and "stopped" in states["calm-otter"]["error"]
+    assert service._failures["brave-otter"] == "boom"
+
+
+def test_cli_failure_says_why():
+    detail = service._cli_failure({"subtype": "error_max_budget_usd", "is_error": True}, [], 1)
+    assert "cap per run" in detail and "exit status 1" in detail
+    assert "no result event" in service._cli_failure({}, ["oops\n"], 2)
 
 
 def test_run_fails_when_the_block_is_gone(data_dir, fake):
