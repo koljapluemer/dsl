@@ -60,7 +60,10 @@ looks and when changes are staged or written at once):
 
 In the item editor, `referenceLinks` (`entities/item/dsl/referenceLinks.ts`)
 marks inline references as targets and opens a Ctrl/Cmd-clicked inline
-reference or `@target` in a new tab. `itemInlineReferences` (`inlineRefs.ts`)
+reference or `@target` with the opener it's given (`ItemTextEditor` passes
+`useOpenNote`, the sidebar), a middle-clicked one in a new tab (`noteHref`, the
+current page), and, on touch screens (`pointer-coarse`), shows an "open" button
+above the reference the cursor is on. `itemInlineReferences` (`inlineRefs.ts`)
 finds the inline references that count, in the body and `text` blocks; the editor
 and the widget both use it.
 

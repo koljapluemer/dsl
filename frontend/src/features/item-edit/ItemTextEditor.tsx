@@ -8,6 +8,7 @@ import { referenceCompletion } from '@/entities/item/dsl/referenceCompletion';
 import { referenceLinks } from '@/entities/item/dsl/referenceLinks';
 import { pastedMedia } from '@/entities/item/files/files';
 import { useSchema } from '@/entities/item/schema';
+import { useOpenNote } from '@/entities/item/sidebar';
 
 type Props = {
   /** the text; a change from outside replaces the editor's (see CodeMirrorHost) */
@@ -29,17 +30,19 @@ type Props = {
 export function ItemTextEditor({ value, autofocus, onChange, onSave, onPasteFiles, currentFile, editorRef, extraExtensions = [] }: Props) {
   const schema = useSchema();
   const hasPaste = !!onPasteFiles;
+  // a Ctrl/Cmd-clicked reference opens in the sidebar (behind a modal, if this is in one)
+  const openNote = useOpenNote();
   const extensions = useMemo(() => [
     ...dslExtensions(schema),
     referenceCompletion(schema, currentFile),
-    ...referenceLinks(schema),
+    ...referenceLinks(schema, openNote),
     ...extraExtensions,
     // Mod-Enter saves (see onKeyDown) instead of the default keymap's blank line
     Prec.high(keymap.of([{ key: 'Mod-Enter', run: () => true }])),
     // Tab/Shift-Tab indent the line(s) instead of moving focus; Esc then Tab still moves it
     keymap.of([indentWithTab]),
     ...(hasPaste ? [EditorView.domEventHandlers({ paste: (event) => pastedMedia(event.clipboardData).length > 0 })] : []),
-  ], [schema, hasPaste, currentFile, extraExtensions]);
+  ], [schema, hasPaste, currentFile, extraExtensions, openNote]);
   return (
     <div
       onKeyDown={(event) => { if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) onSave(); }}
