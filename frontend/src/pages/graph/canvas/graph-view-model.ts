@@ -24,6 +24,7 @@ export interface ViewCallbacks {
   onOpenInlineRelation: (relation: GraphEdgePayload) => void;
   onPinNote: (filename: string) => void;
   onUnpinNote: (filename: string) => void;
+  onUnpinOthers: (filename: string) => void;
   onChangeDepth: (filename: string, nextDepth: number) => void;
   onExpandHiddenRelations: (filename: string) => void;
 }
@@ -80,6 +81,7 @@ export function buildView(
       data: {
         note,
         pinDepth: pins.get(note.filename) ?? null,
+        othersPinned: pins.size > 1,
         isAnchor: note.filename === anchorFilename,
         editing,
         onDelete: callbacks.onDeleteNote,
@@ -89,6 +91,7 @@ export function buildView(
         onCancelEdit: callbacks.onCancelInteraction,
         onPin: callbacks.onPinNote,
         onUnpin: callbacks.onUnpinNote,
+        onUnpinOthers: callbacks.onUnpinOthers,
         onChangeDepth: callbacks.onChangeDepth,
       },
     };

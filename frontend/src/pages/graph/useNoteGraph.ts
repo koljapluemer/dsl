@@ -18,6 +18,8 @@ export interface UseNoteGraphResult {
   pinNote: (filename: string, depth: number) => void;
   pinNotes: (filenames: readonly string[], depth: number) => void;
   unpinNote: (filename: string) => void;
+  /** Keeps only `filename` pinned, at its depth. */
+  unpinOthers: (filename: string) => void;
   setPinDepth: (filename: string, depth: number) => void;
   /** Pins `filename` at `depth` unless it is already pinned at least that deep. */
   pinAtLeast: (filename: string, depth: number) => void;
@@ -62,6 +64,13 @@ export function useNoteGraph(): UseNoteGraphResult {
     });
   }, []);
 
+  const unpinOthers = useCallback((filename: string) => {
+    setPins((prev) => {
+      const depth = prev.get(filename);
+      return depth === undefined || prev.size === 1 ? prev : new Map([[filename, depth]]);
+    });
+  }, []);
+
   const setPinDepth = useCallback((filename: string, depth: number) => {
     const clamped = Math.max(0, depth);
     setPins((prev) => (prev.has(filename) ? new Map(prev).set(filename, clamped) : prev));
@@ -83,6 +92,7 @@ export function useNoteGraph(): UseNoteGraphResult {
     pinNote,
     pinNotes,
     unpinNote,
+    unpinOthers,
     setPinDepth,
     pinAtLeast,
     clearPins,

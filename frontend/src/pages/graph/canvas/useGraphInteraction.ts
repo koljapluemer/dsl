@@ -23,6 +23,7 @@ export interface UseGraphInteractionParams {
   setInteraction: Dispatch<SetStateAction<Interaction>>;
   onPinNote: (filename: string, depth: number) => void;
   onUnpinNote: (filename: string) => void;
+  onUnpinOthers: (filename: string) => void;
   onSetPinDepth: (filename: string, depth: number) => void;
   onPinAtLeast: (filename: string, depth: number) => void;
   /** From useElkLayout - promotes the acted-on note to the next layout anchor. */
@@ -56,6 +57,7 @@ export function useGraphInteraction({
   setInteraction,
   onPinNote,
   onUnpinNote,
+  onUnpinOthers,
   onSetPinDepth,
   onPinAtLeast,
   markInteraction,
@@ -277,6 +279,7 @@ export function useGraphInteraction({
       onOpenInlineRelation: handleOpenInlineRelation,
       onPinNote: handlePinNote,
       onUnpinNote,
+      onUnpinOthers,
       onChangeDepth: onSetPinDepth,
       onExpandHiddenRelations: handleExpandHiddenRelations,
     }),
@@ -291,6 +294,7 @@ export function useGraphInteraction({
       handleOpenInlineRelation,
       handlePinNote,
       onUnpinNote,
+      onUnpinOthers,
       onSetPinDepth,
       handleExpandHiddenRelations,
     ],

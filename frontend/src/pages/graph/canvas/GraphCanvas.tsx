@@ -27,6 +27,7 @@ interface GraphCanvasProps {
   pins: ReadonlyMap<string, number>;
   onPinNote: (filename: string, depth: number) => void;
   onUnpinNote: (filename: string) => void;
+  onUnpinOthers: (filename: string) => void;
   onSetPinDepth: (filename: string, depth: number) => void;
   onPinAtLeast: (filename: string, depth: number) => void;
   onClearPins: () => void;
@@ -45,6 +46,7 @@ interface FlowSceneProps {
   pins: ReadonlyMap<string, number>;
   onPinNote: (filename: string, depth: number) => void;
   onUnpinNote: (filename: string) => void;
+  onUnpinOthers: (filename: string) => void;
   onSetPinDepth: (filename: string, depth: number) => void;
   onPinAtLeast: (filename: string, depth: number) => void;
   onClearPins: () => void;
@@ -69,6 +71,7 @@ function FlowScene({
   pins,
   onPinNote,
   onUnpinNote,
+  onUnpinOthers,
   onSetPinDepth,
   onPinAtLeast,
   onClearPins,
@@ -118,6 +121,7 @@ function FlowScene({
     setInteraction,
     onPinNote,
     onUnpinNote,
+    onUnpinOthers,
     onSetPinDepth,
     onPinAtLeast,
     markInteraction,
@@ -235,6 +239,7 @@ export function GraphCanvas({
   pins,
   onPinNote,
   onUnpinNote,
+  onUnpinOthers,
   onSetPinDepth,
   onPinAtLeast,
   onClearPins,
@@ -264,6 +269,7 @@ export function GraphCanvas({
           pins={pins}
           onPinNote={onPinNote}
           onUnpinNote={onUnpinNote}
+          onUnpinOthers={onUnpinOthers}
           onSetPinDepth={onSetPinDepth}
           onPinAtLeast={onPinAtLeast}
           onClearPins={onClearPins}
