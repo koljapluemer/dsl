@@ -23,6 +23,7 @@ import { GoalsPage } from './pages/goals/GoalsPage';
 import { GraphPage } from './pages/graph/GraphPage';
 import { HomePage } from './pages/home/HomePage';
 import { PortfolioPage } from './pages/portfolio/PortfolioPage';
+import { DailyPage } from './pages/daily/DailyPage';
 import { ProjectsPage } from './pages/projects/ProjectsPage';
 import { PublishedPage } from './pages/published/PublishedPage';
 import { validatePublishedSearch } from './pages/published/published';
@@ -54,6 +55,7 @@ const tree = root.addChildren([
   createRoute({ getParentRoute: () => root, path: '/broken', beforeLoad: () => { throw redirect({ to: '/tasks' }); } }),
   // the older address of a note's editor: the note open in the sidebar
   createRoute({ getParentRoute: () => root, path: '/edit/$file', beforeLoad: ({ params }) => { throw redirect({ to: '/', search: { sopen: [params.file] } }); } }),
+  createRoute({ getParentRoute: () => root, path: '/daily', component: DailyPage }),
   createRoute({ getParentRoute: () => root, path: '/desk', validateSearch: validateDeskSearch, component: DeskPage }),
   createRoute({ getParentRoute: () => root, path: '/document', validateSearch: validateDocumentSearch, component: DocumentPage }),
   createRoute({ getParentRoute: () => root, path: '/canvas', validateSearch: validateCanvasSearch, component: CanvasPage }),

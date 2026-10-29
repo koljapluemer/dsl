@@ -13,6 +13,7 @@ TAGS_KEYWORD = "tags"
 MEDIA_KEYWORD = "media"
 ISSUE_KEYWORD = "issue"
 SOURCE_KEYWORD = "source"
+DAILY_KEYWORD = "daily"
 PUBLISH_KEYWORD = "publish"
 # a note shown as a project in the projects tab, which issues belong to
 PROJECT_TAG = "project"
@@ -44,9 +45,9 @@ class Hiding:
 
 
 # What each view hides - edit here.
-QUEUE_HIDING = Hiding("no-q", frozenset({APPOINTMENT_KEYWORD, RECURRING_KEYWORD, SOURCE_KEYWORD}), frozenset({EXPLORATION_TAG}))
-FLOAT_HIDING = Hiding("no-float", frozenset({APPOINTMENT_KEYWORD, RECURRING_KEYWORD, SOURCE_KEYWORD}))
-GRAPH_HIDING = Hiding("no-graph", frozenset({APPOINTMENT_KEYWORD, RECURRING_KEYWORD, SOURCE_KEYWORD}),frozenset({EXPLORATION_TAG}))
+QUEUE_HIDING = Hiding("no-q", frozenset({APPOINTMENT_KEYWORD, RECURRING_KEYWORD, SOURCE_KEYWORD, DAILY_KEYWORD}), frozenset({EXPLORATION_TAG}))
+FLOAT_HIDING = Hiding("no-float", frozenset({APPOINTMENT_KEYWORD, RECURRING_KEYWORD, SOURCE_KEYWORD, DAILY_KEYWORD}))
+GRAPH_HIDING = Hiding("no-graph", frozenset({APPOINTMENT_KEYWORD, RECURRING_KEYWORD, SOURCE_KEYWORD, DAILY_KEYWORD}),frozenset({EXPLORATION_TAG}))
 
 def _clause(doc: dsl.Document, keyword: str) -> dsl.Clause | None:
     return next((c for c in doc.clauses if c.keyword == keyword), None)
@@ -92,6 +93,12 @@ def when(doc: dsl.Document) -> dict | None:
         until = c.options.get("until")
         return {"recurring": dsl.WEEKDAYS.index(c.args[0]) + 1, "until": _iso_date(until) if until else None}
     return None
+
+
+def daily(doc: dsl.Document) -> str | None:
+    """The date (`yy-mm-dd`) a daily note is for, None for any other item."""
+    clause = _clause(doc, DAILY_KEYWORD)
+    return clause.args[0] if clause and clause.args else None
 
 
 def route(doc: dsl.Document) -> str | None:

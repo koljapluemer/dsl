@@ -1,7 +1,7 @@
 # Item language
 
 A plain-text language for items: notes, appointments, recurring events,
-bibliographic sources, projects and their issues, and later other kinds. One item per file. Files are meant to be written by hand
+bibliographic sources, projects and their issues, daily notes, and later other kinds. One item per file. Files are meant to be written by hand
 and read by several frontends.
 
 The spec has two parts:
