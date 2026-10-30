@@ -1,12 +1,18 @@
 import { mathAt, type MathSpan } from './math';
 
 export type InlineReference = { from: number; to: number; target: string; label: string | null };
+/** `![[path]]` or `![[path|alt]]`: an attached file shown in place, never a relationship */
+export type InlineEmbed = InlineReference;
 
 const TARGET = /^[^\s|[\]/\\]+$/;
+const EMBED_TARGET = /^[^|[\]]+$/;
 const FENCE = /^[ \t]{0,3}(`{3,}|~{3,})/;
 
 /** Inline note references outside Markdown code spans, fenced code blocks and math. */
 export const inlineReferences = (source: string): InlineReference[] => scanInline(source).refs;
+
+/** Embeds, by the same rules as references. */
+export const inlineEmbeds = (source: string): InlineEmbed[] => scanInline(source).embeds;
 
 /** Math outside Markdown code spans and fenced code blocks (references hold none). */
 export const mathSpans = (source: string): MathSpan[] => scanInline(source).math;
@@ -17,7 +23,7 @@ export const mathSpans = (source: string): MathSpan[] => scanInline(source).math
  * Mirrors dsl_crud/core/inline_refs.py.
  */
 function scanInline(source: string) {
-  const out = { refs: [] as InlineReference[], math: [] as MathSpan[] };
+  const out: Scan = { refs: [], embeds: [], math: [] };
   let offset = 0;
   // where display math that ran past its line ends
   let resume = 0;
@@ -40,7 +46,9 @@ function scanInline(source: string) {
 }
 
 /** Scans `source` from `i` to the line's `end`; where it stopped, past `end` when math runs on. */
-function scanLine(source: string, i: number, end: number, out: { refs: InlineReference[]; math: MathSpan[] }) {
+type Scan = { refs: InlineReference[]; embeds: InlineEmbed[]; math: MathSpan[] };
+
+function scanLine(source: string, i: number, end: number, out: Scan) {
   let ticks = 0;
   while (i < end) {
     if (source[i] === '`') {
@@ -64,15 +72,17 @@ function scanLine(source: string, i: number, end: number, out: { refs: InlineRef
         continue;
       }
     }
-    if (!ticks && source.startsWith('[[', i)) {
-      const close = source.indexOf(']]', i + 2);
+    const embed = source.startsWith('![[', i);
+    if (!ticks && (embed || source.startsWith('[[', i))) {
+      const open = i + (embed ? 3 : 2);
+      const close = source.indexOf(']]', open);
       if (close >= 0 && close + 2 <= end) {
-        const raw = source.slice(i + 2, close);
+        const raw = source.slice(open, close);
         const pipe = raw.indexOf('|');
         const target = pipe < 0 ? raw : raw.slice(0, pipe);
         const label = pipe < 0 ? null : raw.slice(pipe + 1);
-        if (TARGET.test(target) && (label === null || label.length > 0)) {
-          out.refs.push({ from: i, to: close + 2, target, label });
+        if ((embed ? EMBED_TARGET : TARGET).test(target) && (label === null || label.length > 0)) {
+          (embed ? out.embeds : out.refs).push({ from: i, to: close + 2, target, label });
           i = close + 2;
           continue;
         }

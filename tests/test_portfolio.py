@@ -74,7 +74,7 @@ def test_endpoints(data_dir):
     assert client.get(f"/api/files/{template}").data == b"<b>{{ title }}</b>"
     assert client.get("/api/portfolio/preview").data.decode() == f"{portfolio.MARKER}\n<b>Portfolio</b>"
     assert client.put("/api/files/images/x.png", json={"text": "x"}).status_code == 400
-    assert client.get("/api/settings").get_json()["exports"] == {"bibtex": [], "portfolio": []}
+    assert client.get("/api/settings").get_json()["exports"] == {"bibtex": [], "portfolio": [], "site": []}
     assert client.put("/api/settings", json={"exports": {"nope": []}}).status_code == 400
 
 

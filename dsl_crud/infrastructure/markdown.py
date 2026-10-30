@@ -1,4 +1,4 @@
-"""Markdown as HTML on the server (PDF export, portfolio), like the frontend's
+"""Markdown as HTML on the server (PDF export, portfolio, published site), like the frontend's
 marked with `breaks: true`, with the same TeX math (`core/inline_math`) as
 MathML. The math font is the file the frontend serves (frontend/public/fonts);
 pages printed without a server embed it with `math_font_css`."""

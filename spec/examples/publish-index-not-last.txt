@@ -1,0 +1,3 @@
+Note
+publish _index/x
+Text

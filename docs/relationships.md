@@ -2,7 +2,7 @@
 
 A relationship is either an explicit line `-> label @target` (or `-> @target`)
 in the keyword section, or an inline reference `[[target]]` / `[[target|text]]`
-in the body or a `text` block (`extra`, `publish`). API relationship values always carry `inline: boolean`;
+in the body or a `text` block (`extra`, `publish`); an embed `![[file]]` is none. API relationship values always carry `inline: boolean`;
 display text never becomes a semantic label.
 
 A note's **backlinks** are relationships in other notes whose target is it.

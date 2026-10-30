@@ -30,8 +30,7 @@ CACHE_DIR = Path(os.environ.get("XDG_CACHE_HOME", Path.home() / ".cache")) / "ds
 # bump when the template, prompt or pipeline changes in a way worth recording
 GENERATOR = "thea-1"
 
-# what a version's folder holds besides the sources
-BUILT, THUMB, META = "index.html", "thumb.webp", "thea.json"
+BUILT, THUMB, META = thea.BUILT, thea.THUMB, thea.META
 # workspace entries that aren't sources
 _SCRATCH = {"node_modules", "dist", "SPEC.md", "PREVIOUS_ERRORS.md", ".claude"}
 MAX_SOURCE_BYTES = 20 * 1024 * 1024

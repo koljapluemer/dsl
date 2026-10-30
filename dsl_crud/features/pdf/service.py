@@ -44,25 +44,18 @@ def status() -> dict:
 def _sections(text: str, refs: dict[str, str | None], content: str) -> list[str]:
     """The Markdown of the body and/or `extra`, references as their text and viz
     blocks as their built thumbnail (left out until built)."""
-    lines = [l.replace("\r", "") for l in text.split("\n")]
-    viz = {b.line: b for b in thea.blocks(store.SCHEMA, text)}
     wanted = {"body": [None], "extra": ["extra"], "both": [None, "extra"]}[content]
+
+    def thumb(block: thea.Block) -> str:
+        if (None if block.section == "body" else block.section) not in wanted:
+            return ""
+        uri = block.id and chromium.data_uri(store._dir() / thea.DIR / block.id / thea.THUMB)
+        return f'<figure class="viz"><img src="{uri}"></figure>' if uri else ""
+
     out = []
-    for keyword, start, stop in dsl.text_spans(store.SCHEMA, text):
-        if keyword not in wanted:
-            continue
-        kept, i = [], start
-        while i < stop:
-            if block := viz.get(i):
-                uri = block.id and chromium.data_uri(store._dir() / thea.DIR / block.id / "thumb.webp")
-                if uri:
-                    kept += ["", f'<figure class="viz"><img src="{uri}"></figure>', ""]
-                i = block.end + 1
-                continue
-            kept.append(lines[i])
-            i += 1
-        section = "\n".join(kept).strip()
-        if section:
+    for keyword, section in thea.replace(store.SCHEMA, text, thumb):
+        section = section.strip()
+        if keyword in wanted and section:
             # a reference as its text, never math
             out.append(inline_refs.substitute(section, lambda r: (r.label or refs.get(r.target) or r.target).replace("$", "\\$")))
     return out

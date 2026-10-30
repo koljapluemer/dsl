@@ -13,6 +13,14 @@ describe('inline note Markdown', () => {
     expect(html).toContain('class="ov-missing"');
   });
 
+  it('renders embeds only with a renderer, in order with references', () => {
+    expect(markdown('![[x.png]] [[a]]', { a: 'A' })).toContain('![[x.png]]');
+    const html = markdown('![[x.png]] [[a]] ![[y.png|Y]]', { a: 'A' }, undefined, (e) => `<img alt="${e.label ?? ''}" src="${e.target}">`);
+    expect(html).toContain('<img alt="" src="x.png">');
+    expect(html).toContain('<img alt="Y" src="y.png">');
+    expect(html).toContain('data-note="a"');
+  });
+
   it('leaves references in code literal', () => {
     expect(markdown('`[[a]]`', { a: 'A' })).toContain('<code>[[a]]</code>');
   });

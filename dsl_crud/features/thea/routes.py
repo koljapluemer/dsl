@@ -1,12 +1,12 @@
 from flask import Blueprint, jsonify, request, send_file
 
+from dsl_crud.core import thea
 from dsl_crud.features.thea import service
 
 blueprint = Blueprint("thea", __name__)
 
 # the built page runs in an opaque origin with no network, wherever it's opened
-VIEW_CSP = ("sandbox allow-scripts; default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; "
-            "img-src data: blob:; font-src data:; media-src data: blob:; worker-src blob:")
+VIEW_CSP = "sandbox allow-scripts; " + thea.CSP
 
 
 @blueprint.get("/api/thea/status")

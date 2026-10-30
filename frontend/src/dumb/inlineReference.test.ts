@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { inlineReferences } from './inlineReference';
+import { inlineEmbeds, inlineReferences } from './inlineReference';
 
 describe('inlineReferences', () => {
   it('finds targets and display labels', () => {
@@ -22,5 +22,16 @@ describe('inlineReferences and math', () => {
 
   it('keeps math in a label as text', () => {
     expect(inlineReferences('[[a|$x$]]')).toEqual([{ from: 0, to: 9, target: 'a', label: '$x$' }]);
+  });
+});
+
+describe('inlineEmbeds', () => {
+  it('finds embeds, which are never references', () => {
+    const source = '![[images/a b.webp]] ![[a.webp|Alt]] [[note]] `![[no]]`';
+    expect(inlineReferences(source).map(({ target }) => target)).toEqual(['note']);
+    expect(inlineEmbeds(source)).toEqual([
+      { from: 0, to: 20, target: 'images/a b.webp', label: null },
+      { from: 21, to: 36, target: 'a.webp', label: 'Alt' },
+    ]);
   });
 });

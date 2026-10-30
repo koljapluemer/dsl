@@ -76,7 +76,8 @@ def get_export_paths(key: str) -> list[str]:
     return list(read().get(key) or [])
 
 
-def set_export_paths(key: str, paths, default_name: str) -> list[str]:
+def set_export_paths(key: str, paths, default_name: str | None) -> list[str]:
+    """Absolute paths are resolved; a directory gets `default_name` appended, unless None."""
     if not isinstance(paths, list) or not all(isinstance(path, str) for path in paths):
         raise ValidationError(f"{key}: expected list of paths")
     output: list[str] = []
@@ -86,7 +87,7 @@ def set_export_paths(key: str, paths, default_name: str) -> list[str]:
         path = Path(raw.strip()).expanduser()
         if path.is_absolute():
             path = path.resolve()
-            if path.is_dir():
+            if default_name and path.is_dir():
                 path /= default_name
         if str(path) not in output:
             output.append(str(path))

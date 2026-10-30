@@ -46,3 +46,39 @@ def test_render_error_is_reported(tmp_path):
 def test_unknown_export():
     with pytest.raises(ValidationError):
         exports.set_paths("nope", [])
+
+
+def test_folder_export(tmp_path):
+    site = tmp_path / "site"
+    site.mkdir()
+    (site / "CNAME").write_text("example.org\n")
+    content = {"files": {"index.html": b"home", "a/b.html": b"b", "a/c/d.html": b"d"}}
+    exports.register(exports.Export("demo", "", None, "#mine", lambda: content["files"], folder=True))
+    assert exports.set_paths("demo", [str(site)]) == [str(site)]
+
+    exports.sync()
+    assert exports.status["demo"] == {str(site): None}
+    assert (site / "a" / "c" / "d.html").read_bytes() == b"d"
+    assert (site / exports.MANIFEST).read_text() == "#mine\na/b.html\na/c/d.html\nindex.html\n"
+
+    mtime = (site / "index.html").stat().st_mtime_ns
+    content["files"] = {"index.html": b"home", "a/b.html": b"b2"}
+    exports.sync()
+    assert (site / "index.html").stat().st_mtime_ns == mtime
+    assert (site / "a" / "b.html").read_bytes() == b"b2"
+    assert not (site / "a" / "c").exists()
+    assert (site / "CNAME").read_text() == "example.org\n"
+
+    # a file it didn't write is never overwritten
+    content["files"] = {"index.html": b"home", "CNAME": b"x"}
+    exports.sync()
+    assert "not generated" in exports.status["demo"][str(site)]
+    assert (site / "CNAME").read_text() == "example.org\n"
+    assert (site / "a" / "b.html").exists()
+
+
+def test_folder_export_needs_a_folder(tmp_path):
+    exports.register(exports.Export("demo", "", None, "#mine", lambda: {"x.html": b""}, folder=True))
+    [path] = exports.set_paths("demo", [str(tmp_path / "missing")])
+    exports.sync()
+    assert "not a folder" in exports.status["demo"][path]

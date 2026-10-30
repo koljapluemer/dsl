@@ -1,8 +1,7 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Link } from '@tanstack/react-router';
-import { Check, ExternalLink, Plus } from 'lucide-react';
-import { settingsQuery } from '@/entities/settings/queries';
+import { ExternalLink, Plus } from 'lucide-react';
+import { ExportStatus } from '@/entities/settings/ExportStatus';
 import { Note } from '@/meta/note/Note';
 import { NoteModal } from '@/meta/note/NoteModal';
 import { TOOL } from '@/meta/note/tools';
@@ -26,27 +25,9 @@ export function PortfolioPage() {
               key: 'preview',
               node: <a key="preview" className={TOOL} href={PREVIEW_URL} target="_blank" rel="noopener" title="preview"><ExternalLink size={14} /></a>,
             }]} />
-      <ExportStatus />
+      <ExportStatus exportKey="portfolio" />
       <Cards available={data.cards.available} reason={data.cards.reason} />
     </div>
-  );
-}
-
-function ExportStatus() {
-  const targets = useQuery(settingsQuery).data?.exports.portfolio;
-  if (!targets) return null;
-  if (!targets.length) {
-    return <p className="text-sm">Not exported: set a path under <Link to="/settings" className="link">Settings</Link>.</p>;
-  }
-  return (
-    <ul className="space-y-1 text-sm">
-      {targets.map((t) => (
-        <li key={t.path} className="flex flex-wrap items-center gap-x-2 font-mono">
-          {t.path}
-          {t.error ? <span className="font-sans text-error">{t.error}</span> : <Check size={14} className="text-success" />}
-        </li>
-      ))}
-    </ul>
   );
 }
 

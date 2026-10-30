@@ -30,6 +30,18 @@ export const fileUrl = (path: string) => `/api/files/${path.split('/').map(encod
 /** The item's images and videos, in the order its `media` clauses name them (the first is `item.media`). */
 export const shownFiles = (item: { files: string[] }) => item.files.filter((f) => kindOf(f).shown);
 
+/**
+ * The attached image or video an embed (`![[target]]`) names: by its path, or by
+ * its file name when only one of `files` has it; null for anything else.
+ * Mirrors site/service.py's `_embedded`.
+ */
+export function embedded(files: string[], target: string): string | null {
+  const shown = files.filter((f) => kindOf(f).shown);
+  if (shown.includes(target)) return target;
+  const named = shown.filter((f) => fileName(f) === target);
+  return named.length === 1 ? named[0] : null;
+}
+
 /** How a shown file is shown. */
 export const mediaKind = (path: string): 'image' | 'video' => (kindOf(path).name === 'video' ? 'video' : 'image');
 

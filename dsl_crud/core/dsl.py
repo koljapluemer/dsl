@@ -36,7 +36,8 @@ _RELATION_OPENER = re.compile(r"^->\s")
 _DATE = re.compile(r"^(\d{2})-(\d{2})-(\d{2})$")
 _MONTH = re.compile(r"^(\d{2})-(\d{2})$")
 _TAG = re.compile(r"^[a-z0-9-]+$")
-_ROUTE = re.compile(r"^[a-z0-9-]+(?:/[a-z0-9-]+)*$")
+# `_index` only as the last segment: a folder's index page
+_ROUTE = re.compile(r"^(?:[a-z0-9-]+/)*(?:[a-z0-9-]+|_index)$")
 FENCE = re.compile(r"^[ \t]{0,3}(`{3,}|~{3,})")
 WARNINGS = ("unknown_keyword", "unclosed_fence")
 

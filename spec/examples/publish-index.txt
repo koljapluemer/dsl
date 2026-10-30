@@ -1,0 +1,4 @@
+Essays
+
+publish essays/_index
+See ![[images/a.webp]] and [[other-a1b2c3]].

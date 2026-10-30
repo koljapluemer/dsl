@@ -35,6 +35,7 @@ export function SettingsPage() {
       {path && <TheaSettings />}
       {path && <ExportSettings exportKey="bibtex" legend="bibtex export" placeholder="~/path/to/sources.bib" />}
       {path && <ExportSettings exportKey="portfolio" legend="portfolio export" placeholder="~/path/to/site/index.html" />}
+      {path && <ExportSettings exportKey="site" legend="site export (a folder)" placeholder="~/path/to/site/" />}
       {path && <MaintenanceSettings />}
     </div>
   );

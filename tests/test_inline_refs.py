@@ -33,3 +33,16 @@ def test_math_in_a_label_is_text():
 
 def test_substitute():
     assert inline_refs.substitute("x [[a]] `[[b]]` [[c|C]]", lambda r: r.label or r.target.upper()) == "x A `[[b]]` C"
+
+
+def test_embeds_are_not_references():
+    text = "![[images/a b.webp]] ![[a.webp|Alt]] [[note]] `![[no]]` \\![[c]]"
+    # `\!` is a literal `!`, followed by a reference
+    assert refs(text) == [("note", None), ("c", None)]
+    assert [(e.target, e.label) for e in inline_refs.embeds(text)] == [("images/a b.webp", None), ("a.webp", "Alt")]
+
+
+def test_substitute_embeds():
+    text = "![[a.webp]] [[b]]"
+    assert inline_refs.substitute(text, lambda r: "X") == "![[a.webp]] X"
+    assert inline_refs.substitute(text, lambda r: "E" if r.embed else "R", embeds=True) == "E R"

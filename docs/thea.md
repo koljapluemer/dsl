@@ -113,3 +113,10 @@ response's CSP makes the page an opaque origin without network wherever it's
 opened. The iframe is as high as the page reports. The spec is folded below it,
 and a badge says when it changed since the version was built. With
 `compactViz` (Graph and Canvas cards) and in `simple`, only the thumbnail shows.
+
+The PDF export shows a built block as its thumbnail. The published site
+(`features/site`) shows one in a `publish` block like the app does: the page
+copied to `files/thea/<id>/index.html` in the site with the same CSP (minus
+`sandbox`, which the iframe's attribute gives) as a meta tag, sized by the
+page's resize messages, and the spec from `thea.json` folded below it. The
+site leaves out a block that isn't built.

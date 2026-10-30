@@ -1,6 +1,6 @@
 import { useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
-import { markdown, slotted } from './markdown';
+import { markdown, slotted, type EmbedHtml } from './markdown';
 
 /** What a fence kind renders as, given its info string, its code and its place among that kind's fences here. */
 export type FenceRenderer = (info: string, code: string, index: number) => ReactNode;
@@ -9,11 +9,16 @@ type Props = {
   source: string; refs?: Record<string, string | null>; onRef?: (file: string) => void; className?: string;
   /** fenced code blocks rendered by the caller instead, by the first word of their info string */
   fences?: Record<string, FenceRenderer>;
+  /** how `![[…]]` embeds render; without it they stay as written */
+  embedHtml?: EmbedHtml;
 };
 
-export function Markdown({ source, refs, onRef, className = '', fences }: Props) {
+export function Markdown({ source, refs, onRef, className = '', fences, embedHtml }: Props) {
   const kinds = useMemo(() => Object.keys(fences ?? {}), [fences]);
-  const html = useMemo(() => kinds.length ? slotted(source, refs ?? {}, kinds) : markdown(source, refs), [source, refs, kinds]);
+  const html = useMemo(
+    () => kinds.length ? slotted(source, refs ?? {}, kinds, embedHtml) : markdown(source, refs, undefined, embedHtml),
+    [source, refs, kinds, embedHtml],
+  );
   const box = useRef<HTMLDivElement>(null);
   const [slots, setSlots] = useState<HTMLElement[]>([]);
   // the slots of this html: new elements whenever it changes

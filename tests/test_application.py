@@ -7,7 +7,7 @@ def test_factory_is_repeatable_and_registers_exports_once():
     first_exports = set(exports.EXPORTS)
     second = create_app()
     assert {rule.rule for rule in first.url_map.iter_rules()} == {rule.rule for rule in second.url_map.iter_rules()}
-    assert first_exports == set(exports.EXPORTS) == {"bibtex", "portfolio"}
+    assert first_exports == set(exports.EXPORTS) == {"bibtex", "portfolio", "site"}
 
 
 def test_factory_registers_public_route_groups():

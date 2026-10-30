@@ -1,0 +1,9 @@
+{
+  "body": "Essays",
+  "clauses": [
+    { "keyword": "publish", "line": 3, "args": ["essays/_index"], "options": {} }
+  ],
+  "publish": { "route": "essays/_index", "text": "See ![[images/a.webp]] and [[other-a1b2c3]]." },
+  "errors": [],
+  "warnings": []
+}

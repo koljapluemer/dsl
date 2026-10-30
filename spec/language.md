@@ -67,6 +67,17 @@ span lines but not a blank one). Whichever opens first holds what follows: a
 to keep the syntax as text. Malformed references remain ordinary text, and a
 valid reference to a missing item does not make the item invalid.
 
+### Embeds
+
+`![[images/a.webp]]` or `![[images/a.webp|alt text]]` (a `[[` right after `!`)
+embeds a file instead: it is never an inline relationship. The target is
+non-empty and contains no `|`, `[` or `]` (a `/` is fine); the label, if any, is
+non-empty. Embeds are recognized where references are, by the same rules, and
+mean something only for a file the item names in a `media` clause: by its path
+or, when only one of its files has that name, by its file name
+(`![[a.webp]]`). Frontends show anything else as a broken embed; the item stays
+valid.
+
 ### Boundary
 
 The boundary is the first line after the first body line that is a **section
@@ -270,7 +281,7 @@ type `path`.
 | `path`    | `images/a.webp` | a file relative to the item's folder, `/` as separator. Not empty, no leading `/`, no `\`, no `..` segment. Quote it when it contains spaces. |
 | `text`    | `clean up` | the rest of the line, trimmed, not empty. |
 | `tags`    | `break 10k do-this` | the rest of the line, split on whitespace: one or more tags, each made of `a-z`, `0-9` and `-` only. |
-| `route`   | `essays/a-cool-essay` | a published address: one or more segments of `a-z`, `0-9` and `-`, joined by `/`. No leading or trailing `/`, no empty segment. Not quoted. |
+| `route`   | `essays/a-cool-essay` | a published address: one or more segments of `a-z`, `0-9` and `-`, joined by `/`; the last one may instead be `_index` (`essays/_index`, a folder's index page). No leading or trailing `/`, no empty segment. Not quoted. |
 
 `text` and `tags` are **rest-of-line** types: their words are never read as
 keywords, and they must be the keyword's only argument and its only type.

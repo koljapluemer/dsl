@@ -1,10 +1,19 @@
 import { queryOptions } from '@tanstack/react-query';
 import { api } from '@/api/client';
-import type { Item, Schema } from '@/api/types';
+import type { Item, Schema, Site } from '@/api/types';
+import { inlineEmbeds, inlineReferences } from '@/dumb/inlineReference';
 import { outline } from '@/entities/item/dsl/outline';
+import { embedded } from '@/entities/item/files/files';
 
 /** Every note with a `publish` route, by route; under `items`, so writes refetch it. */
 export const publishedQuery = queryOptions({ queryKey: ['items', 'published'], queryFn: () => api<Item[]>('GET', '/api/published') });
+
+/**
+ * The note published at `_index` and its template, every page's, created by
+ * the server when missing (repeating it changes nothing); under `items`, so
+ * writes refetch it.
+ */
+export const siteQuery = queryOptions({ queryKey: ['items', 'site'], queryFn: () => api<Site>('POST', '/api/site') });
 
 /** The published page's URL search: the note open. */
 export type PublishedSearch = { open?: string };
@@ -52,4 +61,19 @@ export function routeTree(items: Item[]): RouteNode[] {
   const sort = (n: RouteNode) => { n.children.sort((a, b) => a.name.localeCompare(b.name)); n.children.forEach(sort); };
   sort(root);
   return root.children;
+}
+
+/**
+ * What in the note's `publish` block the site can't show: `links` to notes
+ * without a route (a disabled link there), `embeds` of files it doesn't have
+ * attached (left out). `published` holds the published notes' files.
+ */
+export function publishProblems(schema: Schema, item: Item, published: Set<string>): { links: string[]; embeds: string[] } {
+  const { lines, parts } = outline(schema, item.text);
+  const part = parts.find((p) => p.keyword === PUBLISH_KEYWORD);
+  const text = part ? lines.slice(part.line + 1, part.end).join('\n') : '';
+  return {
+    links: [...new Set(inlineReferences(text).map((r) => r.target).filter((t) => !published.has(`${t}.txt`)))],
+    embeds: [...new Set(inlineEmbeds(text).map((e) => e.target).filter((t) => !embedded(item.files, t)))],
+  };
 }

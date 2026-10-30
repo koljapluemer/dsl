@@ -2,7 +2,7 @@ import { Lexer, Marked, marked, Parser, type MarkedExtension, type Token, type T
 import DOMPurify from 'dompurify';
 import temml from 'temml';
 import 'temml/dist/Temml-Local.css';
-import { inlineReferences, type InlineReference } from './inlineReference';
+import { inlineEmbeds, inlineReferences, type InlineEmbed, type InlineReference } from './inlineReference';
 import { mathAt } from './math';
 import './markdown.css';
 
@@ -53,11 +53,24 @@ function escaped(text: string, at: number) {
 const SANITIZE = { ADD_ATTR: ['form'] };
 
 export type ReferenceHtml = (ref: InlineReference, heading: string | null | undefined) => string;
+/** An embed (`![[path]]`) as HTML; without one, embeds stay as written. */
+export type EmbedHtml = (embed: InlineEmbed) => string;
 
-/** `s` with its inline note references as links (or as a caller's sanitized HTML). */
-function expandReferences(s: string, refs: Record<string, string | null>, referenceHtml?: ReferenceHtml) {
+/**
+ * `s` with its inline note references as links (or as a caller's sanitized
+ * HTML), and its embeds as `embedHtml` makes them.
+ */
+function expandReferences(s: string, refs: Record<string, string | null>, referenceHtml?: ReferenceHtml, embedHtml?: EmbedHtml) {
   let expanded = s;
-  for (const ref of inlineReferences(s).reverse()) {
+  const spans = [
+    ...inlineReferences(s).map((ref) => ({ ref, embed: false })),
+    ...(embedHtml ? inlineEmbeds(s).map((ref) => ({ ref, embed: true })) : []),
+  ].sort((x, y) => y.ref.from - x.ref.from);
+  for (const { ref, embed } of spans) {
+    if (embed) {
+      expanded = expanded.slice(0, ref.from) + (embedHtml?.(ref) ?? '') + expanded.slice(ref.to);
+      continue;
+    }
     const heading = refs[ref.target];
     // `$` as an entity: a label is never math
     const label = escapeHtml(ref.label ?? heading ?? ref.target).replaceAll('$', '&#36;');
@@ -70,8 +83,8 @@ function expandReferences(s: string, refs: Record<string, string | null>, refere
 }
 
 /** Markdown as sanitized HTML; single newlines break lines. */
-export const markdown = (s: string, refs: Record<string, string | null> = {}, referenceHtml?: ReferenceHtml) =>
-  DOMPurify.sanitize(marked.parse(expandReferences(s, refs, referenceHtml), { breaks: true, async: false }), SANITIZE);
+export const markdown = (s: string, refs: Record<string, string | null> = {}, referenceHtml?: ReferenceHtml, embedHtml?: EmbedHtml) =>
+  DOMPurify.sanitize(marked.parse(expandReferences(s, refs, referenceHtml, embedHtml), { breaks: true, async: false }), SANITIZE);
 
 // the fence kinds the current `slotted` call leaves slots for
 let slotKinds: readonly string[] = [];
@@ -91,10 +104,10 @@ const slotting = new Marked(math, {
  * `kinds` becomes an empty slot, `<div data-fence data-info data-code>`, for
  * the caller to fill (see Markdown's `fences`).
  */
-export function slotted(s: string, refs: Record<string, string | null>, kinds: readonly string[]) {
+export function slotted(s: string, refs: Record<string, string | null>, kinds: readonly string[], embedHtml?: EmbedHtml) {
   slotKinds = kinds;
   try {
-    return DOMPurify.sanitize(slotting.parse(expandReferences(s, refs), { breaks: true, async: false }), SANITIZE);
+    return DOMPurify.sanitize(slotting.parse(expandReferences(s, refs, undefined, embedHtml), { breaks: true, async: false }), SANITIZE);
   } finally {
     slotKinds = [];
   }

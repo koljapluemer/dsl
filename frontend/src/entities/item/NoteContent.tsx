@@ -6,6 +6,7 @@ import { highlight } from './dsl/highlight';
 import { outline } from './dsl/outline';
 import { isRelationLine } from './dsl/relation';
 import { theaBlocks } from './dsl/thea';
+import { embedHtml } from './files/embed';
 import { useSchema } from './schema';
 import { useOpenNote } from './sidebar';
 import { TheaBlock } from './viz/TheaBlock';
@@ -38,8 +39,9 @@ export function NoteContent({ item, variant = 'full', onRef, compactViz = false,
   const { lines, starts, first, boundary, parts } = outline(schema, text);
   const body = first >= 0 ? lines.slice(first, boundary).join('\n') : '';
   const fences = useVizFences(item, variant === 'simple' || compactViz, savedText);
+  const embeds = useMemo(() => embedHtml(item.files), [item.files]);
   if (variant === 'simple') {
-    return <div className="overview select-text">{body.trim() && <Markdown source={body} refs={item.refs} onRef={open} fences={fences.body} />}</div>;
+    return <div className="overview select-text">{body.trim() && <Markdown source={body} refs={item.refs} onRef={open} fences={fences.body} embedHtml={embeds} />}</div>;
   }
 
   const analysis = analyze(schema, text);
@@ -58,7 +60,7 @@ export function NoteContent({ item, variant = 'full', onRef, compactViz = false,
       const content = lines.slice(line + 1, end).join('\n');
       if (!content.trim()) blocks.push(code(line));
       else if (schema.keywords[keyword].block === 'yaml') blocks.push(code(line, end));
-      else blocks.push(<Markdown key={line} className="ov-extra" source={content} refs={item.refs} onRef={open} fences={fences[keyword]} />);
+      else blocks.push(<Markdown key={line} className="ov-extra" source={content} refs={item.refs} onRef={open} fences={fences[keyword]} embedHtml={embeds} />);
       continue;
     }
     const trimmed = lines[line].trim();
@@ -67,7 +69,7 @@ export function NoteContent({ item, variant = 'full', onRef, compactViz = false,
 
   return (
     <div className="overview select-text">
-      {body.trim() && <Markdown source={body} refs={item.refs} onRef={open} fences={fences.body} />}
+      {body.trim() && <Markdown source={body} refs={item.refs} onRef={open} fences={fences.body} embedHtml={embeds} />}
       {section.length > 0 && <div className="ov-section">{section}</div>}
       {blocks}
     </div>
