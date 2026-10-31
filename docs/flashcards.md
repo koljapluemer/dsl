@@ -31,6 +31,11 @@ Markdown around a card is rendered as separate pieces, so a list can't run
 through a card. The editor marks the `::` and `---` delimiters
 (`flashcardDelimiters`, class `tok-card`).
 
+A card may embed the note's images and videos (`![[file]]`, see
+[`files.md`](files.md)). In a card, in the note or in Learn, an embed is
+sized as a card's picture, at most 320 px high and centered (`.flashcard
+.ov-embed`, `.learn-card .ov-embed` in `entities/item/item.css`).
+
 ## Identity
 
 A card is identified within its note by `card_id(front)`: the first 12 hex
@@ -77,7 +82,8 @@ no longer has, and deletes those files once nothing references them
 - `review`: rates the card `again`, `hard`, `good` or `easy` and returns the
   next card.
 
-The page (`pages/learn/LearnPage.tsx`) shows the front and Reveal (Space).
+The page (`pages/learn/LearnPage.tsx`) shows the front and Reveal (Space),
+with embeds resolved against the note's files.
 Revealed, it shows front and back and the four ratings (1–4). An icon button opens the card's note in the sidebar.
 
 ## API

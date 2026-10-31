@@ -63,7 +63,7 @@ export function LearnPage() {
         </p>
       ) : (
         <>
-          <div key={`${card.file}:${card.id}`} className="rounded-box border border-base-300 p-4">
+          <div key={`${card.file}:${card.id}`} className="learn-card rounded-box border border-base-300 p-4">
             {part(card.front)}
             {revealed && <><div className="divider" />{part(card.back)}</>}
           </div>

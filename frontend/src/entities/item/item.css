@@ -17,6 +17,8 @@
 .ov-muted { color: color-mix(in oklab, var(--color-base-content) 60%, transparent); }
 .ov-missing { text-decoration: line-through; color: color-mix(in oklab, var(--color-base-content) 50%, transparent); }
 .ov-embed { display: block; max-width: 100%; max-height: 60vh; }
+/* in a flashcard, in a note or in Learn: sized as a card's picture */
+.flashcard .ov-embed, .learn-card .ov-embed { max-height: min(320px, 40vh); margin-inline: auto; }
 /* monospace only for keyword lines; it runs wide, so a bit smaller */
 .ov-code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.9em; white-space: pre-wrap; }
 .ov-extra { font-size: 0.9em; color: color-mix(in oklab, var(--color-base-content) 70%, transparent); }
