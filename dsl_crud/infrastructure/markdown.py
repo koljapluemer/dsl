@@ -1,6 +1,6 @@
 """Markdown as HTML on the server (PDF export, portfolio, published site), like the frontend's
 marked with `breaks: true`, with the same TeX math (`core/inline_math`) as
-MathML. The math font is the file the frontend serves (frontend/public/fonts);
+MathML and flashcards (`core/flashcards`) as their front and back. The math font is the file the frontend serves (frontend/public/fonts);
 pages printed without a server embed it with `math_font_css`."""
 
 import html
@@ -10,6 +10,7 @@ from latex2mathml.converter import convert
 from markdown_it import MarkdownIt
 from markdown_it.rules_inline import StateInline
 
+from dsl_crud.core import flashcards
 from dsl_crud.core.inline_math import math_at
 from dsl_crud.infrastructure import chromium
 
@@ -42,7 +43,15 @@ _md.add_render_rule("math", _render_math)
 
 
 def render(text: str) -> str:
-    return _md.render(text)
+    if "::" not in text:
+        return _md.render(text)
+    lines, out, start = text.split("\n"), [], 0
+    for card in flashcards.cards_in(lines, 0, len(lines)):
+        out.append(_md.render("\n".join(lines[start:card.line])))
+        out.append(f'<div class="flashcard">\n{_md.render(card.front)}<hr>\n{_md.render(card.back)}</div>\n')
+        start = card.end + 1
+    out.append(_md.render("\n".join(lines[start:])))
+    return "".join(out)
 
 
 def math_font_css() -> str:

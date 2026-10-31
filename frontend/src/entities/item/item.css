@@ -7,6 +7,7 @@
 .tok-weekday, .tok-tags, .tok-route { color: var(--color-success); }
 .tok-extra { color: color-mix(in oklab, var(--color-base-content) 70%, transparent); }
 .tok-math { color: var(--color-secondary); }
+.tok-card { color: var(--color-accent); font-weight: 600; }
 .tok-unknown { color: color-mix(in oklab, var(--color-base-content) 50%, transparent); font-style: italic; }
 .tok-error { text-decoration: underline wavy var(--color-error); }
 /* the list: one base size per row, every part sized relative to it */

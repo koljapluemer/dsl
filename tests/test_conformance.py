@@ -1,11 +1,11 @@
-"""Run spec/examples against dsl.py (see the spec's Conformance section)."""
+"""Run spec/examples against dsl.py and flashcards.py (see the spec's Conformance section)."""
 
 import json
 from pathlib import Path
 
 import pytest
 
-from dsl_crud.core import dsl
+from dsl_crud.core import dsl, flashcards
 
 SCHEMA = dsl.load_schema()
 EXAMPLES = Path(__file__).parent.parent / "spec" / "examples"
@@ -27,7 +27,7 @@ def _publish(doc: dsl.Document) -> dict | None:
     return {"route": route, "text": "\n".join(doc.blocks["publish"])}
 
 
-def _result(doc: dsl.Document) -> dict:
+def _result(doc: dsl.Document, text: str) -> dict:
     return {
         "body": "\n".join(doc.body) if doc.body else None,
         "clauses": [_clause(c) for c in doc.clauses],
@@ -39,11 +39,13 @@ def _result(doc: dsl.Document) -> dict:
         "data": doc.data,
         "errors": _diagnostics(doc.errors),
         "warnings": _diagnostics(doc.warnings),
+        "flashcards": [{"front": c.front, "back": c.back, "line": c.line + 1} for c in flashcards.cards(SCHEMA, text)],
     }
 
 
 @pytest.mark.parametrize("case", CASES, ids=lambda p: p.stem)
 def test_example(case: Path):
     expected = json.loads(case.with_suffix(".json").read_text(encoding="utf-8"))
-    actual = _result(dsl.parse(SCHEMA, case.read_text(encoding="utf-8")))
+    text = case.read_text(encoding="utf-8")
+    actual = _result(dsl.parse(SCHEMA, text), text)
     assert {k: actual[k] for k in expected} == expected

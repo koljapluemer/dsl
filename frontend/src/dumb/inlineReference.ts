@@ -1,3 +1,4 @@
+import { FENCE } from './fence';
 import { mathAt, type MathSpan } from './math';
 
 export type InlineReference = { from: number; to: number; target: string; label: string | null };
@@ -6,7 +7,6 @@ export type InlineEmbed = InlineReference;
 
 const TARGET = /^[^\s|[\]/\\]+$/;
 const EMBED_TARGET = /^[^|[\]]+$/;
-const FENCE = /^[ \t]{0,3}(`{3,}|~{3,})/;
 
 /** Inline note references outside Markdown code spans, fenced code blocks and math. */
 export const inlineReferences = (source: string): InlineReference[] => scanInline(source).refs;

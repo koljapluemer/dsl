@@ -15,7 +15,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from dsl_crud.core import documents as views
-from dsl_crud.core import canvas, dsl, edits, file_kinds, inline_refs, thea
+from dsl_crud.core import canvas, dsl, edits, file_kinds, flashcards, inline_refs, thea
 from dsl_crud.infrastructure import config
 from dsl_crud.infrastructure.errors import Conflict, NotFound, ValidationError
 
@@ -110,6 +110,8 @@ class _Entry:
     has_canvas: bool
     # a source's BibTeX key (see views.source_key)
     source_key: str | None
+    # its flashcards' ids, each once, in order (see flashcards.cards)
+    flashcards: tuple[str, ...]
 
 
 UNLABELED_RELATION = "related"
@@ -159,6 +161,7 @@ def _entry(mtime_ns: int, item: dict) -> "_Entry":
         thea.kept([b.id for b in vizzes if b.id]),
         isinstance(doc.data, dict) and canvas.CANVAS_KEY in doc.data,
         views.source_key(SCHEMA, doc, item["file"]),
+        tuple(dict.fromkeys(c.id for c in flashcards.cards(SCHEMA, text))),
     )
 
 

@@ -1,0 +1,9 @@
+{
+  "flashcards": [
+    {"front": "capital of France", "back": "Paris", "line": 2},
+    {"front": "a", "back": "b::c", "line": 3},
+    {"front": "What does $E = mc^2$ say?", "back": "Mass and energy\n---\nare equivalent.", "line": 5}
+  ],
+  "errors": [],
+  "warnings": []
+}

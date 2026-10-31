@@ -96,3 +96,15 @@ describe('noteHref', () => {
   });
 
 });
+
+describe('flashcards', () => {
+  it('renders front and back apart, the rest around them', () => {
+    const html = markdown('a\n::q::**b**\n\n::\nfront\n---\nback\n::\nc');
+    expect(html).toBe('<p>a</p>\n<div class="flashcard">\n<p>q</p>\n<hr>\n<p><strong>b</strong></p>\n</div>\n'
+      + '<div class="flashcard">\n<p>front</p>\n<hr>\n<p>back</p>\n</div>\n<p>c</p>\n');
+  });
+
+  it('leaves a malformed card as text', () => {
+    expect(markdown('::no back::')).toBe('<p>::no back::</p>\n');
+  });
+});

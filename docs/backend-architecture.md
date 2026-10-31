@@ -27,7 +27,7 @@ the blueprint list in `application.py`.
 
 Routes decode Flask input and encode responses. Behavior stays in the slice's
 service or purpose-named modules. The current slices are items and attachments,
-derived list views, search, graph, canvas, questions, bibliographic sources, portfolio,
+derived list views, search, graph, canvas, questions, flashcard learning, bibliographic sources, portfolio,
 daily notes, viz blocks, Typst documents, PDF export, maintenance, and settings. Source matching and BibTeX conversion stay with
 sources; semantic ranking stays with search; collage rendering stays with the
 portfolio.

@@ -1,0 +1,13 @@
+Flashcards
+::capital of France::Paris
+::a::b::c
+
+::
+What does $E = mc^2$ say?
+
+---
+Mass and energy
+---
+are equivalent.
+::
+tags learn

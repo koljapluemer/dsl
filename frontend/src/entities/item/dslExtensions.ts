@@ -2,6 +2,7 @@ import { Decoration, type DecorationSet, EditorView, ViewPlugin, type ViewUpdate
 import { linter } from '@codemirror/lint';
 import type { Schema } from '@/api/types';
 import { analyze, type Segment } from './dsl/analyze';
+import { flashcardDelimiters } from './dsl/flashcards';
 import { itemMathSpans } from './dsl/inlineRefs';
 import './item.css';
 
@@ -10,7 +11,7 @@ export function dslExtensions(schema: Schema) {
   const build = (view: EditorView) => {
     const text = view.state.doc.toString();
     const math: Segment[] = itemMathSpans(schema, text).map(({ from, to }) => ({ from, to, cls: 'tok-math' }));
-    return Decoration.set([...analyze(schema, text).segments, ...math].map((s) =>
+    return Decoration.set([...analyze(schema, text).segments, ...math, ...flashcardDelimiters(schema, text)].map((s) =>
       Decoration.mark({ class: s.cls, attributes: s.title ? { title: s.title } : {} }).range(s.from, s.to)), true);
   };
 

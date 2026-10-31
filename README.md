@@ -81,7 +81,7 @@ New files are named `<slug of the first line>-<6 hex>.txt`; the name doesn't cha
 - **Esc** never discards edits. It leaves a note's editor (saving it where edits are written as focus leaves) or a label editor, or closes a modal, only when nothing unsaved was edited; otherwise it shows a notice and does nothing (a click outside a modal does the same). In a search or filter field it just leaves the field.
 - Single keys, ignored while typing in a field, holding Ctrl/Alt/Meta, or with a modal open:
   - `g` then a tab's key (in its tooltip) switches tab (`g a` opens Daily, `g v` Canvas, `g y` Canvas2Typ), `c` opens a new note (as the New note button), `/` focuses the page's filter, else the sidebar's search, `u` undoes the change the toast offers.
-  - Calendar: ←/→ a day (or the range's length), `t` today/this week, `a` add, `d`/`r` day/range view. Queue: `n` next. Questions: `s` skip, `e` edit, `d` disable. Suggest: Shift+N next.
+  - Calendar: ←/→ a day (or the range's length), `t` today/this week, `a` add, `d`/`r` day/range view. Queue: `n` next. Questions: `s` skip, `e` edit, `d` disable. Learn: Space reveal, `1`–`4` again/hard/good/easy. Suggest: Shift+N next.
 
 ## Semantic search
 
@@ -94,6 +94,10 @@ The Questions tab shows a random note whose body contains `>` or `~`, that has a
 When that module lists more than 3 questions, a local LLM chooses the 3 that fit the note best: `gemma3:4b`, tuned with `dsl_crud/features/questions/pick-questions.md`, on an [Ollama](https://ollama.com) server. Without the server or the model it asks the first 3, and offers to download a missing model.
 
 The server's URL is the only LLM setting (Settings, stored under `llm` in the config file); it defaults to `OLLAMA_HOST`, then `http://127.0.0.1:11434`. Each feature names its own model, and models are kept loaded for 30 minutes between calls (`dsl_crud/infrastructure/ollama.py`).
+
+## Learn
+
+Flashcards in a note's body or `extra` block are learned by spaced repetition in the Learn tab ([`docs/flashcards.md`](docs/flashcards.md)). A card fits on one line, `::front::back`, or takes a block: a `::` line, the front, a `---` line, the back, and a closing `::` line. Front and back are Markdown, and notes render them as a box split by a rule. The tab shows a random due card, else a random new one: first its front, then (Reveal, Space) front and back with Again, Hard, Good and Easy (`1`–`4`). [FSRS](https://github.com/open-spaced-repetition/py-fsrs) schedules the cards. A card's state is a JSON file attached to its note (`files/flashcards/<note>-<id>.json`, named in a `media` clause on its first review, not listed with the note's files). A card is known by its front: editing the back keeps its history, editing the front starts over.
 
 ## Calendar, Queue, Float, Tags, Suggest
 

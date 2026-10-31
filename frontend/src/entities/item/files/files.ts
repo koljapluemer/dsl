@@ -6,9 +6,13 @@ import { VIDEO_EXTENSIONS } from './kinds/video';
 
 /**
  * What the app does with a file a note names, by its extension (as file_kinds.py):
- * images and videos are `shown` as its media, kinds with an `editor` are edited as text (Typst in its own modal).
+ * images and videos are `shown` as its media, kinds with an `editor` are edited as text (Typst in its own modal),
+ * `hidden` ones the app keeps for itself and doesn't list.
  */
-export type FileKind = { name: 'image' | 'video' | 'jinja' | 'typst' | 'other'; extensions: string[]; shown?: boolean; editor?: () => Extension[] };
+export type FileKind = {
+  name: 'image' | 'video' | 'jinja' | 'typst' | 'flashcard' | 'other';
+  extensions: string[]; shown?: boolean; hidden?: boolean; editor?: () => Extension[];
+};
 
 const KINDS: FileKind[] = [
   { name: 'image', extensions: IMAGE_EXTENSIONS, shown: true },
@@ -17,9 +21,13 @@ const KINDS: FileKind[] = [
   { name: 'typst', extensions: TYPST_EXTENSIONS, editor: typstEditor },
 ];
 const OTHER: FileKind = { name: 'other', extensions: [] };
+/** a flashcard's review state (docs/flashcards.md), only in FLASHCARDS_DIR */
+const FLASHCARD: FileKind = { name: 'flashcard', extensions: ['json'], hidden: true };
+export const FLASHCARDS_DIR = 'files/flashcards';
 
 export const kindOf = (path: string): FileKind => {
   const ext = path.includes('.') ? path.split('.').pop()!.toLowerCase() : '';
+  if (path.startsWith(`${FLASHCARDS_DIR}/`) && FLASHCARD.extensions.includes(ext)) return FLASHCARD;
   return KINDS.find((k) => k.extensions.includes(ext)) ?? OTHER;
 };
 

@@ -78,6 +78,42 @@ or, when only one of its files has that name, by its file name
 (`![[a.webp]]`). Frontends show anything else as a broken embed; the item stays
 valid.
 
+### Flashcards
+
+The body and the `extra` block may hold flashcards: a front to be recalled
+and a back that answers it. One fits on a line that starts with `::` at
+column 0, its front and back split at the next `::`:
+
+```
+::capital of France::Paris
+```
+
+Longer ones are a block: a line holding only `::`, the front's lines, a line
+holding only `---`, the back's lines, and a line holding only `::` (trailing
+whitespace allowed on these three):
+
+```
+::
+What does $E = mc^2$ say?
+---
+Mass and energy are equivalent.
+::
+```
+
+- Front and back are Markdown, with their blank ends dropped; each needs a
+  non-blank line. The first `---` splits them, so the back may hold more.
+- A `::` line before the `---` line, a missing part or a block that never
+  closes is no card: its lines stay ordinary text.
+- Lines in a closed [fence](#fences) are never part of a card, and a fence
+  inside a card's block is opaque to it.
+- Cards change nothing about the [boundary](#boundary): a card line that is a
+  section opener still ends the body, and is escaped by indenting it as any
+  body line. A `::` line never is one.
+
+A card is identified within its item by its front, trailing whitespace and
+blank ends aside: editing the back keeps it the same card, editing the front
+makes it another one. Cards with the same front in one item are one card.
+
 ### Boundary
 
 The boundary is the first line after the first body line that is a **section
@@ -340,6 +376,7 @@ result matches every key the JSON lists; absent keys aren't checked.
 | `extra`     | the `extra` block's lines joined with `\n`, or `null` when there is none |
 | `publish`   | `{route, text}`: the `publish` clause's route (`null` when it's invalid) and its block's lines joined with `\n`; `null` when there is none |
 | `data`      | the `data` block parsed as YAML, or `null` when there is none or it is invalid |
+| `flashcards` | `[{front, back, line}]`, `line` the card's first line             |
 | `errors`    | `[{code, line}]`, sorted by line (`null` first), then code      |
 | `warnings`  | `[{code, line}]`, sorted the same way                            |
 

@@ -20,7 +20,7 @@ file to an item; a file may be named by several items, or by none.
 | folder    | holds                                                    |
 |-----------|----------------------------------------------------------|
 | `images/` | uploads: images and videos attached in the note editor, as `<note>-<ms>.<ext>` |
-| `files/`  | files the app creates otherwise (the portfolio's template, Typst documents and their PDFs) |
+| `files/`  | files the app creates otherwise (the portfolio's template, Typst documents and their PDFs, flashcards' review state in `files/flashcards/`) |
 
 The app deletes files only inside these two folders. Files elsewhere in the
 data folder may be named too; the app reads them but never deletes them.
@@ -37,6 +37,7 @@ A file's extension decides its kind: `file_kinds.py` on the server,
 | `video` | mp4 webm mov                     | shown; an upload is written as is, up to 250 MB      |
 | `jinja` | j2 jinja jinja2                  | edited as text in a modal, highlighted as Jinja in HTML (`kinds/jinja.ts`) |
 | `typst` | typ                              | edited as text, highlighted as Typst (`codemirror-lang-typst`), beside its PDF, which is built when it's written (`kinds/typst.ts`, see below) |
+| `flashcard` | json, only in `files/flashcards/` | a flashcard's review state, hidden: not listed ([`flashcards.md`](flashcards.md)) |
 | other   | anything else                    | listed, opens in a new tab                           |
 
 An item's images and videos, in the order its `media` clauses name them, are
@@ -45,8 +46,8 @@ is its cover (`media` in the API's item, `views.media`): the thumbnail in
 lists. The note's attach tool adds any number, each in a new `media` clause
 after the others (`files.attach`); each can be removed on its own
 (`files.remove`), other clauses stay as they are. Reorder them by moving their
-lines in the editor. The item's other files are listed below its content
-(`FileList`).
+lines in the editor. The item's other files, except hidden kinds, are listed
+below its content (`FileList`).
 
 To add a kind: add it to `KINDS` in `file_kinds.py` and in `files.ts`, with a
 module in `kinds/` for what only it does.

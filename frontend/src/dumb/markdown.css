@@ -7,6 +7,10 @@
 .md pre { white-space: pre-wrap; padding: 0.4em 0.6em; }
 .md pre code { padding: 0; }
 .md blockquote { border-left: 2px solid var(--color-base-300); padding-left: 0.75rem; }
+/* a flashcard: its front, a rule, its back */
+.md .flashcard { border: 1px solid var(--color-base-300); border-radius: var(--radius-box); padding: 0.5em 0.75em; }
+.md .flashcard > * + * { margin-top: 0.4em; }
+.md .flashcard > hr { border-color: var(--color-base-300); }
 /* one line of Markdown (inlineMarkdown) */
 .md-inline a { text-decoration: underline; }
 .md-inline code { background: var(--color-base-300); border-radius: 0.25rem; padding: 0 0.2em; }

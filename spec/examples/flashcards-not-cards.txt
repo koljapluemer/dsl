@@ -1,0 +1,15 @@
+Not cards
+ ::indented::no
+::no back::
+::::no front
+::
+no separator
+::
+::
+---
+empty front
+::
+::
+front, never closed
+---
+back

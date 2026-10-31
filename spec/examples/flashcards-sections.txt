@@ -1,0 +1,6 @@
+Sections
+::in the body::yes
+extra
+::in extra::yes
+publish essays/cards
+::in publish::no

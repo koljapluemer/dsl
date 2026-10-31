@@ -5,11 +5,11 @@ import { pdfOf } from './kinds/typst';
 
 /**
  * The note's files besides its images and videos (its MediaGallery shows
- * those): files edited as text as buttons calling `onOpen` (a Typst file with a
- * link to its PDF), others as links.
+ * those) and the hidden ones the app keeps for itself: files edited as text as
+ * buttons calling `onOpen` (a Typst file with a link to its PDF), others as links.
  */
 export function FileList({ item, onOpen }: { item: Item; onOpen?: (path: string) => void }) {
-  const rest = item.files.filter((f) => !kindOf(f).shown);
+  const rest = item.files.filter((f) => !kindOf(f).shown && !kindOf(f).hidden);
   if (!rest.length) return null;
   return (
     <ul className="flex flex-wrap items-center gap-1">

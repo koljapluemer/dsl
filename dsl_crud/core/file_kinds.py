@@ -17,6 +17,8 @@ class Kind:
     shown: bool = False
     # editable as text in the app
     text: bool = False
+    # kept by the app for itself: not listed with the item's files
+    hidden: bool = False
     # what a new file of this kind starts as
     default: str = ""
 
@@ -52,6 +54,9 @@ TYPST = Kind("typst", frozenset({".typ"}), text=True, default="""\
 
 = Title
 """)
+# a flashcard's review state, in FLASHCARDS_DIR (see docs/flashcards.md)
+FLASHCARD = Kind("flashcard", frozenset({".json"}), hidden=True)
+FLASHCARDS_DIR = "files/flashcards"
 OTHER = Kind("other")
 
 KINDS = (IMAGE, VIDEO, JINJA, TYPST)
@@ -63,6 +68,8 @@ _EXTENSIONS = {("image", "jpeg"): "jpg", ("video", "quicktime"): "mov"}
 
 def kind(path: str) -> Kind:
     suffix = PurePosixPath(path).suffix.lower()
+    if path.startswith(FLASHCARDS_DIR + "/") and suffix in FLASHCARD.extensions:
+        return FLASHCARD
     return next((k for k in KINDS if suffix in k.extensions), OTHER)
 
 

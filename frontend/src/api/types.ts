@@ -34,6 +34,15 @@ export type Question = { id: string; question: string; label: string };
 export type Suggestion = { file: string; heading: string };
 export type QuestionPick = { questions: Question[]; missing_model?: string | null; reason?: string | null };
 export type NextNote = { item: Item | null; total: number };
+
+/** A flashcard to learn (features/learn/service.py) and its FSRS state's name. */
+export type LearnCard = { file: string; id: string; front: string; back: string; state: 'new' | 'learning' | 'review' | 'relearning' };
+export type Rating = 'again' | 'hard' | 'good' | 'easy';
+/** The card to learn next, if any is due or new: its note, and the counts. */
+export type LearnNext = {
+  card: LearnCard | null; item: Item | null;
+  counts: { due: number; new: number; total: number }; next_due: string | null;
+};
 export type Answered = Item & { target: Suggestion };
 
 /** the exports (exports.py), by their key */

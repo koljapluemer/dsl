@@ -7,6 +7,7 @@ requires-python = ">=3.13"
 dependencies = [
     "bibtexparser>=2.0.1",
     "flask>=3.1.3",
+    "fsrs>=6.3.2",
     "latex2mathml>=3.81.1",
     "markdown-it-py>=4.2.0",
     "numpy>=2.5.4",
@@ -60,6 +61,7 @@ modules = [
     "dsl_crud.features.canvas",
     "dsl_crud.features.graph",
     "dsl_crud.features.items",
+    "dsl_crud.features.learn",
     "dsl_crud.features.maintenance",
     "dsl_crud.features.pdf",
     "dsl_crud.features.portfolio",

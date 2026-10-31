@@ -2,6 +2,7 @@ import { Lexer, Marked, marked, Parser, type MarkedExtension, type Token, type T
 import DOMPurify from 'dompurify';
 import temml from 'temml';
 import 'temml/dist/Temml-Local.css';
+import { cardsIn } from './flashcards';
 import { inlineEmbeds, inlineReferences, type InlineEmbed, type InlineReference } from './inlineReference';
 import { mathAt } from './math';
 import './markdown.css';
@@ -82,9 +83,22 @@ function expandReferences(s: string, refs: Record<string, string | null>, refere
   return expanded;
 }
 
+/** `s` as HTML by `render`, each flashcard (see flashcards.ts) its front and back rendered apart; as the server's markdown.render. */
+function withCards(s: string, render: (part: string) => string) {
+  if (!s.includes('::')) return render(s);
+  const lines = s.split('\n');
+  let html = '', start = 0;
+  for (const card of cardsIn(lines, 0, lines.length)) {
+    html += render(lines.slice(start, card.line).join('\n'));
+    html += `<div class="flashcard">\n${render(card.front)}<hr>\n${render(card.back)}</div>\n`;
+    start = card.end + 1;
+  }
+  return html + render(lines.slice(start).join('\n'));
+}
+
 /** Markdown as sanitized HTML; single newlines break lines. */
 export const markdown = (s: string, refs: Record<string, string | null> = {}, referenceHtml?: ReferenceHtml, embedHtml?: EmbedHtml) =>
-  DOMPurify.sanitize(marked.parse(expandReferences(s, refs, referenceHtml, embedHtml), { breaks: true, async: false }), SANITIZE);
+  DOMPurify.sanitize(withCards(s, (part) => marked.parse(expandReferences(part, refs, referenceHtml, embedHtml), { breaks: true, async: false })), SANITIZE);
 
 // the fence kinds the current `slotted` call leaves slots for
 let slotKinds: readonly string[] = [];
@@ -107,7 +121,7 @@ const slotting = new Marked(math, {
 export function slotted(s: string, refs: Record<string, string | null>, kinds: readonly string[], embedHtml?: EmbedHtml) {
   slotKinds = kinds;
   try {
-    return DOMPurify.sanitize(slotting.parse(expandReferences(s, refs, undefined, embedHtml), { breaks: true, async: false }), SANITIZE);
+    return DOMPurify.sanitize(withCards(s, (part) => slotting.parse(expandReferences(part, refs, undefined, embedHtml), { breaks: true, async: false })), SANITIZE);
   } finally {
     slotKinds = [];
   }

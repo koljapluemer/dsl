@@ -25,6 +25,7 @@ export const TABS = [
   { to: '/published', label: 'Published', key: 'b' },
   { to: '/portfolio', label: 'Portfolio', key: 'o' },
   { to: '/questions', label: 'Questions', key: 'q' },
+  { to: '/learn', label: 'Learn', key: 'r' },
   { to: '/calendar', label: 'Calendar', key: 'c' },
   { to: '/queue', label: 'Queue', key: 'u' },
   { to: '/float', label: 'Float', key: 'f' },
@@ -46,6 +47,7 @@ const SHORTCUTS: [string, string][] = [
   ['t · a · d · r', 'Calendar: today or this week · add · day view · range view'],
   ['n', 'Queue: next'],
   ['s · e · d', 'Questions: skip · edit · disable'],
+  ['Space · 1–4', 'Learn: reveal · again, hard, good, easy'],
   ['N', 'Suggest: next'],
   ['?', 'this list'],
 ];

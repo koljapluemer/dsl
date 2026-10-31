@@ -1,6 +1,7 @@
 import type { EditorView } from '@codemirror/view';
 import type { Schema } from '@/api/types';
-import { fenceEnd, textSpans } from './outline';
+import { fenceEnd } from '@/dumb/fence';
+import { textSpans } from './outline';
 
 /** ```thea fences: a viz block's spec (docs/thea.md); mirrors dsl_crud/core/thea.py. */
 const HEADER = /^([ \t]{0,3}(?:`{3,}|~{3,}))[ \t]*thea(?:[ \t]+(\S+))?[ \t]*$/;

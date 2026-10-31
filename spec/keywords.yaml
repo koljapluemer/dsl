@@ -20,7 +20,7 @@
 #
 # A type is one name from language.md, or a list of them.
 
-version: 12
+version: 13
 
 changes:
   - version: 1
@@ -67,6 +67,10 @@ changes:
     note: >
       A route's last segment may be `_index` (a folder's index page). `![[…]]`
       is an embed of an attached file, never an inline relationship.
+  - version: 13
+    note: >
+      Flashcards in the body and the `extra` block: `::front::back` lines and
+      `::` … `---` … `::` blocks. Parsing of everything else is unchanged.
 
 keywords:
   appointment:
