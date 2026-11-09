@@ -1,6 +1,6 @@
 """Headless Chromium through Playwright, for pages rendered to images (the
-portfolio's cards, viz thumbnails and checks) and to PDFs (note export). Needs
-the `cards` dependency group and `uv run playwright install chromium`;
+viz thumbnails and checks) and to PDFs (note export). Needs the `browser`
+dependency group and `uv run playwright install chromium`;
 `available` says whether this install has them (not on Termux)."""
 
 import base64
@@ -22,7 +22,7 @@ def missing() -> str | None:
         import PIL  # noqa: F401
         from playwright.sync_api import sync_playwright
     except ImportError as e:
-        return f"{e.name} isn't installed (the `cards` dependency group)"
+        return f"{e.name} isn't installed (the `browser` dependency group)"
     try:
         with sync_playwright() as p:
             p.chromium.launch().close()

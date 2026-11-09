@@ -26,7 +26,7 @@ The parser is `dsl_crud/core/flashcards.py`. Its mirror is
 Wherever a note's Markdown is rendered, each card's front and back are
 rendered apart, with a rule between them in a bordered box:
 `withCards` in `dumb/markdown.ts`, and `render` in
-`infrastructure/markdown.py` for PDF, portfolio and site exports. The
+`infrastructure/markdown.py` for PDF and site exports. The
 Markdown around a card is rendered as separate pieces, so a list can't run
 through a card. The editor marks the `::` and `---` delimiters
 (`flashcardDelimiters`, class `tok-card`).

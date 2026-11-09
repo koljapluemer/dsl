@@ -7,14 +7,14 @@ def test_factory_is_repeatable_and_registers_exports_once():
     first_exports = set(exports.EXPORTS)
     second = create_app()
     assert {rule.rule for rule in first.url_map.iter_rules()} == {rule.rule for rule in second.url_map.iter_rules()}
-    assert first_exports == set(exports.EXPORTS) == {"bibtex", "portfolio", "site"}
+    assert first_exports == set(exports.EXPORTS) == {"bibtex", "site"}
 
 
 def test_factory_registers_public_route_groups():
     rules = {rule.rule for rule in create_app().url_map.iter_rules()}
     assert {
         "/api/items", "/api/search", "/api/questions/next", "/api/graph",
-        "/api/sources", "/api/portfolio", "/api/maintenance", "/api/settings",
+        "/api/sources", "/api/maintenance", "/api/settings",
         "/api/calendar", "/api/files/<path:rel>", "/<path:path>",
     } <= rules
 

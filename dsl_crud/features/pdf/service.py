@@ -1,6 +1,6 @@
 """A note as a PDF: its body, its `extra` or both as Markdown, its images above
-them, printed by headless Chromium (Playwright). Needs what the portfolio's
-cards need (`chromium.available`), so not on Termux."""
+them, printed by headless Chromium (Playwright). Needs the browser dependencies
+(`chromium.available`), so not on Termux."""
 
 import html
 import re

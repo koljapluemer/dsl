@@ -25,26 +25,7 @@ class Kind:
 
 IMAGE = Kind("image", frozenset({".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp"}), shown=True)
 VIDEO = Kind("video", frozenset({".mp4", ".webm", ".mov"}), shown=True)
-JINJA = Kind("jinja", frozenset({".j2", ".jinja", ".jinja2"}), text=True, default="""\
-<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{{ title }}</title>
-<style>
-  body { max-width: 42rem; margin: 2rem auto; padding: 0 1rem; font: 1.05rem/1.6 system-ui, sans-serif; }
-  img { max-width: 100%; }
-  .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr)); gap: 0.75rem; margin-top: 2rem; }
-  .cards img { display: block; width: 100%; height: auto; }
-</style>
-</head>
-<body>
-{{ body }}
-{% if cards %}<section class="cards">{% for c in cards %}<a href="{{ c.image }}" target="_blank" rel="noopener"><img src="{{ c.thumb }}" alt="{{ c.title }}" loading="lazy"></a>{% endfor %}</section>{% endif %}
-</body>
-</html>
-""")
+JINJA = Kind("jinja", frozenset({".j2", ".jinja", ".jinja2"}), text=True)
 # compiled to a PDF beside it (pdf_of) when written, see docs/files.md
 TYPST = Kind("typst", frozenset({".typ"}), text=True, default="""\
 #set page(paper: "a4")

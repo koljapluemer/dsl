@@ -58,7 +58,7 @@ dependencies = [
 ]
 
 [package.dev-dependencies]
-cards = [
+browser = [
     { name = "pillow" },
     { name = "playwright" },
 ]
@@ -84,7 +84,7 @@ requires-dist = [
 ]
 
 [package.metadata.requires-dev]
-cards = [
+browser = [
     { name = "pillow", specifier = ">=13.0.0" },
     { name = "playwright", specifier = ">=1.64.1" },
 ]

@@ -125,8 +125,6 @@ Choose `persist` to match the page:
 | Projects | inline, in their expandable wrapper with the issue count and an add-issue tool; issues inline and whole (`inlineWhole`) with the think/build tag toggle |
 | Sources | the list inline, the open source edit only, blur commit; `copyKey` shows for any source |
 | Published | the route tree's segment names only; the open note full, blur commit |
-| Portfolio | full, blur commit, edit first, persisted per view, no relationships, no delete; a preview link as extra tool |
-| Portfolio → cards | only in the modal, opened from the card's thumbnail; a new card's modal starts with `tags card` |
 | Questions | full, view first, the mode kept by the page (`e` edits) |
 | Calendar | inline, with the edit tool |
 | Queue | simple or full (view first), as the toggle beside Next says (kept for the session); a tag toggle hides from the queue |

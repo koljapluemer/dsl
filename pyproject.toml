@@ -17,7 +17,7 @@ dependencies = [
 ]
 
 [dependency-groups]
-cards = [
+browser = [
     "pillow>=13.0.0",
     "playwright>=1.64.1",
 ]
@@ -30,8 +30,8 @@ typst = [
 ]
 
 [tool.uv]
-# `cards`: portfolio card collages, `typst`: Typst documents; left out on Termux, which only installs `dependencies`
-default-groups = ["dev", "cards", "typst"]
+# `browser`: PDF and viz rendering/checks, `typst`: Typst documents; left out on Termux, which only installs `dependencies`
+default-groups = ["dev", "browser", "typst"]
 
 [tool.pytest.ini_options]
 pythonpath = ["."]
@@ -64,7 +64,6 @@ modules = [
     "dsl_crud.features.learn",
     "dsl_crud.features.maintenance",
     "dsl_crud.features.pdf",
-    "dsl_crud.features.portfolio",
     "dsl_crud.features.questions",
     "dsl_crud.features.search",
     "dsl_crud.features.settings",

@@ -23,7 +23,6 @@ export const TABS = [
   { to: '/projects', label: 'Projects', key: 'p' },
   { to: '/sources', label: 'Sources', key: 's' },
   { to: '/published', label: 'Published', key: 'b' },
-  { to: '/portfolio', label: 'Portfolio', key: 'o' },
   { to: '/questions', label: 'Questions', key: 'q' },
   { to: '/learn', label: 'Learn', key: 'r' },
   { to: '/calendar', label: 'Calendar', key: 'c' },

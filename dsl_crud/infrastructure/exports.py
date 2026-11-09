@@ -1,5 +1,5 @@
 """Files the app derives from the items and writes to paths set in Settings
-(the .bib file, the portfolio page, the published site): one runner for all
+(the .bib file and the published site): one runner for all
 of them, debounced after writes, at startup and periodically."""
 
 import threading

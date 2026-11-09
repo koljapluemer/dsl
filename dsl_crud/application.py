@@ -12,8 +12,6 @@ from dsl_crud.features.items.routes import blueprint as items_routes
 from dsl_crud.features.learn.routes import blueprint as learn
 from dsl_crud.features.maintenance.routes import blueprint as maintenance
 from dsl_crud.features.pdf.routes import blueprint as pdf
-from dsl_crud.features.portfolio import service as portfolio_service
-from dsl_crud.features.portfolio.routes import blueprint as portfolio
 from dsl_crud.features.questions.routes import blueprint as questions
 from dsl_crud.features.search.routes import blueprint as search
 from dsl_crud.features.settings.routes import blueprint as settings
@@ -32,11 +30,10 @@ ROOT = Path(__file__).parent.parent
 
 def create_app() -> Flask:
     exports.register(bibtex_export.definition())
-    exports.register(portfolio_service.export_definition())
     exports.register(site_service.export_definition())
     typst_compiler.register_bibliography(bibtex_export.typst_bibliography)
     app = Flask(__name__, static_folder=None)
-    for blueprint in (settings, search, questions, views, sources, graph, canvas, maintenance, items_routes, portfolio, site, daily, thea, typst, pdf, learn):
+    for blueprint in (settings, search, questions, views, sources, graph, canvas, maintenance, items_routes, site, daily, thea, typst, pdf, learn):
         app.register_blueprint(blueprint)
     app.register_error_handler(items.ValidationError, _invalid)
     app.register_error_handler(fields.ValidationError, _invalid)

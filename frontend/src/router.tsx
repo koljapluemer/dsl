@@ -18,7 +18,6 @@ import { FloatPage } from './pages/float/FloatPage';
 import { GoalsPage } from './pages/goals/GoalsPage';
 import { GraphPage } from './pages/graph/GraphPage';
 import { HomePage } from './pages/home/HomePage';
-import { PortfolioPage } from './pages/portfolio/PortfolioPage';
 import { DailyPage } from './pages/daily/DailyPage';
 import { ProjectsPage } from './pages/projects/ProjectsPage';
 import { PublishedPage } from './pages/published/PublishedPage';
@@ -63,7 +62,6 @@ const tree = root.addChildren([
   createRoute({ getParentRoute: () => root, path: '/projects', component: ProjectsPage }),
   createRoute({ getParentRoute: () => root, path: '/sources', validateSearch: validateSourcesSearch, component: SourcesPage }),
   createRoute({ getParentRoute: () => root, path: '/published', validateSearch: validatePublishedSearch, component: PublishedPage }),
-  createRoute({ getParentRoute: () => root, path: '/portfolio', component: PortfolioPage }),
   createRoute({ getParentRoute: () => root, path: '/questions', component: QuestionsPage }),
   createRoute({ getParentRoute: () => root, path: '/learn', component: LearnPage }),
   createRoute({ getParentRoute: () => root, path: '/calendar', validateSearch: validateCalendarSearch, component: CalendarPage }),

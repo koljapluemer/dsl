@@ -6,10 +6,10 @@ in a `media` clause, any number of times (`repeat` in
 [`spec/keywords.yaml`](../spec/keywords.yaml)):
 
 ```
-Portfolio
+Home
 media images/portrait-1712345678901.webp
-media files/portfolio-a1b2c3.html.j2
-tags portfolio
+media files/home-a1b2c3.html.j2
+publish _index
 ```
 
 The path is relative to the data folder. Nothing but `media` clauses links a
@@ -20,7 +20,7 @@ file to an item; a file may be named by several items, or by none.
 | folder    | holds                                                    |
 |-----------|----------------------------------------------------------|
 | `images/` | uploads: images and videos attached in the note editor, as `<note>-<ms>.<ext>` |
-| `files/`  | files the app creates otherwise (the portfolio's template, Typst documents and their PDFs, flashcards' review state in `files/flashcards/`) |
+| `files/`  | files the app creates otherwise (site templates, Typst documents and their PDFs, flashcards' review state in `files/flashcards/`) |
 
 The app deletes files only inside these two folders. Files elsewhere in the
 data folder may be named too; the app reads them but never deletes them.

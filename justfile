@@ -9,7 +9,7 @@ run:
     [ -d {{dir}}/frontend/dist ] || just build-release
     uv run --project {{dir}} python -m dsl_crud
 
-# download the headless Chromium the portfolio's card collages and PDF exports are rendered in (once)
+# download the headless Chromium used for PDF exports and viz rendering/checks (once)
 chromium:
     uv run --project {{dir}} playwright install chromium
 

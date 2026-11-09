@@ -46,7 +46,7 @@ export type LearnNext = {
 export type Answered = Item & { target: Suggestion };
 
 /** the exports (exports.py), by their key */
-export type ExportKey = 'bibtex' | 'portfolio' | 'site';
+export type ExportKey = 'bibtex' | 'site';
 /** `exports`: each export's target paths, each with its last export's error */
 export type Settings = { path: string | null; exports: Record<ExportKey, { path: string; error: string | null }[]>; thea: TheaSettings };
 /** how viz blocks are generated: the claude CLI command, its model ('' for its default), a cap per run in estimated USD (API prices, not what a subscription pays), a time limit */
@@ -67,9 +67,6 @@ export type TheaJob = {
 export type TheaMeta = { spec: string; model: string | null; created: string; cost_usd: number | null; turns: number | null };
 /** what Settings → maintenance would delete */
 export type Maintenance = { pastAppointments: Item[]; orphanedFiles: string[] };
-/** the note tagged portfolio and its template's path */
-/** `cards`: whether this install can render card collages (Chromium), and why not */
-export type Portfolio = { note: Item; template: string; cards: { available: boolean; reason: string | null } };
 /** the note published at `_index`, whose template every page of the site is rendered into */
 export type Site = { note: Item; template: string };
 export type LlmInfo ={ available: boolean; reason: string | null; url: string; default_url: string };
